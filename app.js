@@ -653,7 +653,7 @@ async function loadHealthRecords() {
     renderTodayDashboard();
   } catch (error) {
     if (list) {
-      list.innerHTML = '<p class="empty error-text">No se pudieron cargar los registros de salud. Ejecuta el SQL de VITA v0.8.</p>';
+      list.innerHTML = '<p class="empty error-text">No se pudieron cargar los registros de salud. Ejecuta docs/supabase_v2_1_reparacion_total.sql.</p>';
     }
     renderHealthStats([]);
   }
@@ -837,12 +837,12 @@ async function safeDataLoad(name, fn) {
 
 
 async function initializePrivateData() {
-  showSyncStatus('Sincronizando datos...', 'neutral');
+  showSyncStatus('Cargando VITA...', 'neutral');
 
   try {
     await loadProfileAndHousehold();
   } catch (error) {
-    showSyncStatus(error.message || 'No se pudo cargar el perfil.', 'error');
+    showSyncStatus('No se pudo cargar tu perfil. Revisa la sesión.', 'error');
     return;
   }
 
@@ -853,9 +853,8 @@ async function initializePrivateData() {
   await safeDataLoad('medicación', loadMedications);
   await safeDataLoad('hogar', loadHomeData);
   renderTodayDashboard();
-  evaluateNotifications();
 
-  showSyncStatus('Datos sincronizados.', 'success');
+  showSyncStatus('VITA lista.', 'success');
 }
 
 
@@ -2053,7 +2052,7 @@ function renderMedicationsError() {
   const stock = document.getElementById('medication-stock-list');
 
   if (today) {
-    today.innerHTML = '<p class="empty error-text">No se pudo cargar la medicación. Ejecuta el SQL de VITA v1.1.</p>';
+    today.innerHTML = '<p class="empty error-text">No se pudo cargar la medicación. Ejecuta docs/supabase_v2_1_reparacion_total.sql.</p>';
   }
 
   if (stock) {
@@ -2619,7 +2618,6 @@ function renderTodayDashboard() {
   renderSmartReminders();
   renderTodaySummary();
   renderNextAppointmentCard();
-  evaluateNotifications();
 }
 
 function generateSmartReminders() {
@@ -2924,8 +2922,7 @@ function setupNotifications() {
   loadNotificationPreferences();
   updatePwaStatus();
   updateNotificationStatus();
-  updatePushSetupStatus();
-
+  
   const enableButton = document.getElementById('enable-notifications');
   if (enableButton) {
     enableButton.addEventListener('click', requestVitaPushNotifications);
@@ -3080,8 +3077,7 @@ async function requestVitaPushNotifications() {
 
   localStorage.setItem(getNotificationsEnabledKey(), 'true');
   updateNotificationStatus();
-  updatePushSetupStatus();
-  showSyncStatus('Push activado en este dispositivo.', 'success');
+    showSyncStatus('Avisos activados en este dispositivo.', 'success');
 }
 
 async function ensureNotificationPermission() {
@@ -3118,8 +3114,7 @@ async function subscribeDeviceToPush() {
 
   if (!publicKey || publicKey.includes('REEMPLAZA_AQUI')) {
     showSyncStatus('Falta configurar la VAPID public key en config.js.', 'error');
-    updatePushSetupStatus();
-    return null;
+        return null;
   }
 
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -3176,13 +3171,12 @@ async function sendTestPushNotification() {
   });
 
   if (response.ok) {
-    showSyncStatus('Push de prueba enviado.', 'success');
+    showSyncStatus('Aviso de prueba enviado.', 'success');
   } else {
-    showSyncStatus(response.message || 'No se pudo enviar el push de prueba.', 'error');
+    showSyncStatus(response.message || 'No se pudo enviar el aviso. Revisa Supabase.', 'error');
   }
 
-  updatePushSetupStatus();
-}
+  }
 
 async function invokePushFunction(payload) {
   const session = getStoredSession();
@@ -3695,20 +3689,20 @@ function setupDiagnostics() {
   setTimeout(runDiagnostics, 700);
 }
 
+
 function setupGlobalErrorHandling() {
   window.addEventListener('error', (event) => {
     console.error('VITA error:', event.error || event.message);
-    showSyncStatus('Se detectó un error de la app. Revisa Estado de VITA.', 'error');
   });
 
   window.addEventListener('unhandledrejection', (event) => {
     console.error('VITA promise error:', event.reason);
-    showSyncStatus('Se detectó un error de sincronización. Revisa Estado de VITA.', 'error');
   });
 
   window.addEventListener('online', () => showSyncStatus('Conexión recuperada.', 'success'));
-  window.addEventListener('offline', () => showSyncStatus('Sin conexión. VITA mostrará datos ya cargados.', 'error'));
+  window.addEventListener('offline', () => showSyncStatus('Sin conexión.', 'error'));
 }
+
 
 function runDiagnostics() {
   const rows = getDiagnosticRows();
@@ -3847,7 +3841,6 @@ function boot() {
   safeSetup('hogar', setupHome);
   safeSetup('recordatorios', setupSmartReminders);
   safeSetup('notificaciones', setupNotifications);
-  safeSetup('diagnóstico', setupDiagnostics);
   safeSetup('listas', setupShoppingForms);
   safeSetup('documentos', setupDocumentDemo);
   safeSetup('registros de salud iniciales', () => renderHealthRecords([]));

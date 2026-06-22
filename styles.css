@@ -2162,3 +2162,21 @@ button { cursor: pointer; }
     grid-template-columns: 1fr;
   }
 }
+
+
+.account-mini-card,
+.diagnostics-panel {
+  display: none !important;
+}
+
+.sync-status {
+  font-size: 0.78rem;
+}
+
+.notification-panel .fine-print {
+  color: var(--muted);
+}
+
+.push-setup-note {
+  display: none !important;
+}

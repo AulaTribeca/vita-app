@@ -10,10 +10,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=2.0.1">
-  <link rel="icon" href="./assets/vita-icon.svg?v=2.0.1" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=2.0.1">
-  <link rel="stylesheet" href="./styles.css?v=2.0.1">
+  <link rel="manifest" href="./manifest.webmanifest?v=2.1.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=2.1.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=2.1.0">
+  <link rel="stylesheet" href="./styles.css?v=2.1.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -79,15 +79,6 @@
 
         <div class="notice">Sesión privada activa.</div>
 
-        <article class="account-mini-card js-go" data-target="cuenta">
-          <div>
-            <span class="eyebrow">Cuenta</span>
-            <h2 id="account-mini-title">Sesión iniciada</h2>
-            <p id="account-mini-text">Acceso privado activo.</p>
-          </div>
-          <button class="js-go" type="button" data-target="cuenta">Ver</button>
-        </article>
-
         <div class="summary-grid">
           <article class="summary-card lilac">
             <span class="summary-number" id="today-reminders-count">0</span>
@@ -136,7 +127,6 @@
           <button class="js-go" type="button" data-target="citas"><span class="app-icon" data-icon="upload"></span><span>Guardar volante</span></button>
           <button class="js-go" type="button" data-target="medicacion"><span class="app-icon" data-icon="cart"></span><span>Medicación</span></button>
           <button class="js-go" type="button" data-target="hogar"><span class="app-icon" data-icon="home"></span><span>Hogar</span></button>
-          <button class="js-go" type="button" data-target="documentos"><span class="app-icon" data-icon="download"></span><span>Exportar</span></button>
         </div>
       </section>
 
@@ -145,7 +135,7 @@
         <header class="topbar compact">
           <div>
             <h1>Salud diaria</h1>
-            <p>Registros privados guardados en Supabase</p>
+            <p>Registros privados</p>
           </div>
         </header>
 
@@ -1121,17 +1111,17 @@
 
           <p class="fine-print" id="auth-helper">Tus datos se protegen con sesión privada.</p>
 
-          <div id="sync-status" class="sync-status">VITA v2.0.1 VAPID configurado.</div>
+          <div id="sync-status" class="sync-status">Sistema activo.</div>
 
         </article>
 
 
         <article class="auth-panel notification-panel">
           <span class="app-icon panel-icon" data-icon="bell"></span>
-          <span class="eyebrow">PWA y push</span>
-          <h2>Instalación y notificaciones push</h2>
-          <p id="pwa-status">Comprobando instalación...</p>
-          <p id="notification-status">Las notificaciones push todavía no están activadas en este dispositivo.</p>
+          <span class="eyebrow">App móvil</span>
+          <h2>Instalación y avisos</h2>
+          <p id="pwa-status">Comprueba si VITA está instalada como app.</p>
+          <p id="notification-status">Los avisos todavía no están activados en este dispositivo.</p>
 
           <div class="button-row stacked-mobile">
             <button id="install-pwa" type="button">
@@ -1140,11 +1130,11 @@
             </button>
             <button id="enable-notifications" type="button">
               <span class="app-icon" data-icon="bell"></span>
-              Activar push
+              Activar avisos
             </button>
             <button id="test-notification" class="secondary" type="button">
               <span class="app-icon" data-icon="check"></span>
-              Probar push
+              Probar aviso
             </button>
           </div>
 
@@ -1170,39 +1160,9 @@
               <span>Registro diario de salud</span>
             </label>
           </div>
-
-          <div class="push-setup-note" id="push-setup-note">
-            <strong>Estado técnico:</strong>
-            <span id="push-setup-message">Pendiente de comprobar VAPID y Edge Function.</span>
-          </div>
-
-          <p class="fine-print">Para recibir avisos aunque VITA esté cerrada, deben estar configurados el manifest, el service worker, la suscripción push y la Edge Function de Supabase.</p>
+<p class="fine-print">Activa los avisos desde la app instalada en el móvil.</p>
         </article>
 
-
-        <article class="auth-panel diagnostics-panel">
-          <span class="app-icon panel-icon" data-icon="check"></span>
-          <span class="eyebrow">Mantenimiento</span>
-          <h2>Estado de VITA</h2>
-          <p id="diagnostics-summary">Pulsa comprobar para revisar login, conexión, caché y módulos principales.</p>
-
-          <div id="diagnostics-list" class="diagnostics-list">
-            <p class="empty">Sin diagnóstico todavía.</p>
-          </div>
-
-          <div class="button-row">
-            <button id="run-diagnostics" type="button">
-              <span class="app-icon" data-icon="check"></span>
-              Comprobar app
-            </button>
-            <button id="clear-cache-reload" class="secondary" type="button">
-              <span class="app-icon" data-icon="refresh"></span>
-              Limpiar caché
-            </button>
-          </div>
-
-          <p class="fine-print">La limpieza de caché no borra tus datos de Supabase. Solo fuerza al navegador a cargar la última versión de la app.</p>
-        </article>
 
         <article class="privacy-grid">
           <div class="privacy-card"><span class="app-icon" data-icon="user"></span><h3>Perfil privado</h3><p>Salud, medicación, citas, universidad y documentos personales.</p><strong>Privado</strong></div>
@@ -1221,7 +1181,7 @@
     </main>
   </div>
 
-  <script src="./config.js?v=2.0.1"></script>
-  <script src="./app.js?v=2.0.1"></script>
+  <script src="./config.js?v=2.1.0"></script>
+  <script src="./app.js?v=2.1.0"></script>
 </body>
 </html>

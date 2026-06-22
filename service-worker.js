@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vita-static-v2-0-1';
+const CACHE_NAME = 'vita-static-v2-1-0';
 const APP_SHELL = [
   './',
   './index.html',
