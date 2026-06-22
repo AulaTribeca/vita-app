@@ -41,6 +41,18 @@ let currentLists = {
   wishlist: null
 };
 let currentHouseholdMembers = [];
+  healthRecords = [];
+let healthRecords = [];
+
+const HEALTH_TYPES = {
+  bathroom: { label: 'Baño', icon: 'bath' },
+  symptoms: { label: 'Síntomas', icon: 'user' },
+  sleep: { label: 'Sueño', icon: 'moon' },
+  period: { label: 'Regla', icon: 'drop' },
+  pain: { label: 'Dolor', icon: 'zap' },
+  mood: { label: 'Ánimo', icon: 'smile' },
+  note: { label: 'Nota rápida', icon: 'note' }
+};
 
 function getConfig() {
   return window.VITA_CONFIG || {};
@@ -215,6 +227,7 @@ async function signOut() {
   currentHousehold = null;
   currentLists = { shared: null, personal: null, wishlist: null };
   currentHouseholdMembers = [];
+  healthRecords = [];
 }
 
 function injectIcons() {
@@ -413,27 +426,165 @@ function renderHealthRecords() {
   injectIcons();
 }
 
+
 function setupHealthRecords() {
+  setDefaultHealthDate();
+
   document.querySelectorAll('.js-health-record').forEach((button) => {
-    button.addEventListener('click', () => {
-      const records = getRecords();
-      records.unshift({
-        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-        kind: button.dataset.kind,
-        createdAt: new Date().toISOString()
+    button.addEventListener('click', async () => {
+      const type = button.dataset.kind;
+      await saveHealthRecord({
+        type,
+        occurredAt: new Date().toISOString(),
+        note: '',
+        intensity: null,
+        quick: true
       });
-      setRecords(records);
-      renderHealthRecords();
     });
   });
 
-  const clearButton = document.getElementById('clear-health');
-  if (clearButton) {
-    clearButton.addEventListener('click', () => {
-      localStorage.removeItem('vita-health-records');
-      renderHealthRecords();
+  const form = document.getElementById('health-detail-form');
+  if (form) {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const type = document.getElementById('health-type-input').value;
+      const dateValue = document.getElementById('health-date-input').value;
+      const intensityValue = document.getElementById('health-intensity-input').value;
+      const note = document.getElementById('health-note-input').value.trim();
+
+      const occurredAt = dateValue ? new Date(dateValue).toISOString() : new Date().toISOString();
+
+      await saveHealthRecord({
+        type,
+        occurredAt,
+        note,
+        intensity: intensityValue ? Number(intensityValue) : null,
+        quick: false
+      });
+
+      document.getElementById('health-note-input').value = '';
+      document.getElementById('health-intensity-input').value = '';
+      setDefaultHealthDate();
     });
   }
+
+  const refreshButton = document.getElementById('refresh-health');
+  if (refreshButton) {
+    refreshButton.addEventListener('click', () => loadHealthRecords());
+  }
+}
+
+function setDefaultHealthDate() {
+  const input = document.getElementById('health-date-input');
+  if (!input) return;
+
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  input.value = local.toISOString().slice(0, 16);
+}
+
+async function saveHealthRecord({ type, occurredAt, note, intensity, quick }) {
+  if (!currentUser) {
+    setLoginMessage('Inicia sesión para guardar registros.', 'error');
+    return;
+  }
+
+  const typeInfo = HEALTH_TYPES[type] || HEALTH_TYPES.note;
+  const payload = {
+    owner_id: currentUser.id,
+    record_type: type,
+    occurred_at: occurredAt,
+    value_text: note || (quick ? 'Registro rápido' : null),
+    intensity,
+    notes: note || null,
+    metadata: {
+      quick: Boolean(quick),
+      label: typeInfo.label
+    }
+  };
+
+  try {
+    await restRequest('health_records', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+
+    await loadHealthRecords();
+    showSyncStatus('Registro de salud guardado.', 'success');
+  } catch (error) {
+    showSyncStatus(error.message || 'No se pudo guardar el registro de salud.', 'error');
+  }
+}
+
+async function loadHealthRecords() {
+  const list = document.getElementById('health-list');
+  if (list) {
+    list.innerHTML = '<p class="empty">Cargando registros...</p>';
+  }
+
+  if (!currentUser) {
+    renderHealthRecords([]);
+    return;
+  }
+
+  try {
+    healthRecords = await restRequest(`health_records?select=id,record_type,occurred_at,value_text,intensity,notes,metadata,created_at&owner_id=eq.${encodeFilter(currentUser.id)}&order=occurred_at.desc&limit=30`);
+    renderHealthRecords(healthRecords);
+    renderHealthStats(healthRecords);
+  } catch (error) {
+    if (list) {
+      list.innerHTML = '<p class="empty error-text">No se pudieron cargar los registros de salud. Ejecuta el SQL de VITA v0.8.</p>';
+    }
+    renderHealthStats([]);
+  }
+}
+
+function renderHealthRecords(records = []) {
+  const list = document.getElementById('health-list');
+  if (!list) return;
+
+  if (!records.length) {
+    list.innerHTML = '<p class="empty">Todavía no hay registros de salud.</p>';
+    return;
+  }
+
+  list.innerHTML = records.map((record) => {
+    const typeInfo = HEALTH_TYPES[record.record_type] || HEALTH_TYPES.note;
+    const date = new Date(record.occurred_at);
+    const hour = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const day = date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+    const note = record.notes || record.value_text || 'Registro rápido';
+    const intensity = record.intensity ? `<span class="record-intensity">Intensidad ${record.intensity}/10</span>` : '';
+
+    return `
+      <div class="health-record-card">
+        <span class="record-icon app-icon" data-icon="${escapeHtml(typeInfo.icon)}"></span>
+        <div>
+          <h3>${escapeHtml(typeInfo.label)}</h3>
+          <p>${escapeHtml(note)}</p>
+          ${intensity}
+        </div>
+        <small>${day}<br>${hour}</small>
+      </div>
+    `;
+  }).join('');
+
+  injectIcons();
+}
+
+function renderHealthStats(records = []) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const todayRecords = records.filter((record) => {
+    return new Date(record.occurred_at).toISOString().slice(0, 10) === today;
+  });
+
+  const bathroom = todayRecords.filter((record) => record.record_type === 'bathroom');
+
+  setText(document.getElementById('health-count-total'), String(todayRecords.length));
+  setText(document.getElementById('health-count-bathroom'), String(bathroom.length));
 }
 
 
@@ -560,7 +711,8 @@ async function initializePrivateData() {
     showSyncStatus('Sincronizando listas...', 'neutral');
     await loadProfileAndHousehold();
     await loadListsAndItems();
-    showSyncStatus('Listas conectadas a Supabase.', 'success');
+    await loadHealthRecords();
+    showSyncStatus('Listas y salud conectadas a Supabase.', 'success');
   } catch (error) {
     showSyncStatus(error.message || 'No se pudieron cargar las listas.', 'error');
     renderListError();
@@ -585,6 +737,7 @@ async function loadProfileAndHousehold() {
   if (!membership) {
     currentHousehold = null;
     currentHouseholdMembers = [];
+  healthRecords = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -597,6 +750,7 @@ async function loadProfileAndHousehold() {
 
   if (!ids.length) {
     currentHouseholdMembers = [];
+  healthRecords = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -948,7 +1102,7 @@ function boot() {
   setupHealthRecords();
   setupShoppingForms();
   setupDocumentDemo();
-  renderHealthRecords();
+  renderHealthRecords([]);
 
   const stored = getStoredSession();
   currentUser = stored ? stored.user : null;

@@ -1,20 +1,25 @@
-# VITA v0.7
+# VITA v0.8
 
-Nivel 7 de VITA: listas completas.
+Nivel 8 de VITA: registros reales de salud diaria.
 
 ## Qué añade
 
-- Edición y borrado de elementos de listas.
-- Lista de deseos con:
-  - artículo;
-  - enlace;
-  - URL de imagen;
-  - precio orientativo;
-  - notas u ocasión;
-  - selección de usuarios que pueden ver el deseo.
-- Sección “deseos compartidos conmigo”.
-- Filtro visual: Todo, Compra, Deseos.
-- Políticas Supabase para ver perfiles del hogar y gestionar visibilidad de deseos.
+- Tabla `health_records` en Supabase.
+- Registro rápido de:
+  - baño;
+  - síntomas;
+  - sueño;
+  - regla;
+  - dolor;
+  - ánimo.
+- Registro detallado con:
+  - tipo;
+  - fecha y hora;
+  - intensidad de 1 a 10;
+  - nota.
+- Carga de actividad reciente desde Supabase.
+- Contadores de registros de hoy.
+- Privacidad: cada usuario solo puede ver sus propios registros de salud.
 
 ## Archivos modificados
 
@@ -24,9 +29,9 @@ Nivel 7 de VITA: listas completas.
 - `config.js`
 - `service-worker.js`
 - `README.md`
-- `docs/instrucciones_v0_7.md`
-- `docs/supabase_v0_7.sql`
+- `docs/instrucciones_v0_8.md`
+- `docs/supabase_v0_8.sql`
 
 ## Importante
 
-Antes de probar la visibilidad de deseos, ejecuta `docs/supabase_v0_7.sql` en Supabase.
+Antes de probar Salud, ejecuta `docs/supabase_v0_8.sql` en Supabase.

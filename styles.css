@@ -1191,3 +1191,132 @@ button { cursor: pointer; }
 .shared-wishes {
   background: linear-gradient(135deg, rgba(66, 153, 225, 0.12), rgba(255,255,255,0.95));
 }
+
+
+.health-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.health-stat-card,
+.health-form-card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(62, 48, 110, 0.08);
+}
+
+.health-stat-card {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.health-stat-card .app-icon {
+  width: 42px;
+  height: 42px;
+  padding: 9px;
+  border-radius: 15px;
+  background: rgba(113, 84, 200, 0.1);
+  color: var(--purple);
+}
+
+.health-stat-card strong,
+.health-stat-card small {
+  display: block;
+}
+
+.health-stat-card strong {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.health-stat-card small {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.health-form-card {
+  padding: 14px;
+  margin-top: 14px;
+  background: linear-gradient(135deg, rgba(113, 84, 200, 0.1), rgba(255,255,255,0.95));
+}
+
+.health-detail-form {
+  display: grid;
+  gap: 12px;
+}
+
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 13px;
+  background: white;
+  color: var(--ink);
+  resize: vertical;
+}
+
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid rgba(113, 84, 200, 0.18);
+  border-color: rgba(113, 84, 200, 0.38);
+}
+
+.health-record-card {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(86, 77, 128, 0.09);
+}
+
+.health-record-card:last-child {
+  border-bottom: 0;
+}
+
+.health-record-card .record-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 9px;
+  border-radius: 15px;
+  color: var(--purple);
+  background: rgba(113, 84, 200, 0.1);
+}
+
+.health-record-card h3 {
+  margin: 0 0 3px;
+  font-size: 0.94rem;
+}
+
+.health-record-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.35;
+  font-size: 0.84rem;
+}
+
+.health-record-card small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.health-record-card .record-intensity {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(251, 140, 126, 0.14);
+  color: #b85e53;
+  font-weight: 900;
+  font-size: 0.74rem;
+}

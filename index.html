@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#7154c8">
   <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.7.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=0.7.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=0.7.0">
-  <link rel="stylesheet" href="./styles.css?v=0.7.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.8.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=0.8.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=0.8.0">
+  <link rel="stylesheet" href="./styles.css?v=0.8.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -143,31 +143,128 @@
         </div>
       </section>
 
+
       <section class="screen" id="screen-salud" data-screen="salud">
         <header class="topbar compact">
           <div>
-            <h1>Registro rápido</h1>
-            <p>¿Qué necesitas guardar hoy?</p>
+            <h1>Salud diaria</h1>
+            <p>Registros privados guardados en Supabase</p>
           </div>
         </header>
 
-        <div class="quick-grid">
-          <button class="quick-tile teal js-health-record" type="button" data-kind="Baño"><span class="app-icon" data-icon="bath"></span><strong>Baño</strong></button>
-          <button class="quick-tile lilac js-health-record" type="button" data-kind="Síntomas"><span class="app-icon" data-icon="user"></span><strong>Síntomas</strong></button>
-          <button class="quick-tile purple js-health-record" type="button" data-kind="Sueño"><span class="app-icon" data-icon="moon"></span><strong>Sueño</strong></button>
-          <button class="quick-tile pink js-health-record" type="button" data-kind="Regla"><span class="app-icon" data-icon="drop"></span><strong>Regla</strong></button>
-          <button class="quick-tile peach js-health-record" type="button" data-kind="Dolor"><span class="app-icon" data-icon="zap"></span><strong>Dolor</strong></button>
-          <button class="quick-tile yellow js-health-record" type="button" data-kind="Ánimo"><span class="app-icon" data-icon="smile"></span><strong>Ánimo</strong></button>
-          <button class="quick-tile blue wide js-health-record" type="button" data-kind="Nota rápida"><span class="app-icon" data-icon="note"></span><strong>Nota rápida</strong></button>
+        <div class="health-summary-grid">
+          <article class="health-stat-card">
+            <span class="app-icon" data-icon="bath"></span>
+            <div>
+              <strong id="health-count-bathroom">0</strong>
+              <small>baño hoy</small>
+            </div>
+          </article>
+          <article class="health-stat-card">
+            <span class="app-icon" data-icon="note"></span>
+            <div>
+              <strong id="health-count-total">0</strong>
+              <small>registros hoy</small>
+            </div>
+          </article>
         </div>
 
         <div class="section-title">
+          <h2>Registro rápido</h2>
+        </div>
+
+        <div class="quick-grid">
+          <button class="quick-tile teal js-health-record" type="button" data-kind="bathroom">
+            <span class="app-icon" data-icon="bath"></span>
+            <strong>Baño</strong>
+          </button>
+          <button class="quick-tile lilac js-health-record" type="button" data-kind="symptoms">
+            <span class="app-icon" data-icon="user"></span>
+            <strong>Síntomas</strong>
+          </button>
+          <button class="quick-tile purple js-health-record" type="button" data-kind="sleep">
+            <span class="app-icon" data-icon="moon"></span>
+            <strong>Sueño</strong>
+          </button>
+          <button class="quick-tile pink js-health-record" type="button" data-kind="period">
+            <span class="app-icon" data-icon="drop"></span>
+            <strong>Regla</strong>
+          </button>
+          <button class="quick-tile peach js-health-record" type="button" data-kind="pain">
+            <span class="app-icon" data-icon="zap"></span>
+            <strong>Dolor</strong>
+          </button>
+          <button class="quick-tile yellow js-health-record" type="button" data-kind="mood">
+            <span class="app-icon" data-icon="smile"></span>
+            <strong>Ánimo</strong>
+          </button>
+        </div>
+
+        <article class="health-form-card">
+          <div class="list-header">
+            <span class="app-icon" data-icon="heart"></span>
+            <div>
+              <span class="eyebrow">Detalle</span>
+              <h2>Guardar registro con nota</h2>
+              <p>Útil para síntomas, deposiciones, regla, dolor o cualquier cambio relevante.</p>
+            </div>
+          </div>
+
+          <form id="health-detail-form" class="health-detail-form">
+            <label class="field">
+              <span>Tipo</span>
+              <select id="health-type-input">
+                <option value="bathroom">Baño</option>
+                <option value="symptoms">Síntomas</option>
+                <option value="sleep">Sueño</option>
+                <option value="period">Regla</option>
+                <option value="pain">Dolor</option>
+                <option value="mood">Ánimo</option>
+                <option value="note">Nota rápida</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Fecha y hora</span>
+              <input id="health-date-input" type="datetime-local">
+            </label>
+
+            <label class="field">
+              <span>Intensidad, si procede</span>
+              <select id="health-intensity-input">
+                <option value="">Sin intensidad</option>
+                <option value="1">1, muy leve</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5, moderada</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10, máxima</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Nota</span>
+              <textarea id="health-note-input" rows="4" placeholder="Ej. deposición normal, dolor leve, sueño regular, manchado, síntoma concreto..."></textarea>
+            </label>
+
+            <button class="form-submit" type="submit">
+              <span class="app-icon" data-icon="heart"></span>
+              Guardar registro
+            </button>
+          </form>
+        </article>
+
+        <div class="section-title">
           <h2>Actividad reciente</h2>
-          <button type="button" id="clear-health">Borrar demo</button>
+          <button type="button" id="refresh-health">Actualizar</button>
         </div>
 
         <article class="card activity-list" id="health-list">
-          <p class="empty">Todavía no hay registros. Pulsa un botón de arriba para probar.</p>
+          <p class="empty">Cargando registros...</p>
         </article>
       </section>
 
@@ -482,7 +579,7 @@
 
           <p class="fine-print" id="auth-helper">Tus datos se protegen con sesión privada.</p>
 
-          <div id="sync-status" class="sync-status">Listas conectadas a Supabase.</div>
+          <div id="sync-status" class="sync-status">Listas y salud conectadas a Supabase.</div>
         </article>
 
         <article class="privacy-grid">
@@ -502,7 +599,7 @@
     </main>
   </div>
 
-  <script src="./config.js?v=0.7.0"></script>
-  <script src="./app.js?v=0.7.0"></script>
+  <script src="./config.js?v=0.8.0"></script>
+  <script src="./app.js?v=0.8.0"></script>
 </body>
 </html>
