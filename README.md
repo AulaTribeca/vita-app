@@ -1,32 +1,25 @@
-# VITA v1.0
+# VITA v1.0.1 depurada
 
-Nivel 10 de VITA: volantes y documentos médicos.
+Versión de depuración antes de seguir con nuevas fases.
 
-## Qué añade
+## Qué corrige
 
-- Bucket privado `vita-medical-documents` en Supabase Storage.
-- Tabla `medical_documents`.
-- Subida de fotos/PDF de volantes, informes, recetas o peticiones de prueba.
-- Relación opcional con una cita médica.
-- Estados:
-  - pendiente de subir;
-  - pendiente de llevar;
-  - usado;
-  - archivado.
-- Descarga autenticada de documentos.
-- Al registrar una cita con volante dado, VITA crea un recordatorio para guardar el volante.
+- Recupera el inicio de sesión.
+- Corrige un error de JavaScript generado por variables duplicadas en `app.js`.
+- Evita que un fallo en listas, salud, citas o volantes bloquee la pantalla de login.
+- Separa el error de autenticación del error de sincronización de datos.
+- Cambia la clave local de sesión para forzar una sesión limpia.
+- Actualiza cachés a `v1.0.1`.
 
 ## Archivos modificados
 
 - `index.html`
 - `app.js`
-- `styles.css`
 - `config.js`
 - `service-worker.js`
 - `README.md`
-- `docs/instrucciones_v1_0.md`
-- `docs/supabase_v1_0.sql`
+- `docs/instrucciones_v1_0_1.md`
 
-## Importante
+## No hace falta ejecutar SQL nuevo
 
-Antes de probar Volantes, ejecuta `docs/supabase_v1_0.sql` en Supabase.
+Esta versión no cambia la base de datos. Solo corrige la app.

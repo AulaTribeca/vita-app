@@ -31,7 +31,7 @@ const ICONS = {
   eye: '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>'
 };
 
-const SESSION_KEY = 'vita_session_v050';
+const SESSION_KEY = 'vita_session_v101';
 let currentUser = null;
 let currentProfile = null;
 let currentHousehold = null;
@@ -41,14 +41,8 @@ let currentLists = {
   wishlist: null
 };
 let currentHouseholdMembers = [];
-  healthRecords = [];
-  medicalAppointments = [];
-  medicalDocuments = [];
 let healthRecords = [];
-  medicalAppointments = [];
-  medicalDocuments = [];
 let medicalAppointments = [];
-  medicalDocuments = [];
 let medicalDocuments = [];
 
 const HEALTH_TYPES = {
@@ -357,8 +351,13 @@ function renderAccess(forceLogin = false) {
   const appShell = document.getElementById('app');
   const canEnter = Boolean(currentUser && !forceLogin);
 
-  loginScreen.classList.toggle('is-hidden', canEnter);
-  appShell.classList.toggle('is-hidden', !canEnter);
+  if (loginScreen) {
+    loginScreen.classList.toggle('is-hidden', canEnter);
+  }
+
+  if (appShell) {
+    appShell.classList.toggle('is-hidden', !canEnter);
+  }
 
   if (canEnter) {
     updateUserText();
@@ -375,12 +374,21 @@ function setupLogin() {
   const forgotButton = document.getElementById('forgot-password');
   const logoutButton = document.getElementById('logout-button');
 
+  if (!form || !usernameInput || !passwordInput) {
+    return;
+  }
+
   form.noValidate = true;
   usernameInput.type = 'text';
+  usernameInput.setAttribute('autocomplete', 'username');
+  usernameInput.setAttribute('autocapitalize', 'none');
+  usernameInput.setAttribute('spellcheck', 'false');
 
-  togglePassword.addEventListener('click', () => {
-    passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
-  });
+  if (togglePassword) {
+    togglePassword.addEventListener('click', () => {
+      passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+    });
+  }
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -399,46 +407,57 @@ function setupLogin() {
       return;
     }
 
+    setLoginMessage('Accediendo...', 'neutral');
+
+    let session;
     try {
-      setLoginMessage('Accediendo...', 'neutral');
-      const session = await signInWithPassword(email, password);
-      saveSession(session);
-      currentUser = session.user;
-      passwordInput.value = '';
-      renderAccess();
-      showScreen('hoy');
-      await initializePrivateData();
+      session = await signInWithPassword(email, password);
     } catch (error) {
       setLoginMessage(error.message || 'Usuario o contraseña incorrectos.', 'error');
-    }
-  });
-
-  forgotButton.addEventListener('click', async () => {
-    const username = usernameInput.value.trim();
-    const email = resolveLoginEmail(username);
-
-    if (!username) {
-      setLoginMessage('Escribe tu usuario para recuperar la contraseña.', 'warning');
       return;
     }
 
-    if (!email) {
-      setLoginMessage('Usuario no reconocido.', 'error');
-      return;
-    }
+    saveSession(session);
+    currentUser = session.user;
+    passwordInput.value = '';
+    renderAccess();
+    showScreen('hoy');
 
-    try {
-      await recoverPassword(email);
-      setLoginMessage('Revisa el correo asociado a tu usuario.', 'success');
-    } catch {
-      setLoginMessage('No se pudo enviar la recuperación.', 'error');
-    }
+    initializePrivateData().catch((error) => {
+      showSyncStatus(error.message || 'La sesión está abierta, pero no se pudieron sincronizar los datos.', 'error');
+    });
   });
 
-  logoutButton.addEventListener('click', async () => {
-    await signOut();
-    renderAccess(true);
-  });
+  if (forgotButton) {
+    forgotButton.addEventListener('click', async () => {
+      const username = usernameInput.value.trim();
+      const email = resolveLoginEmail(username);
+
+      if (!username) {
+        setLoginMessage('Escribe tu usuario para recuperar la contraseña.', 'warning');
+        return;
+      }
+
+      if (!email) {
+        setLoginMessage('Usuario no reconocido.', 'error');
+        return;
+      }
+
+      try {
+        await recoverPassword(email);
+        setLoginMessage('Revisa el correo asociado a tu usuario.', 'success');
+      } catch {
+        setLoginMessage('No se pudo enviar la recuperación.', 'error');
+      }
+    });
+  }
+
+  if (logoutButton) {
+    logoutButton.addEventListener('click', async () => {
+      await signOut();
+      renderAccess(true);
+    });
+  }
 }
 
 function setupDate() {
@@ -1710,24 +1729,36 @@ function registerServiceWorker() {
   });
 }
 
+function safeSetup(name, fn) {
+  try {
+    fn();
+  } catch (error) {
+    console.error(`VITA: fallo al iniciar ${name}`, error);
+  }
+}
+
 function boot() {
-  injectIcons();
-  setupDate();
-  setupNavigation();
-  setupLogin();
-  setupHealthRecords();
-  setupMedicalAppointments();
-  setupMedicalDocuments();
-  setupShoppingForms();
-  setupDocumentDemo();
-  renderHealthRecords([]);
+  safeSetup('iconos', injectIcons);
+  safeSetup('fecha', setupDate);
+  safeSetup('navegación', setupNavigation);
+  safeSetup('login', setupLogin);
+  safeSetup('salud', setupHealthRecords);
+  safeSetup('citas', setupMedicalAppointments);
+  safeSetup('documentos médicos', setupMedicalDocuments);
+  safeSetup('listas', setupShoppingForms);
+  safeSetup('documentos', setupDocumentDemo);
+  safeSetup('registros de salud iniciales', () => renderHealthRecords([]));
 
   const stored = getStoredSession();
   currentUser = stored ? stored.user : null;
   renderAccess();
+
   if (currentUser) {
-    initializePrivateData();
+    initializePrivateData().catch((error) => {
+      showSyncStatus(error.message || 'No se pudieron sincronizar los datos.', 'error');
+    });
   }
+
   registerServiceWorker();
 }
 
