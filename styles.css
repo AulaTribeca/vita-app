@@ -2069,3 +2069,64 @@ button { cursor: pointer; }
   background: rgba(113, 84, 200, 0.08);
   color: var(--purple);
 }
+
+
+.diagnostics-panel {
+  background: linear-gradient(135deg, rgba(32, 167, 161, 0.1), rgba(255,255,255,0.96));
+}
+
+.diagnostics-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.diagnostic-row {
+  border: 1px solid rgba(86, 77, 128, 0.12);
+  background: rgba(255,255,255,0.72);
+  border-radius: 16px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 9px;
+  align-items: start;
+}
+
+.diagnostic-row .app-icon {
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+  border-radius: 12px;
+}
+
+.diagnostic-row[data-status="ok"] .app-icon {
+  color: #117975;
+  background: rgba(32, 167, 161, 0.14);
+}
+
+.diagnostic-row[data-status="warn"] .app-icon {
+  color: #df9415;
+  background: rgba(245, 178, 58, 0.17);
+}
+
+.diagnostic-row[data-status="error"] .app-icon {
+  color: #b8455a;
+  background: rgba(232, 96, 116, 0.14);
+}
+
+.diagnostic-row strong,
+.diagnostic-row span {
+  display: block;
+}
+
+.diagnostic-row span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  margin-top: 2px;
+}
+
+.diagnostics-panel .secondary {
+  background: rgba(112, 116, 140, 0.1);
+  color: var(--muted);
+}

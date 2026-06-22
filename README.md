@@ -1,27 +1,32 @@
-# VITA v1.5
+# VITA v1.6 estable
 
-Nivel 15 de VITA: avisos automáticos y notificaciones del dispositivo.
+Fase de cierre y depuración de la primera versión utilizable de VITA.
 
-## Qué añade
+## Qué corrige
 
-- Panel de notificaciones en Cuenta.
-- Botón para activar avisos en el dispositivo.
-- Botón de prueba.
-- Preferencias por tipo:
-  - medicación y stock;
-  - citas;
-  - volantes;
-  - hogar;
-  - salud.
-- Notificaciones del navegador/PWA basadas en los recordatorios inteligentes de Hoy.
-- Evita repetir el mismo aviso más de una vez al día.
-- Revisión automática cada 15 minutos mientras la app está abierta o instalada y activa.
-- Apertura de la app desde una notificación.
-- No requiere SQL nuevo.
+- Limpieza de funciones antiguas duplicadas en salud.
+- Limpieza definitiva del bloque de variables globales.
+- Corrección de `loadProfileAndHousehold`, que había arrastrado líneas de reseteo en lugares indebidos.
+- Gestión de sesión caducada.
+- Refuerzo de `restRequest` para errores 401 y 403.
+- Navegación protegida para evitar pantallas inexistentes.
+- Actualización del service worker.
+- Panel de diagnóstico en Cuenta.
+- Botón para limpiar caché y recargar.
+- Control de errores globales para que no fallen módulos en silencio.
 
-## Limitación importante
+## Qué deja preparado
 
-Esta fase añade avisos reales del navegador cuando la app está abierta, instalada o activa en segundo plano según permita el dispositivo. Para avisos garantizados con la app totalmente cerrada hace falta un backend o una Edge Function con push web, que puede abordarse después.
+- App privada con Patricia/Román.
+- Hogar compartido.
+- Salud privada.
+- Citas y volantes.
+- Medicación y stock.
+- Facturas, coche y gestiones.
+- Listas y deseos.
+- Recordatorios internos.
+- Exportaciones.
+- Notificaciones de navegador/PWA.
 
 ## Archivos modificados
 
@@ -31,4 +36,9 @@ Esta fase añade avisos reales del navegador cuando la app está abierta, instal
 - `config.js`
 - `service-worker.js`
 - `README.md`
-- `docs/instrucciones_v1_5.md`
+- `docs/instrucciones_v1_6.md`
+- `docs/checklist_v1_6.md`
+
+## Supabase
+
+No hay que ejecutar SQL nuevo.

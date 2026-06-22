@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#7154c8">
   <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=1.5.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=1.5.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=1.5.0">
-  <link rel="stylesheet" href="./styles.css?v=1.5.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=1.6.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=1.6.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=1.6.0">
+  <link rel="stylesheet" href="./styles.css?v=1.6.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -1117,7 +1117,7 @@
 
           <p class="fine-print" id="auth-helper">Tus datos se protegen con sesión privada.</p>
 
-          <div id="sync-status" class="sync-status">VITA conectada a Supabase con avisos automáticos.</div>
+          <div id="sync-status" class="sync-status">VITA v1.6 estable. Sistema depurado.</div>
 
         </article>
 
@@ -1164,6 +1164,31 @@
           <p class="fine-print">Estos avisos funcionan cuando la PWA está instalada o abierta en el navegador. Las notificaciones push con envío desde servidor se dejarán preparadas para una fase posterior si quieres avisos aunque la app esté completamente cerrada.</p>
         </article>
 
+
+        <article class="auth-panel diagnostics-panel">
+          <span class="app-icon panel-icon" data-icon="check"></span>
+          <span class="eyebrow">Mantenimiento</span>
+          <h2>Estado de VITA</h2>
+          <p id="diagnostics-summary">Pulsa comprobar para revisar login, conexión, caché y módulos principales.</p>
+
+          <div id="diagnostics-list" class="diagnostics-list">
+            <p class="empty">Sin diagnóstico todavía.</p>
+          </div>
+
+          <div class="button-row">
+            <button id="run-diagnostics" type="button">
+              <span class="app-icon" data-icon="check"></span>
+              Comprobar app
+            </button>
+            <button id="clear-cache-reload" class="secondary" type="button">
+              <span class="app-icon" data-icon="refresh"></span>
+              Limpiar caché
+            </button>
+          </div>
+
+          <p class="fine-print">La limpieza de caché no borra tus datos de Supabase. Solo fuerza al navegador a cargar la última versión de la app.</p>
+        </article>
+
         <article class="privacy-grid">
           <div class="privacy-card"><span class="app-icon" data-icon="user"></span><h3>Perfil privado</h3><p>Salud, medicación, citas, universidad y documentos personales.</p><strong>Privado</strong></div>
           <div class="privacy-card"><span class="app-icon" data-icon="users"></span><h3>Hogar compartido</h3><p>Hipoteca, casa, obras, facturas, coche y tareas comunes.</p><strong>Compartido</strong></div>
@@ -1181,7 +1206,7 @@
     </main>
   </div>
 
-  <script src="./config.js?v=1.5.0"></script>
-  <script src="./app.js?v=1.5.0"></script>
+  <script src="./config.js?v=1.6.0"></script>
+  <script src="./app.js?v=1.6.0"></script>
 </body>
 </html>

@@ -93,6 +93,7 @@ function getRestEndpoint(path) {
   return `${config.SUPABASE_URL}/rest/v1/${path}`;
 }
 
+
 async function restRequest(path, options = {}) {
   const session = getStoredSession();
   if (!session || !session.access_token) {
@@ -119,6 +120,18 @@ async function restRequest(path, options = {}) {
     } catch {
       /* Sin cuerpo JSON. */
     }
+
+    if (response.status === 401) {
+      clearSession();
+      currentUser = null;
+      renderAccess(true);
+      throw new Error('La sesión caducó. Vuelve a iniciar sesión.');
+    }
+
+    if (response.status === 403) {
+      throw new Error('No tienes permiso para acceder a esos datos.');
+    }
+
     throw new Error(message);
   }
 
@@ -254,15 +267,24 @@ function saveSession(session) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
+
 function getStoredSession() {
   try {
     const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
     if (!session || !session.access_token || !session.user) return null;
+
+    if (session.expires_at && Number(session.expires_at) * 1000 < Date.now()) {
+      clearSession();
+      return null;
+    }
+
     return session;
   } catch {
+    clearSession();
     return null;
   }
 }
+
 
 function clearSession() {
   localStorage.removeItem(SESSION_KEY);
@@ -299,6 +321,7 @@ async function recoverPassword(email) {
   }
 }
 
+
 async function signOut() {
   const session = getStoredSession();
 
@@ -329,7 +352,14 @@ async function signOut() {
   vehicleTasks = [];
   householdTasks = [];
   smartReminders = [];
+  exportedReports = [];
+
+  if (notificationInterval) {
+    clearInterval(notificationInterval);
+    notificationInterval = null;
+  }
 }
+
 
 function injectIcons() {
   document.querySelectorAll('.app-icon').forEach((node) => {
@@ -489,69 +519,29 @@ function setupDate() {
   dateNode.textContent = formatter.format(new Date());
 }
 
+
 function showScreen(target) {
+  const visibleScreen = document.querySelector(`.screen[data-screen="${target}"]`);
+  if (!visibleScreen) return;
+
   document.querySelectorAll('.screen').forEach((screen) => {
-    screen.classList.toggle('is-active', screen.dataset.screen === target);
+    screen.classList.toggle('is-active', screen === visibleScreen);
   });
 
   document.querySelectorAll('.nav-item').forEach((button) => {
     button.classList.toggle('active', button.dataset.target === target);
   });
 
-  const visibleScreen = document.querySelector(`.screen[data-screen="${target}"]`);
-  if (visibleScreen) visibleScreen.scrollTop = 0;
+  visibleScreen.scrollTop = 0;
+  window.location.hash = target;
 }
+
 
 function setupNavigation() {
   document.querySelectorAll('.nav-item, .js-go').forEach((button) => {
     button.addEventListener('click', () => showScreen(button.dataset.target));
   });
 }
-
-function getRecords() {
-  try {
-    return JSON.parse(localStorage.getItem('vita-health-records') || '[]');
-  } catch {
-    return [];
-  }
-}
-
-function setRecords(records) {
-  localStorage.setItem('vita-health-records', JSON.stringify(records));
-}
-
-function renderHealthRecords() {
-  const list = document.getElementById('health-list');
-  if (!list) return;
-
-  const records = getRecords();
-
-  if (!records.length) {
-    list.innerHTML = '<p class="empty">Todavía no hay registros. Pulsa un botón de arriba para probar.</p>';
-    return;
-  }
-
-  list.innerHTML = records.slice(0, 8).map((record) => {
-    const hour = new Date(record.createdAt).toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-
-    return `
-      <div class="activity-row">
-        <span class="app-icon" data-icon="note"></span>
-        <div>
-          <strong>${escapeHtml(record.kind)}</strong>
-          <span>Registro rápido guardado en este dispositivo</span>
-        </div>
-        <small>${hour}</small>
-      </div>
-    `;
-  }).join('');
-
-  injectIcons();
-}
-
 
 function setupHealthRecords() {
   setDefaultHealthDate();
@@ -868,6 +858,7 @@ async function initializePrivateData() {
 }
 
 
+
 async function loadProfileAndHousehold() {
   if (!currentUser || !currentUser.id) {
     throw new Error('Sesión no disponible.');
@@ -886,16 +877,6 @@ async function loadProfileAndHousehold() {
   if (!membership) {
     currentHousehold = null;
     currentHouseholdMembers = [];
-  healthRecords = [];
-  medicalAppointments = [];
-  medicalDocuments = [];
-  medications = [];
-  medicationDosesToday = [];
-  householdBills = [];
-  householdVehicles = [];
-  vehicleTasks = [];
-  householdTasks = [];
-  smartReminders = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -908,16 +889,6 @@ async function loadProfileAndHousehold() {
 
   if (!ids.length) {
     currentHouseholdMembers = [];
-  healthRecords = [];
-  medicalAppointments = [];
-  medicalDocuments = [];
-  medications = [];
-  medicationDosesToday = [];
-  householdBills = [];
-  householdVehicles = [];
-  vehicleTasks = [];
-  householdTasks = [];
-  smartReminders = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -932,6 +903,7 @@ async function loadProfileAndHousehold() {
 
   renderWishlistViewerOptions();
 }
+
 
 async function loadListsAndItems() {
   if (!currentProfile) {
@@ -3592,13 +3564,150 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
+
+
+function setupDiagnostics() {
+  const runButton = document.getElementById('run-diagnostics');
+  const clearButton = document.getElementById('clear-cache-reload');
+
+  if (runButton) {
+    runButton.addEventListener('click', runDiagnostics);
+  }
+
+  if (clearButton) {
+    clearButton.addEventListener('click', clearAppCachesAndReload);
+  }
+
+  setTimeout(runDiagnostics, 700);
+}
+
+function setupGlobalErrorHandling() {
+  window.addEventListener('error', (event) => {
+    console.error('VITA error:', event.error || event.message);
+    showSyncStatus('Se detectó un error de la app. Revisa Estado de VITA.', 'error');
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('VITA promise error:', event.reason);
+    showSyncStatus('Se detectó un error de sincronización. Revisa Estado de VITA.', 'error');
+  });
+
+  window.addEventListener('online', () => showSyncStatus('Conexión recuperada.', 'success'));
+  window.addEventListener('offline', () => showSyncStatus('Sin conexión. VITA mostrará datos ya cargados.', 'error'));
+}
+
+function runDiagnostics() {
+  const rows = getDiagnosticRows();
+  const list = document.getElementById('diagnostics-list');
+  const summary = document.getElementById('diagnostics-summary');
+
+  if (!list) return;
+
+  const errors = rows.filter((row) => row.status === 'error').length;
+  const warns = rows.filter((row) => row.status === 'warn').length;
+
+  if (summary) {
+    if (errors) {
+      summary.textContent = `Diagnóstico completado: ${errors} error(es) y ${warns} aviso(s).`;
+    } else if (warns) {
+      summary.textContent = `Diagnóstico completado: ${warns} aviso(s), sin errores críticos.`;
+    } else {
+      summary.textContent = 'Diagnóstico completado: VITA está estable.';
+    }
+  }
+
+  list.innerHTML = rows.map((row) => `
+    <div class="diagnostic-row" data-status="${escapeHtml(row.status)}">
+      <span class="app-icon" data-icon="${row.status === 'ok' ? 'check' : row.status === 'warn' ? 'bell' : 'file'}"></span>
+      <div>
+        <strong>${escapeHtml(row.title)}</strong>
+        <span>${escapeHtml(row.detail)}</span>
+      </div>
+    </div>
+  `).join('');
+
+  injectIcons();
+}
+
+function getDiagnosticRows() {
+  const config = getConfig();
+  const rows = [];
+
+  rows.push({
+    status: config.SUPABASE_URL && config.SUPABASE_ANON_KEY ? 'ok' : 'error',
+    title: 'Configuración Supabase',
+    detail: config.SUPABASE_URL && config.SUPABASE_ANON_KEY ? 'URL y publishable key presentes.' : 'Falta URL o publishable key.'
+  });
+
+  rows.push({
+    status: currentUser ? 'ok' : 'warn',
+    title: 'Sesión',
+    detail: currentUser ? `Sesión iniciada como ${getDisplayNameForEmail(currentUser.email)}.` : 'Sin sesión activa.'
+  });
+
+  rows.push({
+    status: navigator.onLine ? 'ok' : 'warn',
+    title: 'Conexión',
+    detail: navigator.onLine ? 'El navegador indica conexión activa.' : 'El navegador indica que estás sin conexión.'
+  });
+
+  rows.push({
+    status: 'serviceWorker' in navigator ? 'ok' : 'warn',
+    title: 'PWA y caché',
+    detail: 'serviceWorker' in navigator ? 'Service worker disponible.' : 'Este navegador no admite service worker.'
+  });
+
+  rows.push({
+    status: 'Notification' in window ? 'ok' : 'warn',
+    title: 'Notificaciones',
+    detail: 'Notification' in window ? `Permiso actual: ${Notification.permission}.` : 'Este navegador no admite notificaciones.'
+  });
+
+  rows.push({
+    status: currentHousehold ? 'ok' : 'warn',
+    title: 'Hogar compartido',
+    detail: currentHousehold ? currentHousehold.name : 'No se ha cargado hogar compartido todavía.'
+  });
+
+  rows.push({
+    status: 'ok',
+    title: 'Versión',
+    detail: `Versión cargada: ${config.APP_VERSION || 'sin versión'}.`
+  });
+
+  return rows;
+}
+
+async function clearAppCachesAndReload() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.update()));
+    }
+
+    if ('caches' in window) {
+      const names = await caches.keys();
+      await Promise.all(names.map((name) => caches.delete(name)));
+    }
+
+    showSyncStatus('Caché limpiada. Recargando...', 'success');
+    setTimeout(() => window.location.reload(), 600);
+  } catch (error) {
+    showSyncStatus('No se pudo limpiar la caché automáticamente.', 'error');
+  }
+}
+
+
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    navigator.serviceWorker.register('./service-worker.js').then((registration) => {
+      registration.update().catch(() => {});
+    }).catch(() => {});
   });
 }
+
 
 function safeSetup(name, fn) {
   try {
@@ -3609,6 +3718,7 @@ function safeSetup(name, fn) {
 }
 
 function boot() {
+  safeSetup('errores globales', setupGlobalErrorHandling);
   safeSetup('iconos', injectIcons);
   safeSetup('fecha', setupDate);
   safeSetup('navegación', setupNavigation);
@@ -3620,6 +3730,7 @@ function boot() {
   safeSetup('hogar', setupHome);
   safeSetup('recordatorios', setupSmartReminders);
   safeSetup('notificaciones', setupNotifications);
+  safeSetup('diagnóstico', setupDiagnostics);
   safeSetup('listas', setupShoppingForms);
   safeSetup('documentos', setupDocumentDemo);
   safeSetup('registros de salud iniciales', () => renderHealthRecords([]));
@@ -3634,8 +3745,11 @@ function boot() {
   }
 
   if (currentUser) {
-    initializePrivateData().catch((error) => {
+    initializePrivateData().then(() => {
+      runDiagnostics();
+    }).catch((error) => {
       showSyncStatus(error.message || 'No se pudieron sincronizar los datos.', 'error');
+      runDiagnostics();
     });
   }
 
