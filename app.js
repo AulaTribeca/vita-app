@@ -143,18 +143,46 @@ function getConfig() {
   return window.VITA_CONFIG || {};
 }
 
+
 function isSupabaseReady() {
   const config = getConfig();
   return Boolean(
     config.SUPABASE_URL &&
     config.SUPABASE_ANON_KEY &&
     window.supabase &&
-    window.supabase.createClient
+    typeof window.supabase.createClient === 'function'
   );
 }
 
 
+
+function loadSupabaseScriptIfNeeded() {
+  if (window.supabase && typeof window.supabase.createClient === 'function') {
+    return Promise.resolve(true);
+  }
+
+  return new Promise((resolve) => {
+    const existing = document.querySelector('script[data-vita-supabase-loader="true"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(true), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+    script.async = true;
+    script.dataset.vitaSupabaseLoader = 'true';
+    script.onload = () => resolve(Boolean(window.supabase && typeof window.supabase.createClient === 'function'));
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
+
 async function initSupabase() {
+  await loadSupabaseScriptIfNeeded();
+
   if (!isSupabaseReady()) {
     renderAuthState();
     renderAppAccess();
@@ -172,11 +200,7 @@ async function initSupabase() {
     });
 
     const { data, error } = await supabaseClient.auth.getSession();
-    if (error) {
-      currentUser = null;
-    } else {
-      currentUser = data && data.session ? data.session.user : null;
-    }
+    currentUser = error ? null : (data && data.session ? data.session.user : null);
 
     supabaseClient.auth.onAuthStateChange((_event, session) => {
       currentUser = session ? session.user : null;
@@ -193,7 +217,6 @@ async function initSupabase() {
     renderAppAccess();
   }
 }
-
 
 
 function renderAuthState() {
@@ -284,7 +307,12 @@ function setupAuthButtons() {
       }
 
       if (!isSupabaseReady() || !supabaseClient) {
-        setLoginMessage('No se pudo conectar con VITA. Recarga la página e inténtalo de nuevo.', 'error');
+        setLoginMessage('Preparando acceso...', 'neutral');
+        await initSupabase();
+      }
+
+      if (!isSupabaseReady() || !supabaseClient) {
+        setLoginMessage('No se pudo cargar el acceso privado. Recarga la página.', 'error');
         return;
       }
 
@@ -310,7 +338,11 @@ function setupAuthButtons() {
   if (forgotPassword) {
     forgotPassword.addEventListener('click', async () => {
       if (!isSupabaseReady() || !supabaseClient) {
-        setLoginMessage('No se pudo conectar con VITA. Recarga la página e inténtalo de nuevo.', 'error');
+        await initSupabase();
+      }
+
+      if (!isSupabaseReady() || !supabaseClient) {
+        setLoginMessage('No se pudo cargar el acceso privado. Recarga la página.', 'error');
         return;
       }
 
@@ -473,7 +505,7 @@ function renderAppAccess(forceLogin = false) {
 
   if (!canEnter) {
     if (!isSupabaseReady()) {
-      setLoginMessage('No se pudo conectar con VITA. Recarga la página e inténtalo de nuevo.', 'error');
+      setLoginMessage('Cargando acceso privado...', 'neutral');
     } else {
       setLoginMessage('Introduce tu usuario y contraseña.', 'neutral');
     }
