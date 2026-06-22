@@ -1,30 +1,31 @@
-# VITA ONE 1.0
+# VITA ONE 2.0
 
-Reconstrucción conceptual de VITA como asistente personal visual, no como colección de formularios.
+Reconstrucción de VITA como asistente personal visual: menos módulos genéricos, más acompañamiento, UNED al frente, compra real y pantallas limpias.
 
-## Prioridades reales
+## Qué incluye
 
-- Pantalla Hoy útil.
-- Lista de la compra real, una entrada por producto.
-- Checkbox y tachado de productos comprados.
+- Hoy con guía activa.
+- Compra con una entrada por producto, checkbox y tachado.
+- Agenda con día, semana y mes.
 - Salud con citas, volantes, medicación y registros.
-- Medicación con stock y botón para añadir a farmacia.
-- Hogar organizado por activos, coche, facturas y contactos.
-- Calendario con día, semana, mes y año.
-- Botón atrás del móvil funcional mediante historial del navegador.
-- Sin cron y sin tokens reales en GitHub.
+- UNED como apartado principal.
+- Hogar con facturas, coche, contactos y wallet.
+- Más solo para tareas secundarias.
+- PWA instalable.
+- Edge Function para prueba push real manual.
+- Sin cron y sin secretos en el proyecto.
 
 ## SQL obligatorio
 
 Ejecuta:
 
-`docs/supabase_vita_one_schema.sql`
+`docs/supabase_vita_one_2_schema.sql`
 
 ## SQL recomendado
 
-Para eliminar cron antiguo si quedó programado:
+Ejecuta una vez para eliminar cron antiguo:
 
-`docs/supabase_vita_one_eliminar_cron_antiguo.sql`
+`docs/supabase_vita_one_2_eliminar_cron_antiguo.sql`
 
 ## Edge Function
 
@@ -42,4 +43,4 @@ Secrets necesarios:
 
 ## Commit sugerido
 
-`VITA ONE 1.0`
+`VITA ONE 2.0`

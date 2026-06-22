@@ -7,101 +7,246 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="VITA">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>VITA ONE</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=one-1">
-  <link rel="icon" href="./assets/vita-icon.svg?v=one-1" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=one-1">
-  <link rel="stylesheet" href="./styles.css?v=one-1">
+  <link rel="manifest" href="./manifest.webmanifest?v=one2">
+  <link rel="icon" href="./assets/vita-icon.svg?v=one2" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=one2">
+  <link rel="stylesheet" href="./styles.css?v=one2">
 </head>
 <body>
   <section id="login-view" class="login-view">
     <article class="login-card">
       <img src="./assets/vita-icon.svg" alt="" class="login-logo">
-      <p class="eyebrow">VITA ONE</p>
-      <h1>Tu asistente personal de vida diaria.</h1>
-      <p>Menos ruido. Más claridad. Lo que toca, justo cuando lo necesitas.</p>
+      <p class="mark">VITA ONE</p>
+      <h1>Tu vida, sin ruido.</h1>
+      <p>Salud, UNED, compra, hogar y agenda en una interfaz limpia que te dice qué toca.</p>
       <form id="login-form" class="form-stack" novalidate>
         <label class="field"><span>Usuario</span><input id="login-user" type="text" placeholder="Patricia o Román" autocomplete="username"></label>
         <label class="field"><span>Contraseña</span><input id="login-password" type="password" placeholder="Contraseña" autocomplete="current-password"></label>
         <button class="primary" type="submit">Entrar</button>
       </form>
-      <p id="login-message" class="notice">Acceso privado.</p>
+      <p id="login-message" class="quiet">Acceso privado</p>
     </article>
   </section>
 
   <main id="app" class="app hidden">
     <header class="topbar">
       <button id="back-button" class="round hidden" type="button" aria-label="Volver">←</button>
-      <div class="topbar-text">
+      <div class="top-text">
         <div class="brand"><img src="./assets/vita-icon.svg" alt=""><strong>VITA</strong><span>ONE</span></div>
         <h1 id="screen-title">Hoy</h1>
         <p id="screen-subtitle">Lo importante, sin buscar.</p>
       </div>
-      <button id="account-shortcut" class="round" type="button" aria-label="Cuenta">👤</button>
+      <button id="account-button" class="round" type="button" aria-label="Cuenta y avisos">👤</button>
     </header>
 
-    <section id="app-status" class="notice">Preparando VITA...</section>
-
     <section class="screen active" id="screen-today">
-      <article class="now-card">
-        <div><span class="eyebrow">Ahora</span><h2 id="now-title">Cargando...</h2><p id="now-text">VITA está ordenando tus próximos pasos.</p></div>
-        <button class="primary" data-open-form="task" type="button">Añadir</button>
+      <article class="assistant-card">
+        <div>
+          <span class="mark">VITA sugiere</span>
+          <h2 id="guide-title">Preparando tu día...</h2>
+          <p id="guide-text">Analizo lo urgente, lo próximo y lo que puede quedar olvidado.</p>
+        </div>
+        <button class="primary" data-open-form="task" type="button">Añadir pendiente</button>
       </article>
-      <article class="panel"><div class="panel-head"><h2>Hoy</h2><span id="today-count" class="count">0</span></div><div class="card-list" id="today-list"></div></article>
-      <article class="panel"><div class="panel-head"><h2>Esta semana</h2><span id="week-count" class="count">0</span></div><div class="card-list" id="week-list"></div></article>
-      <article class="panel"><div class="panel-head"><h2>Accesos limpios</h2><span class="count">5</span></div><div class="tile-grid">
-        <button class="tile" data-nav="shopping" type="button">🛒<strong>Compra</strong><small>lista compartida</small></button>
-        <button class="tile" data-nav="calendar" type="button">📅<strong>Calendario</strong><small>día, semana, mes</small></button>
-        <button class="tile" data-nav="health" type="button">♡<strong>Salud</strong><small>citas y medicación</small></button>
-        <button class="tile" data-nav="home" type="button">⌂<strong>Hogar</strong><small>activos y gestiones</small></button>
-        <button class="tile" data-nav="more" type="button">⚙<strong>Más</strong><small>avisos, viajes, UNED</small></button>
-      </div></article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Hoy</h2>
+          <span id="today-count" class="count">0</span>
+        </div>
+        <div id="today-list" class="card-list"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Próximos días</h2>
+          <span id="week-count" class="count">0</span>
+        </div>
+        <div id="week-list" class="card-list"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Un clic</h2>
+          <span class="count">rápido</span>
+        </div>
+        <div class="tile-grid">
+          <button class="tile" data-nav="shopping" type="button"><span>🛒</span><strong>Compra</strong><small>lista real con checks</small></button>
+          <button class="tile" data-nav="agenda" type="button"><span>📅</span><strong>Agenda</strong><small>calendario y eventos</small></button>
+          <button class="tile" data-nav="health" type="button"><span>♡</span><strong>Salud</strong><small>citas, volantes, medicación</small></button>
+          <button class="tile featured" data-nav="uned" type="button"><span>🎓</span><strong>UNED</strong><small>grado, exámenes, entregas</small></button>
+          <button class="tile" data-nav="home" type="button"><span>⌂</span><strong>Hogar</strong><small>facturas, coche, contactos</small></button>
+        </div>
+      </article>
     </section>
 
     <section class="screen" id="screen-shopping">
-      <article class="panel shopping-panel">
-        <div class="panel-head"><div><h2>Lista de la compra</h2><p>Una línea por producto. Cada línea se convierte en un elemento con check.</p></div><span id="shopping-count" class="count">0</span></div>
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Compra</h2>
+            <p>Escribe cada producto en una línea. Al comprar, marcas y se tacha.</p>
+          </div>
+          <span id="shopping-count" class="count">0</span>
+        </div>
         <form id="shopping-form" class="shopping-form">
           <textarea id="shopping-input" rows="5" placeholder="Leche&#10;Pan&#10;Detergente&#10;Bilasten"></textarea>
-          <div class="shopping-row"><select id="shopping-category"><option value="supermercado">Supermercado</option><option value="farmacia">Farmacia</option><option value="casa">Casa</option><option value="otros">Otros</option></select><button class="primary" type="submit">Añadir productos</button></div>
+          <div class="two">
+            <select id="shopping-category">
+              <option value="supermercado">Supermercado</option>
+              <option value="farmacia">Farmacia</option>
+              <option value="hogar">Hogar</option>
+              <option value="otros">Otros</option>
+            </select>
+            <button class="primary" type="submit">Añadir</button>
+          </div>
         </form>
-        <div id="shopping-wallet" class="wallet-strip"></div>
-        <div class="tool-row"><button id="toggle-bought" class="chip active" type="button">Ocultar comprados</button><button id="clear-bought" class="chip danger" type="button">Borrar comprados</button></div>
-        <div class="shopping-sections" id="shopping-list"></div>
+        <div id="shopping-companion" class="companion-strip"></div>
+        <div class="tools">
+          <button id="toggle-bought" class="chip active" type="button">Ocultar comprados</button>
+          <button id="clear-bought" class="chip danger" type="button">Borrar comprados</button>
+        </div>
+        <div id="shopping-list" class="shopping-list"></div>
       </article>
     </section>
 
-    <section class="screen" id="screen-calendar">
-      <article class="panel"><div class="calendar-toolbar"><button class="chip" id="calendar-prev" type="button">←</button><input id="calendar-date" type="date"><button class="chip" id="calendar-next" type="button">→</button></div><div class="segmented"><button class="active" data-calendar-mode="month" type="button">Mes</button><button data-calendar-mode="week" type="button">Semana</button><button data-calendar-mode="day" type="button">Día</button><button data-calendar-mode="year" type="button">Año</button></div><div id="calendar-filters" class="filter-row"></div><div id="calendar-grid" class="calendar-grid"></div></article>
-      <article class="panel"><div class="panel-head"><h2 id="selected-day-title">Día seleccionado</h2><button class="chip" data-open-form="task-for-day" type="button">Añadir</button></div><div id="selected-day-list" class="card-list"></div></article>
+    <section class="screen" id="screen-agenda">
+      <article class="panel">
+        <div class="calendar-toolbar">
+          <button class="chip" id="agenda-prev" type="button">←</button>
+          <input id="agenda-date" type="date">
+          <button class="chip" id="agenda-next" type="button">→</button>
+        </div>
+        <div class="segmented">
+          <button class="active" data-agenda-mode="month" type="button">Mes</button>
+          <button data-agenda-mode="week" type="button">Semana</button>
+          <button data-agenda-mode="day" type="button">Día</button>
+        </div>
+        <div id="agenda-filters" class="filters"></div>
+        <div id="agenda-grid" class="agenda-grid"></div>
+      </article>
+      <article class="panel">
+        <div class="panel-head">
+          <h2 id="agenda-day-title">Día seleccionado</h2>
+          <button class="chip" data-open-form="task-for-day" type="button">Añadir</button>
+        </div>
+        <div id="agenda-day-list" class="card-list"></div>
+      </article>
     </section>
 
     <section class="screen" id="screen-health">
-      <div class="tile-grid section-tabs"><button class="tile active" data-subtab="health-records" type="button">♡<strong>Registros</strong><small>cuerpo y ánimo</small></button><button class="tile" data-subtab="health-appointments" type="button">🏥<strong>Citas</strong><small>preparar y completar</small></button><button class="tile" data-subtab="health-documents" type="button">📄<strong>Volantes</strong><small>pendientes y usados</small></button><button class="tile" data-subtab="health-meds" type="button">💊<strong>Medicación</strong><small>stock y compra</small></button></div>
-      <article class="panel subpanel active" id="health-records"><div class="panel-head"><h2>Registros de salud</h2><button class="chip" data-open-form="health-record" type="button">Añadir</button></div><div id="health-record-list" class="card-list"></div></article>
-      <article class="panel subpanel" id="health-appointments"><div class="panel-head"><h2>Citas médicas</h2><button class="chip" data-open-form="appointment" type="button">Añadir</button></div><div id="appointment-list" class="card-list"></div></article>
-      <article class="panel subpanel" id="health-documents"><div class="panel-head"><h2>Volantes e informes</h2><button class="chip" data-open-form="medical-document" type="button">Añadir</button></div><div id="medical-document-list" class="card-list"></div></article>
-      <article class="panel subpanel" id="health-meds"><div class="panel-head"><h2>Medicación</h2><button class="chip" data-open-form="medication" type="button">Añadir</button></div><div id="medication-list" class="card-list"></div></article>
+      <div class="tile-grid tabs">
+        <button class="tile active" data-tab="health-appointments" type="button"><span>🏥</span><strong>Citas</strong><small>preparar y completar</small></button>
+        <button class="tile" data-tab="health-documents" type="button"><span>📄</span><strong>Volantes</strong><small>lo que llevarás</small></button>
+        <button class="tile" data-tab="health-medication" type="button"><span>💊</span><strong>Medicación</strong><small>stock y farmacia</small></button>
+        <button class="tile" data-tab="health-records" type="button"><span>♡</span><strong>Registros</strong><small>cuerpo y ánimo</small></button>
+      </div>
+
+      <article class="panel subpanel active" id="health-appointments">
+        <div class="panel-head"><h2>Citas médicas</h2><button class="chip" data-open-form="appointment" type="button">Añadir</button></div>
+        <div id="appointment-list" class="card-list"></div>
+      </article>
+      <article class="panel subpanel" id="health-documents">
+        <div class="panel-head"><h2>Volantes e informes</h2><button class="chip" data-open-form="document" type="button">Añadir</button></div>
+        <div id="document-list" class="card-list"></div>
+      </article>
+      <article class="panel subpanel" id="health-medication">
+        <div class="panel-head"><h2>Medicación</h2><button class="chip" data-open-form="medication" type="button">Añadir</button></div>
+        <div id="medication-list" class="card-list"></div>
+      </article>
+      <article class="panel subpanel" id="health-records">
+        <div class="panel-head"><h2>Registros de salud</h2><button class="chip" data-open-form="health" type="button">Añadir</button></div>
+        <div id="health-list" class="card-list"></div>
+      </article>
+    </section>
+
+    <section class="screen" id="screen-uned">
+      <article class="assistant-card uned-hero">
+        <div>
+          <span class="mark">UNED</span>
+          <h2 id="uned-guide-title">Tu grado, al frente.</h2>
+          <p id="uned-guide-text">Exámenes, entregas, estudio y trámites deben aparecer aquí antes de perderse.</p>
+        </div>
+        <button class="primary" data-open-form="uned" type="button">Añadir UNED</button>
+      </article>
+      <div class="tile-grid tabs">
+        <button class="tile active" data-tab="uned-now" type="button"><span>🎓</span><strong>Seguimiento</strong><small>lo próximo</small></button>
+        <button class="tile" data-tab="uned-exams" type="button"><span>📝</span><strong>Exámenes</strong><small>fechas y checklist</small></button>
+        <button class="tile" data-tab="uned-deliveries" type="button"><span>📎</span><strong>Entregas</strong><small>PEC, TFG, cursos</small></button>
+        <button class="tile" data-tab="uned-subjects" type="button"><span>📚</span><strong>Asignaturas</strong><small>pendientes y progreso</small></button>
+      </div>
+      <article class="panel subpanel active" id="uned-now">
+        <div class="panel-head"><h2>Lo próximo</h2><button class="chip" data-open-form="uned" type="button">Añadir</button></div>
+        <div id="uned-list" class="card-list"></div>
+      </article>
+      <article class="panel subpanel" id="uned-exams">
+        <div class="panel-head"><h2>Exámenes</h2><button class="chip" data-open-form="uned-exam" type="button">Añadir</button></div>
+        <div id="uned-exam-list" class="card-list"></div>
+      </article>
+      <article class="panel subpanel" id="uned-deliveries">
+        <div class="panel-head"><h2>Entregas</h2><button class="chip" data-open-form="uned-delivery" type="button">Añadir</button></div>
+        <div id="uned-delivery-list" class="card-list"></div>
+      </article>
+      <article class="panel subpanel" id="uned-subjects">
+        <div class="panel-head"><h2>Asignaturas</h2><button class="chip" data-open-form="uned-subject" type="button">Añadir</button></div>
+        <div id="uned-subject-list" class="card-list"></div>
+      </article>
     </section>
 
     <section class="screen" id="screen-home">
-      <div class="tile-grid section-tabs"><button class="tile active" data-subtab="home-assets" type="button">⌂<strong>Activos</strong><small>casa, piso</small></button><button class="tile" data-subtab="home-car" type="button">🚗<strong>Coche</strong><small>ITV, seguro...</small></button><button class="tile" data-subtab="home-bills" type="button">💶<strong>Facturas</strong><small>suministros</small></button><button class="tile" data-subtab="home-contacts" type="button">☎️<strong>Contactos</strong><small>proveedores</small></button></div>
-      <article class="panel subpanel active" id="home-assets"><div class="panel-head"><h2>Activos</h2><button class="chip" data-open-form="home-asset" type="button">Añadir</button></div><div id="asset-list" class="card-list"></div></article>
-      <article class="panel subpanel" id="home-car"><div class="panel-head"><h2>Coche</h2><button class="chip" data-open-form="home-car" type="button">Añadir</button></div><div id="car-list" class="card-list"></div></article>
-      <article class="panel subpanel" id="home-bills"><div class="panel-head"><h2>Facturas y suministros</h2><button class="chip" data-open-form="home-bill" type="button">Añadir</button></div><div id="bill-list" class="card-list"></div></article>
-      <article class="panel subpanel" id="home-contacts"><div class="panel-head"><h2>Contactos útiles</h2><button class="chip" data-open-form="home-contact" type="button">Añadir</button></div><div id="contact-list" class="card-list"></div></article>
+      <div class="tile-grid tabs">
+        <button class="tile active" data-tab="home-bills" type="button"><span>💶</span><strong>Facturas</strong><small>cargos y suministros</small></button>
+        <button class="tile" data-tab="home-car" type="button"><span>🚗</span><strong>Coche</strong><small>seguro, ITV, taller</small></button>
+        <button class="tile" data-tab="home-contacts" type="button"><span>☎️</span><strong>Contactos</strong><small>teléfonos útiles</small></button>
+        <button class="tile" data-tab="home-wallet" type="button"><span>💳</span><strong>Wallet</strong><small>tarjetas útiles</small></button>
+      </div>
+      <article class="panel subpanel active" id="home-bills">
+        <div class="panel-head"><h2>Facturas y suministros</h2><button class="chip" data-open-form="home-bill" type="button">Añadir</button></div>
+        <div id="bill-list" class="card-list"></div>
+      </article>
+      <article class="panel subpanel" id="home-car">
+        <div class="panel-head"><h2>Coche</h2><button class="chip" data-open-form="home-car" type="button">Añadir</button></div>
+        <div id="car-list" class="card-list"></div>
+      </article>
+      <article class="panel subpanel" id="home-contacts">
+        <div class="panel-head"><h2>Contactos útiles</h2><button class="chip" data-open-form="home-contact" type="button">Añadir</button></div>
+        <div id="contact-list" class="card-list"></div>
+      </article>
+      <article class="panel subpanel" id="home-wallet">
+        <div class="panel-head"><h2>Wallet</h2><button class="chip" data-open-form="wallet" type="button">Añadir</button></div>
+        <div id="wallet-list" class="card-list"></div>
+      </article>
     </section>
 
     <section class="screen" id="screen-more">
-      <article class="panel"><div class="panel-head"><h2>Más</h2><span class="count">ordenado</span></div><div class="tile-grid"><button class="tile" data-open-form="task" type="button">✅<strong>Tarea</strong><small>pendiente general</small></button><button class="tile" data-open-form="university" type="button">🎓<strong>UNED</strong><small>exámenes y entregas</small></button><button class="tile" data-open-form="travel" type="button">✈️<strong>Viaje</strong><small>vuelos y estancias</small></button><button class="tile" data-open-form="bureaucracy" type="button">📁<strong>Trámite</strong><small>papeleo</small></button></div></article>
-      <article class="panel"><div class="panel-head"><h2>Notificaciones</h2><span id="push-state" class="count">comprobar</span></div><p>Sin cron y sin tokens en GitHub. Las pruebas push se hacen manualmente desde aquí.</p><div class="tool-row"><button id="enable-push" class="primary" type="button">Activar avisos</button><button id="test-local" class="chip" type="button">Prueba local</button><button id="test-push" class="chip" type="button">Prueba push real</button></div><div id="push-diagnostics" class="diagnostic-list"></div></article>
-      <article class="panel"><div class="account-line"><img src="./assets/vita-icon.svg" alt=""><div><h2 id="account-name">Cuenta</h2><p id="account-email">Sesión privada</p></div></div><button id="logout" class="danger full" type="button">Cerrar sesión</button></article>
+      <article class="panel">
+        <div class="panel-head"><h2>Más</h2><span class="count">solo lo secundario</span></div>
+        <div class="tile-grid">
+          <button class="tile" data-open-form="travel" type="button"><span>✈️</span><strong>Viaje</strong><small>vuelos, hotel, vacaciones</small></button>
+          <button class="tile" data-open-form="bureaucracy" type="button"><span>📁</span><strong>Trámite</strong><small>papeleo y gestiones</small></button>
+          <button class="tile" data-open-form="task" type="button"><span>✅</span><strong>Tarea</strong><small>pendiente general</small></button>
+          <button class="tile" id="open-account" type="button"><span>🔔</span><strong>Avisos</strong><small>activar y probar</small></button>
+        </div>
+      </article>
     </section>
 
-    <nav class="bottom-nav"><button class="active" data-nav="today" type="button">🏠<span>Hoy</span></button><button data-nav="shopping" type="button">🛒<span>Compra</span></button><button data-nav="calendar" type="button">📅<span>Calendario</span></button><button data-nav="health" type="button">♡<span>Salud</span></button><button data-nav="home" type="button">⌂<span>Hogar</span></button></nav>
+    <nav class="bottom-nav">
+      <button class="active" data-nav="today" type="button">🏠<span>Hoy</span></button>
+      <button data-nav="shopping" type="button">🛒<span>Compra</span></button>
+      <button data-nav="health" type="button">♡<span>Salud</span></button>
+      <button data-nav="uned" type="button">🎓<span>UNED</span></button>
+      <button data-nav="home" type="button">⌂<span>Hogar</span></button>
+    </nav>
   </main>
 
-  <dialog id="dialog"><form method="dialog"><button class="dialog-close" value="cancel">×</button></form><div id="dialog-body"></div></dialog>
-  <script src="./config.js?v=one-1"></script><script src="./app.js?v=one-1"></script>
+  <dialog id="dialog">
+    <form method="dialog"><button class="dialog-close" value="cancel">×</button></form>
+    <div id="dialog-body"></div>
+  </dialog>
+
+  <script src="./config.js?v=one2"></script>
+  <script src="./app.js?v=one2"></script>
 </body>
 </html>

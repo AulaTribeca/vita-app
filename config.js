@@ -1,7 +1,7 @@
 window.VITA_CONFIG = {
   SUPABASE_URL: "https://vbcqiggxpzlecilbukvn.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_MdUXjMd7qYe_he2OZoRXZQ_PJayheBR",
-  APP_VERSION: "ONE 1.0.0",
+  APP_VERSION: "ONE 2.0.0",
   USER_ALIASES: {
     "patricia": "patricia@vitaapp.com",
     "patri": "patricia@vitaapp.com",

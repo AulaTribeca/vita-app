@@ -1,7 +1,7 @@
 {
   "name": "VITA ONE",
   "short_name": "VITA",
-  "description": "VITA ONE, asistente personal visual para organizar salud, compra, hogar, calendario y vida diaria.",
+  "description": "Asistente personal visual para organizar salud, UNED, compra, hogar y agenda.",
   "id": "/",
   "start_url": "./index.html",
   "scope": "./",
@@ -9,10 +9,19 @@
   "orientation": "portrait",
   "background_color": "#FBF8FF",
   "theme_color": "#6E56CF",
-  "version": "1.0.0",
-  "categories": ["productivity", "health", "utilities"],
+  "version": "2.0.0",
   "icons": [
-    {"src":"./assets/vita-icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"./assets/vita-icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {
+      "src": "./assets/vita-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/vita-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
