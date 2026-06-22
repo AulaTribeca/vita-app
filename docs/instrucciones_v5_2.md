@@ -1,4 +1,4 @@
-# Instrucciones VITA v5.2
+# Instrucciones VITA v5.2.1
 
 ## 1. Copiar archivos
 
@@ -31,7 +31,7 @@ Comprueba que tienes estos secrets:
 
 Commit:
 
-`VITA v5.2 instalacion completa`
+`VITA v5.2.1 instalacion completa`
 
 ## 5. Móvil
 
@@ -52,3 +52,8 @@ En la app:
 Cuando la prueba push real funcione, ejecuta:
 
 `docs/supabase_v5_2_cron_definitivo_sin_vault.sql`
+
+
+## Seguridad
+
+No subas el `CRON_SECRET` real a GitHub. El cron del proyecto trae un placeholder que debes sustituir solo en Supabase SQL Editor.

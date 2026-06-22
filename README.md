@@ -1,4 +1,4 @@
-# VITA v5.2, instalación completa
+# VITA v5.2.1, instalación completa
 
 Proyecto completo listo para instalar.
 
@@ -58,4 +58,9 @@ Ejecuta solo cuando la prueba push real funcione:
 
 ## Commit sugerido
 
-`VITA v5.2 instalacion completa`
+`VITA v5.2.1 instalacion completa`
+
+
+## Seguridad
+
+No subas el `CRON_SECRET` real a GitHub. El cron del proyecto trae un placeholder que debes sustituir solo en Supabase SQL Editor.

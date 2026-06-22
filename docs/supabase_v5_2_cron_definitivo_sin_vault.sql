@@ -1,6 +1,10 @@
--- VITA v5.2, cron definitivo sin vault.
--- Ejecutar solo después de que en la app funcione:
--- Más -> Centro de avisos -> Activar avisos, Prueba local y Prueba push real.
+-- VITA v5.2.1, cron definitivo sin vault y sin secretos en GitHub.
+-- IMPORTANTE:
+-- 1. No subas nunca a GitHub este archivo con el valor real escrito.
+-- 2. Antes de ejecutarlo en Supabase SQL Editor, sustituye:
+--    PEGA_AQUI_TU_CRON_SECRET_NUEVO_NO_SUBIR_A_GITHUB
+--    por el CRON_SECRET NUEVO que hayas guardado en Edge Functions Secrets.
+-- 3. Ejecuta el SQL ya rellenado solo en Supabase SQL Editor.
 
 create extension if not exists pg_net;
 create extension if not exists pg_cron;
@@ -20,7 +24,7 @@ select cron.schedule(
     url := 'https://vbcqiggxpzlecilbukvn.supabase.co/functions/v1/send-vita-push',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer vita_cron_2026_pat_roman_9mK4vR8sQ2zL7xB5nF3pA6tY1cD0hW'
+      'Authorization', 'Bearer PEGA_AQUI_TU_CRON_SECRET_NUEVO_NO_SUBIR_A_GITHUB'
     ),
     body := jsonb_build_object('mode', 'scheduled')
   );
