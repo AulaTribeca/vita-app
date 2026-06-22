@@ -1,14 +1,17 @@
-# VITA v0.4.5
+# VITA v0.4.6
 
-Corrección del acceso privado.
+Corrección definitiva del inicio de sesión.
 
-## Qué corrige
+## Qué cambia
 
-- Cambia la carga de Supabase al archivo UMD explícito.
-- Añade una carga alternativa si Supabase todavía no está disponible al pulsar Entrar.
-- Mantiene la app bloqueada si no hay sesión real.
-- Mantiene eliminada la demo local.
-- Mantiene eliminados los mensajes de depuración visibles.
+- Se elimina la dependencia externa de `supabase-js`.
+- El login usa directamente la API REST de Supabase Auth.
+- La app sigue bloqueada sin sesión real.
+- No existe demo local.
+- No hay mensajes de depuración visibles.
+- El acceso sigue siendo:
+  - `Patricia`
+  - `Román`
 
 ## Archivos modificados
 
@@ -17,4 +20,4 @@ Corrección del acceso privado.
 - `config.js`
 - `service-worker.js`
 - `README.md`
-- `docs/instrucciones_v0_4_5.md`
+- `docs/instrucciones_v0_4_6.md`

@@ -31,7 +31,6 @@ const ICONS = {
   eye: '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>'
 };
 
-let supabaseClient = null;
 let currentUser = null;
 
 function injectIcons() {
@@ -144,78 +143,32 @@ function getConfig() {
 }
 
 
+
 function isSupabaseReady() {
   const config = getConfig();
-  return Boolean(
-    config.SUPABASE_URL &&
-    config.SUPABASE_ANON_KEY &&
-    window.supabase &&
-    typeof window.supabase.createClient === 'function'
-  );
+  return Boolean(config.SUPABASE_URL && config.SUPABASE_ANON_KEY);
 }
 
-
-
-function loadSupabaseScriptIfNeeded() {
-  if (window.supabase && typeof window.supabase.createClient === 'function') {
-    return Promise.resolve(true);
-  }
-
-  return new Promise((resolve) => {
-    const existing = document.querySelector('script[data-vita-supabase-loader="true"]');
-    if (existing) {
-      existing.addEventListener('load', () => resolve(true), { once: true });
-      existing.addEventListener('error', () => resolve(false), { once: true });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
-    script.async = true;
-    script.dataset.vitaSupabaseLoader = 'true';
-    script.onload = () => resolve(Boolean(window.supabase && typeof window.supabase.createClient === 'function'));
-    script.onerror = () => resolve(false);
-    document.head.appendChild(script);
-  });
-}
 
 
 async function initSupabase() {
-  await loadSupabaseScriptIfNeeded();
-
   if (!isSupabaseReady()) {
+    currentUser = null;
     renderAuthState();
     renderAppAccess();
     return;
   }
 
-  try {
-    const config = getConfig();
-    supabaseClient = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
-    });
+  const session = getStoredSession();
 
-    const { data, error } = await supabaseClient.auth.getSession();
-    currentUser = error ? null : (data && data.session ? data.session.user : null);
-
-    supabaseClient.auth.onAuthStateChange((_event, session) => {
-      currentUser = session ? session.user : null;
-      renderAuthState();
-      renderAppAccess();
-    });
-
-    renderAuthState();
-    renderAppAccess();
-  } catch (_error) {
+  if (session && session.access_token && session.user) {
+    currentUser = session.user;
+  } else {
     currentUser = null;
-    supabaseClient = null;
-    renderAuthState();
-    renderAppAccess();
   }
+
+  renderAuthState();
+  renderAppAccess();
 }
 
 
@@ -228,7 +181,7 @@ function renderAuthState() {
   const sessionEmail = document.getElementById('session-email');
   const sessionMode = document.getElementById('session-mode');
 
-  if (!supabaseClient && !isSupabaseReady()) {
+  if (!isSupabaseReady()) {
     setText(title, 'Acceso no disponible');
     setText(message, 'No se pudo conectar con el acceso privado. Recarga la página e inténtalo de nuevo.');
     setText(helper, 'La app permanecerá bloqueada hasta que el acceso esté disponible.');
@@ -258,6 +211,7 @@ function renderAuthState() {
     setText(sessionMode, 'Acceso bloqueado');
   }
 }
+
 
 
 
@@ -306,29 +260,22 @@ function setupAuthButtons() {
         return;
       }
 
-      if (!isSupabaseReady() || !supabaseClient) {
-        setLoginMessage('Preparando acceso...', 'neutral');
-        await initSupabase();
-      }
-
-      if (!isSupabaseReady() || !supabaseClient) {
-        setLoginMessage('No se pudo cargar el acceso privado. Recarga la página.', 'error');
+      if (!isSupabaseReady()) {
+        setLoginMessage('Acceso no configurado.', 'error');
         return;
       }
 
       setLoginMessage('Accediendo...', 'neutral');
 
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
+      const result = await signInWithPasswordRest(email, password);
 
-      if (error || !data || !data.user) {
-        setLoginMessage('Usuario o contraseña incorrectos.', 'error');
+      if (!result.ok) {
+        setLoginMessage(result.message || 'Usuario o contraseña incorrectos.', 'error');
         return;
       }
 
-      currentUser = data.user;
+      saveSession(result.session);
+      currentUser = result.session.user;
       renderAuthState();
       renderAppAccess();
       showScreen('hoy');
@@ -337,15 +284,6 @@ function setupAuthButtons() {
 
   if (forgotPassword) {
     forgotPassword.addEventListener('click', async () => {
-      if (!isSupabaseReady() || !supabaseClient) {
-        await initSupabase();
-      }
-
-      if (!isSupabaseReady() || !supabaseClient) {
-        setLoginMessage('No se pudo cargar el acceso privado. Recarga la página.', 'error');
-        return;
-      }
-
       const username = loginUsername ? loginUsername.value.trim() : '';
       const email = resolveLoginEmail(username);
 
@@ -359,12 +297,9 @@ function setupAuthButtons() {
         return;
       }
 
-      const redirectTo = window.location.href.split('#')[0];
-      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo
-      });
+      const result = await sendPasswordRecoveryRest(email);
 
-      if (error) {
+      if (!result.ok) {
         setLoginMessage('No se pudo enviar la recuperación de contraseña.', 'error');
       } else {
         setLoginMessage('Revisa el correo asociado a tu usuario.', 'success');
@@ -380,9 +315,7 @@ function setupAuthButtons() {
 
   if (logoutButton) {
     logoutButton.addEventListener('click', async () => {
-      if (supabaseClient) {
-        await supabaseClient.auth.signOut();
-      }
+      await signOutRest();
       currentUser = null;
       renderAuthState();
       renderAppAccess(true);
@@ -452,6 +385,108 @@ function setupDocumentDemo() {
 
 
 
+
+const VITA_SESSION_KEY = 'vita_secure_session';
+
+function getAuthEndpoint(path) {
+  const config = getConfig();
+  return `${config.SUPABASE_URL}/auth/v1/${path}`;
+}
+
+function getAuthHeaders(accessToken) {
+  const config = getConfig();
+  const headers = {
+    apikey: config.SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json'
+  };
+
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  return headers;
+}
+
+async function signInWithPasswordRest(email, password) {
+  try {
+    const response = await fetch(getAuthEndpoint('token?grant_type=password'), {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ email, password })
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || !payload.access_token || !payload.user) {
+      return {
+        ok: false,
+        message: 'Usuario o contraseña incorrectos.'
+      };
+    }
+
+    return {
+      ok: true,
+      session: payload
+    };
+  } catch (_error) {
+    return {
+      ok: false,
+      message: 'No se pudo conectar con el acceso privado.'
+    };
+  }
+}
+
+async function sendPasswordRecoveryRest(email) {
+  try {
+    const response = await fetch(getAuthEndpoint('recover'), {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        email,
+        redirect_to: window.location.href.split('#')[0]
+      })
+    });
+
+    return { ok: response.ok };
+  } catch (_error) {
+    return { ok: false };
+  }
+}
+
+async function signOutRest() {
+  const session = getStoredSession();
+
+  try {
+    if (session && session.access_token) {
+      await fetch(getAuthEndpoint('logout'), {
+        method: 'POST',
+        headers: getAuthHeaders(session.access_token)
+      });
+    }
+  } catch (_error) {
+    /* La sesión local se elimina igualmente. */
+  }
+
+  clearSession();
+}
+
+function saveSession(session) {
+  localStorage.setItem(VITA_SESSION_KEY, JSON.stringify(session));
+}
+
+function getStoredSession() {
+  try {
+    return JSON.parse(localStorage.getItem(VITA_SESSION_KEY) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function clearSession() {
+  localStorage.removeItem(VITA_SESSION_KEY);
+}
+
+
 function normalizeLoginName(value) {
   return String(value || '')
     .trim()
@@ -490,6 +525,7 @@ function getDisplayNameForEmail(email) {
 
 
 
+
 function renderAppAccess(forceLogin = false) {
   const loginScreen = document.getElementById('login-screen');
   const appShell = document.getElementById('app');
@@ -505,7 +541,7 @@ function renderAppAccess(forceLogin = false) {
 
   if (!canEnter) {
     if (!isSupabaseReady()) {
-      setLoginMessage('Cargando acceso privado...', 'neutral');
+      setLoginMessage('Acceso no configurado.', 'error');
     } else {
       setLoginMessage('Introduce tu usuario y contraseña.', 'neutral');
     }
