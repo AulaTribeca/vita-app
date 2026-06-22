@@ -1548,3 +1548,177 @@ button { cursor: pointer; }
 .document-actions button:disabled {
   opacity: 0.5;
 }
+
+
+.medication-tabs {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.medication-panel {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(62, 48, 110, 0.08);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.medication-panel[data-medication-section="today"] {
+  background: linear-gradient(135deg, rgba(113, 84, 200, 0.1), rgba(255,255,255,0.96));
+}
+
+.medication-panel[data-medication-section="stock"] {
+  background: linear-gradient(135deg, rgba(32, 167, 161, 0.1), rgba(255,255,255,0.96));
+}
+
+.medication-form {
+  display: grid;
+  gap: 12px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.medication-list {
+  display: grid;
+  gap: 10px;
+}
+
+.medication-real-card {
+  border: 1px solid rgba(86, 77, 128, 0.12);
+  background: rgba(255,255,255,0.76);
+  border-radius: 20px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.medication-real-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(113, 84, 200, 0.1);
+  color: var(--purple);
+}
+
+.medication-real-body h3 {
+  margin: 0 0 4px;
+  font-size: 0.98rem;
+}
+
+.medication-real-body p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.medication-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.medication-tags span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(113, 84, 200, 0.1);
+  color: var(--purple-dark);
+  padding: 5px 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.medication-tags .warning {
+  background: rgba(251, 140, 126, 0.14);
+  color: #b85e53;
+}
+
+.medication-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.medication-actions button {
+  border: 0;
+  background: rgba(113, 84, 200, 0.08);
+  color: var(--purple);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.medication-actions .danger-text {
+  color: #b8455a;
+  background: rgba(232, 96, 116, 0.1);
+}
+
+.dose-row {
+  border: 1px solid rgba(86, 77, 128, 0.1);
+  background: rgba(255,255,255,0.7);
+  border-radius: 18px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.dose-row strong,
+.dose-row small {
+  display: block;
+}
+
+.dose-row small {
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.dose-row button {
+  border: 0;
+  border-radius: 999px;
+  background: var(--purple);
+  color: white;
+  padding: 8px 11px;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.dose-row button.is-taken {
+  background: rgba(32, 167, 161, 0.12);
+  color: #117975;
+}
+
+.stock-progress {
+  height: 8px;
+  background: rgba(113, 84, 200, 0.11);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 9px;
+}
+
+.stock-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--purple), var(--teal));
+}
+
+@media (max-width: 380px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

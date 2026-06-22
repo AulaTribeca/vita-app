@@ -44,6 +44,10 @@ let currentHouseholdMembers = [];
 let healthRecords = [];
 let medicalAppointments = [];
 let medicalDocuments = [];
+  medications = [];
+  medicationDosesToday = [];
+let medications = [];
+let medicationDosesToday = [];
 
 const HEALTH_TYPES = {
   bathroom: { label: 'Baño', icon: 'bath' },
@@ -313,6 +317,8 @@ async function signOut() {
   healthRecords = [];
   medicalAppointments = [];
   medicalDocuments = [];
+  medications = [];
+  medicationDosesToday = [];
 }
 
 function injectIcons() {
@@ -816,20 +822,37 @@ function setupWishlistForm() {
   });
 }
 
-async function initializePrivateData() {
+
+async function safeDataLoad(name, fn) {
   try {
-    showSyncStatus('Sincronizando listas...', 'neutral');
-    await loadProfileAndHousehold();
-    await loadListsAndItems();
-    await loadHealthRecords();
-    await loadMedicalAppointments();
-    await loadMedicalDocuments();
-    showSyncStatus('Listas, salud, citas y volantes conectados a Supabase.', 'success');
+    await fn();
+    return true;
   } catch (error) {
-    showSyncStatus(error.message || 'No se pudieron cargar las listas.', 'error');
-    renderListError();
+    console.warn(`VITA: no se pudo cargar ${name}`, error);
+    return false;
   }
 }
+
+
+async function initializePrivateData() {
+  showSyncStatus('Sincronizando datos...', 'neutral');
+
+  try {
+    await loadProfileAndHousehold();
+  } catch (error) {
+    showSyncStatus(error.message || 'No se pudo cargar el perfil.', 'error');
+    return;
+  }
+
+  await safeDataLoad('listas', loadListsAndItems);
+  await safeDataLoad('salud', loadHealthRecords);
+  await safeDataLoad('citas', loadMedicalAppointments);
+  await safeDataLoad('volantes', loadMedicalDocuments);
+  await safeDataLoad('medicación', loadMedications);
+
+  showSyncStatus('Datos sincronizados.', 'success');
+}
+
 
 async function loadProfileAndHousehold() {
   if (!currentUser || !currentUser.id) {
@@ -852,6 +875,8 @@ async function loadProfileAndHousehold() {
   healthRecords = [];
   medicalAppointments = [];
   medicalDocuments = [];
+  medications = [];
+  medicationDosesToday = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -867,6 +892,8 @@ async function loadProfileAndHousehold() {
   healthRecords = [];
   medicalAppointments = [];
   medicalDocuments = [];
+  medications = [];
+  medicationDosesToday = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -1678,6 +1705,362 @@ function renderDocumentsError() {
 }
 
 
+
+function setupMedications() {
+  setupMedicationTabs();
+
+  const form = document.getElementById('medication-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const name = document.getElementById('medication-name-input').value.trim();
+    const doseText = document.getElementById('medication-dose-input').value.trim();
+    const timesRaw = document.getElementById('medication-times-input').value.trim();
+    const unitsPerBox = Number(document.getElementById('medication-units-box-input').value || 0);
+    const currentStock = Number(document.getElementById('medication-stock-input').value || 0);
+    const warningThreshold = Number(document.getElementById('medication-warning-input').value || 7);
+    const notes = document.getElementById('medication-notes-input').value.trim();
+
+    if (!name) {
+      showSyncStatus('Escribe el nombre del medicamento.', 'error');
+      return;
+    }
+
+    const scheduleTimes = parseMedicationTimes(timesRaw);
+
+    if (!scheduleTimes.length) {
+      showSyncStatus('Indica al menos una hora de toma, por ejemplo 08:00.', 'error');
+      return;
+    }
+
+    const payload = {
+      owner_id: currentUser.id,
+      name,
+      dose_text: doseText || null,
+      schedule_times: scheduleTimes,
+      units_per_box: unitsPerBox || null,
+      current_stock: currentStock || 0,
+      warning_threshold_days: warningThreshold || 7,
+      notes: notes || null,
+      active: true
+    };
+
+    form.querySelectorAll('input, textarea, button').forEach((field) => field.disabled = true);
+
+    try {
+      await restRequest('medications', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(payload)
+      });
+
+      form.reset();
+      document.getElementById('medication-warning-input').value = '7';
+      await loadMedications();
+      showSyncStatus('Medicación guardada.', 'success');
+      selectMedicationTab('today');
+    } catch (error) {
+      showSyncStatus(error.message || 'No se pudo guardar la medicación.', 'error');
+    } finally {
+      form.querySelectorAll('input, textarea, button').forEach((field) => field.disabled = false);
+    }
+  });
+}
+
+function setupMedicationTabs() {
+  document.querySelectorAll('[data-medication-tab]').forEach((button) => {
+    button.addEventListener('click', () => selectMedicationTab(button.dataset.medicationTab));
+  });
+
+  selectMedicationTab('today');
+}
+
+function selectMedicationTab(selected) {
+  document.querySelectorAll('[data-medication-tab]').forEach((button) => {
+    button.classList.toggle('active', button.dataset.medicationTab === selected);
+  });
+
+  document.querySelectorAll('[data-medication-section]').forEach((section) => {
+    section.classList.toggle('is-filtered-out', section.dataset.medicationSection !== selected);
+  });
+}
+
+function parseMedicationTimes(value) {
+  return String(value || '')
+    .split(',')
+    .map((time) => time.trim())
+    .filter(Boolean)
+    .map((time) => {
+      const match = time.match(/^(\d{1,2}):(\d{2})$/);
+      if (!match) return null;
+      const hour = String(Math.min(23, Number(match[1]))).padStart(2, '0');
+      const minute = String(Math.min(59, Number(match[2]))).padStart(2, '0');
+      return `${hour}:${minute}`;
+    })
+    .filter(Boolean);
+}
+
+async function loadMedications() {
+  if (!currentUser) return;
+
+  try {
+    medications = await restRequest(`medications?select=*&owner_id=eq.${encodeFilter(currentUser.id)}&active=eq.true&order=created_at.asc`);
+    medicationDosesToday = await loadMedicationDosesToday();
+    renderMedications();
+  } catch (error) {
+    renderMedicationsError();
+    throw error;
+  }
+}
+
+async function loadMedicationDosesToday() {
+  const { start, end } = getTodayRange();
+
+  return restRequest(
+    `medication_dose_logs?select=*&owner_id=eq.${encodeFilter(currentUser.id)}&taken_at=gte.${encodeFilter(start)}&taken_at=lt.${encodeFilter(end)}`
+  );
+}
+
+function getTodayRange() {
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 1);
+
+  return {
+    start: startDate.toISOString(),
+    end: endDate.toISOString()
+  };
+}
+
+function renderMedications() {
+  renderTodayMedicationList();
+  renderMedicationStockList();
+}
+
+function renderTodayMedicationList() {
+  const container = document.getElementById('today-medication-list');
+  if (!container) return;
+
+  if (!medications.length) {
+    container.innerHTML = '<p class="empty">Todavía no hay medicación guardada.</p>';
+    return;
+  }
+
+  container.innerHTML = medications.map((medication) => {
+    const doses = (medication.schedule_times || []).map((time) => renderDoseRow(medication, time)).join('');
+
+    return `
+      <article class="medication-real-card">
+        <span class="medication-real-icon app-icon" data-icon="pill"></span>
+        <div class="medication-real-body">
+          <h3>${escapeHtml(medication.name)}</h3>
+          <p>${escapeHtml(medication.dose_text || 'Dosis no indicada')}</p>
+          ${doses}
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  injectIcons();
+  bindMedicationDoseButtons(container);
+}
+
+function renderDoseRow(medication, time) {
+  const taken = medicationDosesToday.find((dose) => dose.medication_id === medication.id && dose.scheduled_time === time);
+  const buttonClass = taken ? 'is-taken' : '';
+  const buttonText = taken ? 'Tomada' : 'Marcar';
+
+  return `
+    <div class="dose-row">
+      <div>
+        <strong>${escapeHtml(time)}</strong>
+        <small>${taken ? 'Registrada hoy' : 'Pendiente'}</small>
+      </div>
+      <button class="js-dose-button ${buttonClass}" type="button" data-medication-id="${escapeHtml(medication.id)}" data-time="${escapeHtml(time)}" ${taken ? 'disabled' : ''}>${buttonText}</button>
+    </div>
+  `;
+}
+
+function renderMedicationStockList() {
+  const container = document.getElementById('medication-stock-list');
+  if (!container) return;
+
+  if (!medications.length) {
+    container.innerHTML = '<p class="empty">Todavía no hay medicación guardada.</p>';
+    return;
+  }
+
+  container.innerHTML = medications.map((medication) => {
+    const dosesPerDay = Math.max(1, (medication.schedule_times || []).length);
+    const stock = Number(medication.current_stock || 0);
+    const unitsPerBox = Number(medication.units_per_box || stock || 1);
+    const daysLeft = Math.floor(stock / dosesPerDay);
+    const percent = Math.max(0, Math.min(100, Math.round((stock / unitsPerBox) * 100)));
+    const warning = daysLeft <= Number(medication.warning_threshold_days || 7);
+    const tags = [
+      `<span>${stock} unidades</span>`,
+      `<span>${daysLeft} días aprox.</span>`,
+      warning ? '<span class="warning">Comprar pronto</span>' : '<span>Stock suficiente</span>'
+    ].join('');
+
+    return `
+      <article class="medication-real-card">
+        <span class="medication-real-icon app-icon" data-icon="pill"></span>
+        <div class="medication-real-body">
+          <h3>${escapeHtml(medication.name)}</h3>
+          <p>${escapeHtml(medication.dose_text || 'Dosis no indicada')}</p>
+          <div class="medication-tags">${tags}</div>
+          <div class="stock-progress"><span style="width:${percent}%"></span></div>
+          <div class="medication-actions">
+            <button class="js-restock-medication" type="button" data-id="${escapeHtml(medication.id)}">Reponer stock</button>
+            <button class="js-edit-medication-stock" type="button" data-id="${escapeHtml(medication.id)}" data-stock="${stock}">Editar stock</button>
+            <button class="js-archive-medication danger-text" type="button" data-id="${escapeHtml(medication.id)}">Archivar</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  injectIcons();
+  bindMedicationStockButtons(container);
+}
+
+function bindMedicationDoseButtons(container) {
+  container.querySelectorAll('.js-dose-button').forEach((button) => {
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+
+      try {
+        await markMedicationDoseTaken(button.dataset.medicationId, button.dataset.time);
+        await loadMedications();
+        showSyncStatus('Toma registrada.', 'success');
+      } catch (error) {
+        button.disabled = false;
+        showSyncStatus(error.message || 'No se pudo registrar la toma.', 'error');
+      }
+    });
+  });
+}
+
+async function markMedicationDoseTaken(medicationId, scheduledTime) {
+  const medication = medications.find((item) => item.id === medicationId);
+  if (!medication) return;
+
+  await restRequest('medication_dose_logs', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      owner_id: currentUser.id,
+      medication_id: medicationId,
+      scheduled_time: scheduledTime,
+      taken_at: new Date().toISOString(),
+      status: 'taken'
+    })
+  });
+
+  const nextStock = Math.max(0, Number(medication.current_stock || 0) - 1);
+
+  await restRequest(`medications?id=eq.${encodeFilter(medicationId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ current_stock: nextStock })
+  });
+}
+
+function bindMedicationStockButtons(container) {
+  container.querySelectorAll('.js-restock-medication').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const medication = medications.find((item) => item.id === button.dataset.id);
+      if (!medication) return;
+
+      const unitsPerBox = Number(medication.units_per_box || 0);
+      const currentStock = Number(medication.current_stock || 0);
+      const nextStock = currentStock + (unitsPerBox || 0);
+
+      if (!unitsPerBox) {
+        showSyncStatus('Primero indica cuántas unidades tiene la caja.', 'error');
+        return;
+      }
+
+      try {
+        await restRequest(`medications?id=eq.${encodeFilter(medication.id)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ current_stock: nextStock })
+        });
+        await loadMedications();
+        showSyncStatus('Stock repuesto.', 'success');
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo reponer stock.', 'error');
+      }
+    });
+  });
+
+  container.querySelectorAll('.js-edit-medication-stock').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const current = button.dataset.stock || '0';
+      const value = window.prompt('Stock actual', current);
+
+      if (value === null) return;
+
+      const nextStock = Number(value);
+      if (Number.isNaN(nextStock) || nextStock < 0) {
+        showSyncStatus('Stock no válido.', 'error');
+        return;
+      }
+
+      try {
+        await restRequest(`medications?id=eq.${encodeFilter(button.dataset.id)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ current_stock: Math.floor(nextStock) })
+        });
+        await loadMedications();
+        showSyncStatus('Stock actualizado.', 'success');
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo actualizar el stock.', 'error');
+      }
+    });
+  });
+
+  container.querySelectorAll('.js-archive-medication').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const confirmed = window.confirm('¿Archivar esta medicación?');
+      if (!confirmed) return;
+
+      try {
+        await restRequest(`medications?id=eq.${encodeFilter(button.dataset.id)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ active: false })
+        });
+        await loadMedications();
+        showSyncStatus('Medicación archivada.', 'success');
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo archivar.', 'error');
+      }
+    });
+  });
+}
+
+function renderMedicationsError() {
+  const today = document.getElementById('today-medication-list');
+  const stock = document.getElementById('medication-stock-list');
+
+  if (today) {
+    today.innerHTML = '<p class="empty error-text">No se pudo cargar la medicación. Ejecuta el SQL de VITA v1.1.</p>';
+  }
+
+  if (stock) {
+    stock.innerHTML = '<p class="empty error-text">No se pudo cargar el stock.</p>';
+  }
+}
+
+
 function setupDocumentDemo() {
   const downloadButton = document.getElementById('download-demo');
   const emailButton = document.getElementById('email-demo');
@@ -1745,6 +2128,7 @@ function boot() {
   safeSetup('salud', setupHealthRecords);
   safeSetup('citas', setupMedicalAppointments);
   safeSetup('documentos médicos', setupMedicalDocuments);
+  safeSetup('medicación', setupMedications);
   safeSetup('listas', setupShoppingForms);
   safeSetup('documentos', setupDocumentDemo);
   safeSetup('registros de salud iniciales', () => renderHealthRecords([]));

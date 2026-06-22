@@ -1,25 +1,33 @@
-# VITA v1.0.1 depurada
+# VITA v1.1
 
-Versión de depuración antes de seguir con nuevas fases.
+Nivel 11 de VITA: medicación real y control de stock.
 
-## Qué corrige
+## Qué añade
 
-- Recupera el inicio de sesión.
-- Corrige un error de JavaScript generado por variables duplicadas en `app.js`.
-- Evita que un fallo en listas, salud, citas o volantes bloquee la pantalla de login.
-- Separa el error de autenticación del error de sincronización de datos.
-- Cambia la clave local de sesión para forzar una sesión limpia.
-- Actualiza cachés a `v1.0.1`.
+- Tabla `medications`.
+- Tabla `medication_dose_logs`.
+- Alta de medicamentos.
+- Horas de toma.
+- Registro de tomas diarias.
+- Descuento automático de stock al marcar una toma.
+- Cálculo aproximado de días restantes.
+- Aviso visual de compra cuando el stock baja.
+- Reposición de stock por caja.
+- Edición rápida de stock.
+- Archivado de medicación.
+- Privacidad: cada usuario solo ve su propia medicación.
 
 ## Archivos modificados
 
 - `index.html`
 - `app.js`
+- `styles.css`
 - `config.js`
 - `service-worker.js`
 - `README.md`
-- `docs/instrucciones_v1_0_1.md`
+- `docs/instrucciones_v1_1.md`
+- `docs/supabase_v1_1.sql`
 
-## No hace falta ejecutar SQL nuevo
+## Importante
 
-Esta versión no cambia la base de datos. Solo corrige la app.
+Antes de probar Medicación, ejecuta `docs/supabase_v1_1.sql` en Supabase.

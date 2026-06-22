@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#7154c8">
   <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=1.0.1">
-  <link rel="icon" href="./assets/vita-icon.svg?v=1.0.1" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=1.0.1">
-  <link rel="stylesheet" href="./styles.css?v=1.0.1">
+  <link rel="manifest" href="./manifest.webmanifest?v=1.1.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=1.1.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=1.1.0">
+  <link rel="stylesheet" href="./styles.css?v=1.1.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -503,6 +503,7 @@
 
       </section>
 
+
       <section class="screen" id="screen-medicacion" data-screen="medicacion">
         <header class="topbar compact">
           <div>
@@ -511,37 +512,95 @@
           </div>
         </header>
 
-        <div class="tabs">
-          <button class="active" type="button">Hoy</button>
-          <button type="button">Stock</button>
-          <button type="button">Historial</button>
+        <div class="tabs compact-tabs medication-tabs">
+          <button class="active" type="button" data-medication-tab="today">Hoy</button>
+          <button type="button" data-medication-tab="stock">Stock</button>
+          <button type="button" data-medication-tab="new">Nueva</button>
         </div>
 
-        <article class="medicine-card">
-          <span class="medicine-icon app-icon" data-icon="pill"></span>
-          <div>
-            <h3>Medicamento diario 1</h3>
-            <p>1 comprimido</p>
-            <div class="time-row"><span>10:00</span><span>22:00</span></div>
-            <small>Quedan 14 comprimidos</small>
-            <div class="progress"><span style="width:70%"></span></div>
+        <article class="medication-panel" data-medication-section="today">
+          <div class="list-header">
+            <span class="app-icon" data-icon="pill"></span>
+            <div>
+              <span class="eyebrow">Tomas de hoy</span>
+              <h2>Medicación pendiente</h2>
+              <p>Marca las tomas cuando las hagas. VITA descuenta una unidad del stock.</p>
+            </div>
+          </div>
+
+          <div id="today-medication-list" class="medication-list">
+            <p class="empty">Cargando medicación...</p>
           </div>
         </article>
 
-        <article class="medicine-card">
-          <span class="medicine-icon app-icon" data-icon="pill"></span>
-          <div>
-            <h3>Medicamento diario 2</h3>
-            <p>1 comprimido</p>
-            <div class="time-row"><span>08:00</span></div>
-            <small>Quedan 8 comprimidos</small>
-            <div class="progress"><span style="width:40%"></span></div>
+        <article class="medication-panel" data-medication-section="stock">
+          <div class="list-header">
+            <span class="app-icon" data-icon="cart"></span>
+            <div>
+              <span class="eyebrow">Stock</span>
+              <h2>Control de existencias</h2>
+              <p>Calcula cuántos días quedan antes de comprar o retirar medicación.</p>
+            </div>
+          </div>
+
+          <div id="medication-stock-list" class="medication-list">
+            <p class="empty">Cargando stock...</p>
           </div>
         </article>
 
-        <article class="purchase-alert coral">
-          <div><small>Recordatorio</small><h3>Comprar medicación en 5 días</h3></div>
-          <span class="app-icon" data-icon="cart"></span>
+        <article class="medication-panel" data-medication-section="new">
+          <div class="list-header">
+            <span class="app-icon" data-icon="plus"></span>
+            <div>
+              <span class="eyebrow">Nueva medicación</span>
+              <h2>Añadir medicamento</h2>
+              <p>Guarda pauta, unidades por caja y stock actual.</p>
+            </div>
+          </div>
+
+          <form id="medication-form" class="medication-form">
+            <label class="field">
+              <span>Nombre</span>
+              <input id="medication-name-input" type="text" placeholder="Ej. Eutirox, vitamina, antihistamínico...">
+            </label>
+
+            <label class="field">
+              <span>Dosis o pauta escrita</span>
+              <input id="medication-dose-input" type="text" placeholder="Ej. 1 comprimido, 50 mcg, 1 cápsula...">
+            </label>
+
+            <label class="field">
+              <span>Horas de toma</span>
+              <input id="medication-times-input" type="text" placeholder="Ej. 08:00 o 08:00, 22:00">
+            </label>
+
+            <div class="form-grid-2">
+              <label class="field">
+                <span>Unidades por caja</span>
+                <input id="medication-units-box-input" type="number" min="1" step="1" placeholder="Ej. 100">
+              </label>
+
+              <label class="field">
+                <span>Stock actual</span>
+                <input id="medication-stock-input" type="number" min="0" step="1" placeholder="Ej. 24">
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Avisar cuando queden</span>
+              <input id="medication-warning-input" type="number" min="1" step="1" value="7">
+            </label>
+
+            <label class="field">
+              <span>Notas</span>
+              <textarea id="medication-notes-input" rows="3" placeholder="Indicaciones, con comida, en ayunas, receta, farmacia..."></textarea>
+            </label>
+
+            <button class="form-submit" type="submit">
+              <span class="app-icon" data-icon="pill"></span>
+              Guardar medicación
+            </button>
+          </form>
         </article>
       </section>
 
@@ -781,7 +840,7 @@
 
           <p class="fine-print" id="auth-helper">Tus datos se protegen con sesión privada.</p>
 
-          <div id="sync-status" class="sync-status">Listas, salud, citas y volantes conectados a Supabase.</div>
+          <div id="sync-status" class="sync-status">Listas, salud, citas, volantes y medicación conectados a Supabase.</div>
         </article>
 
         <article class="privacy-grid">
@@ -801,7 +860,7 @@
     </main>
   </div>
 
-  <script src="./config.js?v=1.0.1"></script>
-  <script src="./app.js?v=1.0.1"></script>
+  <script src="./config.js?v=1.1.0"></script>
+  <script src="./app.js?v=1.1.0"></script>
 </body>
 </html>
