@@ -1,23 +1,21 @@
-# VITA v3.1, medicación y wallet
+VITA v3.2, refresco de logo
 
-## Qué añade
+Archivos incluidos:
+- index.html
+- config.js
+- service-worker.js
+- manifest.webmanifest
+- assets/vita-icon.svg
+- assets/vita-icon-192.png
+- assets/vita-icon-512.png
 
-- Recupera Medicación como apartado principal.
-- Permite añadir medicación aunque dejes la hora vacía, usando 08:00 por defecto.
-- Añade Eutirox 112 microgramos y Bilasten 20 mg al perfil de Patricia mediante SQL.
-- Añade Wallet para tarjetas de fidelización.
-- Añade Eroski Club e IKEA Family al perfil de Patricia mediante SQL.
-- Las tarjetas tienen opción de mostrarse junto a la lista de la compra.
-- Medicación y Wallet tienen editar y borrar.
+Qué hace:
+- Sustituye el logo e icono de VITA por el nuevo diseño.
+- Actualiza favicon, icono de login, icono de cabecera y assets PWA.
+- Fuerza refresco de caché subiendo la versión a 3.2.0.
 
-## Supabase
-
-Ejecuta:
-
-`docs/supabase_v3_1_medicacion_wallet.sql`
-
-## GitHub
-
-Commit sugerido:
-
-`VITA v3.1 medicacion wallet`
+Qué debes hacer:
+1. Sustituir estos archivos en tu proyecto.
+2. Hacer commit y push.
+3. En el móvil, borrar la PWA instalada de VITA.
+4. Abrir de nuevo la web y reinstalar la app.
