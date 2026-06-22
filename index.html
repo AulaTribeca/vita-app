@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#7154c8">
   <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.8.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=0.8.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=0.8.0">
-  <link rel="stylesheet" href="./styles.css?v=0.8.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.9.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=0.9.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=0.9.0">
+  <link rel="stylesheet" href="./styles.css?v=0.9.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -268,36 +268,155 @@
         </article>
       </section>
 
+
       <section class="screen" id="screen-citas" data-screen="citas">
         <header class="topbar compact">
           <div>
             <h1>Mis citas</h1>
-            <p>Citas, volantes y acciones pendientes</p>
+            <p>Citas médicas, historial y acciones pendientes</p>
           </div>
         </header>
 
-        <div class="tabs">
-          <button class="active" type="button">Próximas</button>
-          <button type="button">Historial</button>
+        <div class="tabs compact-tabs">
+          <button class="active" type="button" data-appointment-tab="upcoming">Próximas</button>
+          <button type="button" data-appointment-tab="history">Historial</button>
+          <button type="button" data-appointment-tab="new">Nueva</button>
         </div>
 
-        <div class="section-title"><h2>Próxima cita</h2></div>
+        <article class="appointment-panel" data-appointment-section="new">
+          <div class="list-header">
+            <span class="app-icon" data-icon="calendar"></span>
+            <div>
+              <span class="eyebrow">Nueva cita</span>
+              <h2>Registrar cita médica</h2>
+              <p>Guarda fecha, servicio, lugar y recordatorios básicos.</p>
+            </div>
+          </div>
 
-        <article class="medical-card mint">
-          <span class="date-pill"><strong>20</strong><small>MAY</small></span>
-          <div>
-            <h3>Endocrinología</h3>
-            <p>10:30 · Hospital Virxe da Xunqueira</p>
-            <small>Sala 17</small>
+          <form id="appointment-form" class="appointment-form">
+            <label class="field">
+              <span>Especialidad o motivo</span>
+              <input id="appointment-title-input" type="text" placeholder="Ej. Endocrinología, análisis, consulta...">
+            </label>
+
+            <label class="field">
+              <span>Fecha y hora</span>
+              <input id="appointment-date-input" type="datetime-local">
+            </label>
+
+            <label class="field">
+              <span>Lugar</span>
+              <input id="appointment-location-input" type="text" placeholder="Centro, hospital, sala...">
+            </label>
+
+            <label class="field">
+              <span>Profesional o servicio, si procede</span>
+              <input id="appointment-provider-input" type="text" placeholder="Médico/a, enfermería, servicio...">
+            </label>
+
+            <label class="field">
+              <span>Notas previas</span>
+              <textarea id="appointment-notes-input" rows="3" placeholder="Qué llevar, dudas, síntomas, preparación..."></textarea>
+            </label>
+
+            <div class="checklist compact-checklist">
+              <label class="check-row">
+                <input id="appointment-card-needed-input" type="checkbox" checked>
+                <span>Recordarme llevar tarjeta sanitaria</span>
+              </label>
+              <label class="check-row">
+                <input id="appointment-id-needed-input" type="checkbox">
+                <span>Recordarme llevar DNI</span>
+              </label>
+              <label class="check-row">
+                <input id="appointment-referral-needed-input" type="checkbox">
+                <span>Necesito llevar un volante o informe</span>
+              </label>
+            </div>
+
+            <button class="form-submit" type="submit">
+              <span class="app-icon" data-icon="calendar"></span>
+              Guardar cita
+            </button>
+          </form>
+        </article>
+
+        <article class="appointment-panel" data-appointment-section="upcoming">
+          <div class="list-header">
+            <span class="app-icon" data-icon="bell"></span>
+            <div>
+              <span class="eyebrow">Próximas</span>
+              <h2>Citas pendientes</h2>
+              <p>Con recordatorios de tarjeta sanitaria, DNI o volante.</p>
+            </div>
+          </div>
+          <div id="upcoming-appointments" class="appointments-list">
+            <p class="empty">Cargando citas...</p>
           </div>
         </article>
 
-        <article class="warning-card">
-          <span class="app-icon" data-icon="bell"></span>
-          <h3>Acción pendiente</h3>
-          <p>Después de una cita, VITA debe recordarte guardar el volante. Si ese volante está asociado a otra cita, debe recordarte llevarlo.</p>
-          <button type="button"><span class="app-icon" data-icon="upload"></span>Guardar volante</button>
-          <button class="secondary" type="button"><span class="app-icon" data-icon="file"></span>Llevar volante a especialista</button>
+        <article class="appointment-panel" data-appointment-section="history">
+          <div class="list-header">
+            <span class="app-icon" data-icon="file"></span>
+            <div>
+              <span class="eyebrow">Historial</span>
+              <h2>Citas realizadas</h2>
+              <p>Guarda qué te dijeron, si hubo alta o si te dieron volante.</p>
+            </div>
+          </div>
+          <div id="appointment-history" class="appointments-list">
+            <p class="empty">Cargando historial...</p>
+          </div>
+        </article>
+
+        <article class="appointment-panel" data-appointment-section="history">
+          <div class="list-header">
+            <span class="app-icon" data-icon="note"></span>
+            <div>
+              <span class="eyebrow">Después de la cita</span>
+              <h2>Registrar resultado</h2>
+              <p>Selecciona una cita y guarda la información recibida.</p>
+            </div>
+          </div>
+
+          <form id="appointment-result-form" class="appointment-form">
+            <label class="field">
+              <span>Cita</span>
+              <select id="appointment-result-select">
+                <option value="">Selecciona una cita</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Qué información te dieron</span>
+              <textarea id="appointment-summary-input" rows="4" placeholder="Diagnóstico, indicaciones, seguimiento, recomendaciones..."></textarea>
+            </label>
+
+            <label class="field">
+              <span>Volante o derivación</span>
+              <input id="appointment-referral-for-input" type="text" placeholder="Ej. especialista, prueba, analítica...">
+            </label>
+
+            <div class="checklist compact-checklist">
+              <label class="check-row">
+                <input id="appointment-discharge-input" type="checkbox">
+                <span>Me dieron el alta</span>
+              </label>
+              <label class="check-row">
+                <input id="appointment-referral-given-input" type="checkbox">
+                <span>Me dieron volante o derivación</span>
+              </label>
+              <label class="check-row">
+                <input id="appointment-followup-needed-input" type="checkbox">
+                <span>Necesito pedir o acudir a otra cita</span>
+              </label>
+            </div>
+
+            <button class="form-submit" type="submit">
+              <span class="app-icon" data-icon="check"></span>
+              Guardar resultado
+            </button>
+          </form>
         </article>
       </section>
 
@@ -579,7 +698,7 @@
 
           <p class="fine-print" id="auth-helper">Tus datos se protegen con sesión privada.</p>
 
-          <div id="sync-status" class="sync-status">Listas y salud conectadas a Supabase.</div>
+          <div id="sync-status" class="sync-status">Listas, salud y citas conectadas a Supabase.</div>
         </article>
 
         <article class="privacy-grid">
@@ -599,7 +718,7 @@
     </main>
   </div>
 
-  <script src="./config.js?v=0.8.0"></script>
-  <script src="./app.js?v=0.8.0"></script>
+  <script src="./config.js?v=0.9.0"></script>
+  <script src="./app.js?v=0.9.0"></script>
 </body>
 </html>

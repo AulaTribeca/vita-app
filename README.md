@@ -1,25 +1,23 @@
-# VITA v0.8
+# VITA v0.9
 
-Nivel 8 de VITA: registros reales de salud diaria.
+Nivel 9 de VITA: citas médicas reales.
 
 ## Qué añade
 
-- Tabla `health_records` en Supabase.
-- Registro rápido de:
-  - baño;
-  - síntomas;
-  - sueño;
-  - regla;
-  - dolor;
-  - ánimo.
-- Registro detallado con:
-  - tipo;
-  - fecha y hora;
-  - intensidad de 1 a 10;
-  - nota.
-- Carga de actividad reciente desde Supabase.
-- Contadores de registros de hoy.
-- Privacidad: cada usuario solo puede ver sus propios registros de salud.
+- Tabla `medical_appointments` en Supabase.
+- Creación de citas médicas.
+- Citas próximas.
+- Historial de citas.
+- Registro posterior a la cita:
+  - información recibida;
+  - alta;
+  - volante o derivación;
+  - seguimiento pendiente.
+- Recordatorios básicos:
+  - tarjeta sanitaria;
+  - DNI;
+  - llevar volante o informe.
+- Privacidad: cada usuario solo ve sus propias citas médicas.
 
 ## Archivos modificados
 
@@ -29,9 +27,9 @@ Nivel 8 de VITA: registros reales de salud diaria.
 - `config.js`
 - `service-worker.js`
 - `README.md`
-- `docs/instrucciones_v0_8.md`
-- `docs/supabase_v0_8.sql`
+- `docs/instrucciones_v0_9.md`
+- `docs/supabase_v0_9.sql`
 
 ## Importante
 
-Antes de probar Salud, ejecuta `docs/supabase_v0_8.sql` en Supabase.
+Antes de probar Citas, ejecuta `docs/supabase_v0_9.sql` en Supabase.

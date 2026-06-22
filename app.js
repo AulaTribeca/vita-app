@@ -42,7 +42,10 @@ let currentLists = {
 };
 let currentHouseholdMembers = [];
   healthRecords = [];
+  medicalAppointments = [];
 let healthRecords = [];
+  medicalAppointments = [];
+let medicalAppointments = [];
 
 const HEALTH_TYPES = {
   bathroom: { label: 'Baño', icon: 'bath' },
@@ -228,6 +231,7 @@ async function signOut() {
   currentLists = { shared: null, personal: null, wishlist: null };
   currentHouseholdMembers = [];
   healthRecords = [];
+  medicalAppointments = [];
 }
 
 function injectIcons() {
@@ -712,7 +716,8 @@ async function initializePrivateData() {
     await loadProfileAndHousehold();
     await loadListsAndItems();
     await loadHealthRecords();
-    showSyncStatus('Listas y salud conectadas a Supabase.', 'success');
+    await loadMedicalAppointments();
+    showSyncStatus('Listas, salud y citas conectadas a Supabase.', 'success');
   } catch (error) {
     showSyncStatus(error.message || 'No se pudieron cargar las listas.', 'error');
     renderListError();
@@ -738,6 +743,7 @@ async function loadProfileAndHousehold() {
     currentHousehold = null;
     currentHouseholdMembers = [];
   healthRecords = [];
+  medicalAppointments = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -751,6 +757,7 @@ async function loadProfileAndHousehold() {
   if (!ids.length) {
     currentHouseholdMembers = [];
   healthRecords = [];
+  medicalAppointments = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -1043,6 +1050,279 @@ function showSyncStatus(message, type = 'neutral') {
 
 
 
+
+function setupMedicalAppointments() {
+  setDefaultAppointmentDate();
+  setupAppointmentTabs();
+
+  const form = document.getElementById('appointment-form');
+  if (form) {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const title = document.getElementById('appointment-title-input').value.trim();
+      const dateValue = document.getElementById('appointment-date-input').value;
+      const location = document.getElementById('appointment-location-input').value.trim();
+      const provider = document.getElementById('appointment-provider-input').value.trim();
+      const notes = document.getElementById('appointment-notes-input').value.trim();
+
+      if (!title) {
+        showSyncStatus('Escribe la especialidad o motivo de la cita.', 'error');
+        return;
+      }
+
+      if (!dateValue) {
+        showSyncStatus('Indica la fecha y hora de la cita.', 'error');
+        return;
+      }
+
+      const payload = {
+        owner_id: currentUser.id,
+        title,
+        appointment_at: new Date(dateValue).toISOString(),
+        location: location || null,
+        provider: provider || null,
+        status: 'scheduled',
+        notes: notes || null,
+        needs_health_card: document.getElementById('appointment-card-needed-input').checked,
+        needs_id_card: document.getElementById('appointment-id-needed-input').checked,
+        needs_referral_document: document.getElementById('appointment-referral-needed-input').checked
+      };
+
+      try {
+        await restRequest('medical_appointments', {
+          method: 'POST',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify(payload)
+        });
+
+        form.reset();
+        setDefaultAppointmentDate();
+        document.getElementById('appointment-card-needed-input').checked = true;
+        await loadMedicalAppointments();
+        showSyncStatus('Cita guardada.', 'success');
+        selectAppointmentTab('upcoming');
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo guardar la cita.', 'error');
+      }
+    });
+  }
+
+  const resultForm = document.getElementById('appointment-result-form');
+  if (resultForm) {
+    resultForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const id = document.getElementById('appointment-result-select').value;
+      if (!id) {
+        showSyncStatus('Selecciona una cita.', 'error');
+        return;
+      }
+
+      const payload = {
+        status: 'completed',
+        summary: document.getElementById('appointment-summary-input').value.trim() || null,
+        discharge_given: document.getElementById('appointment-discharge-input').checked,
+        referral_given: document.getElementById('appointment-referral-given-input').checked,
+        referral_for: document.getElementById('appointment-referral-for-input').value.trim() || null,
+        followup_needed: document.getElementById('appointment-followup-needed-input').checked,
+        completed_at: new Date().toISOString()
+      };
+
+      try {
+        await restRequest(`medical_appointments?id=eq.${encodeFilter(id)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify(payload)
+        });
+
+        resultForm.reset();
+        await loadMedicalAppointments();
+        showSyncStatus('Resultado de la cita guardado.', 'success');
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo guardar el resultado.', 'error');
+      }
+    });
+  }
+}
+
+function setupAppointmentTabs() {
+  document.querySelectorAll('[data-appointment-tab]').forEach((button) => {
+    button.addEventListener('click', () => selectAppointmentTab(button.dataset.appointmentTab));
+  });
+
+  selectAppointmentTab('upcoming');
+}
+
+function selectAppointmentTab(selected) {
+  document.querySelectorAll('[data-appointment-tab]').forEach((button) => {
+    button.classList.toggle('active', button.dataset.appointmentTab === selected);
+  });
+
+  document.querySelectorAll('[data-appointment-section]').forEach((section) => {
+    section.classList.toggle('is-filtered-out', section.dataset.appointmentSection !== selected);
+  });
+}
+
+function setDefaultAppointmentDate() {
+  const input = document.getElementById('appointment-date-input');
+  if (!input) return;
+
+  const now = new Date();
+  now.setHours(now.getHours() + 24);
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  input.value = local.toISOString().slice(0, 16);
+}
+
+async function loadMedicalAppointments() {
+  if (!currentUser) return;
+
+  try {
+    medicalAppointments = await restRequest(`medical_appointments?select=*&owner_id=eq.${encodeFilter(currentUser.id)}&order=appointment_at.asc`);
+    renderMedicalAppointments();
+    renderAppointmentSelect();
+  } catch (error) {
+    renderAppointmentsError();
+  }
+}
+
+function renderMedicalAppointments() {
+  const now = new Date();
+
+  const upcoming = medicalAppointments.filter((item) => {
+    return item.status === 'scheduled' && new Date(item.appointment_at) >= now;
+  });
+
+  const history = medicalAppointments.filter((item) => {
+    return item.status !== 'scheduled' || new Date(item.appointment_at) < now;
+  }).sort((a, b) => new Date(b.appointment_at) - new Date(a.appointment_at));
+
+  renderAppointmentList('upcoming-appointments', upcoming, 'upcoming');
+  renderAppointmentList('appointment-history', history, 'history');
+}
+
+function renderAppointmentList(containerId, items, mode) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!items.length) {
+    container.innerHTML = mode === 'upcoming'
+      ? '<p class="empty">No tienes citas próximas guardadas.</p>'
+      : '<p class="empty">Todavía no hay citas en el historial.</p>';
+    return;
+  }
+
+  container.innerHTML = items.map((item) => renderAppointmentCard(item, mode)).join('');
+  bindAppointmentActions(container);
+}
+
+function renderAppointmentCard(item, mode) {
+  const date = new Date(item.appointment_at);
+  const day = date.toLocaleDateString('es-ES', { day: '2-digit' });
+  const month = date.toLocaleDateString('es-ES', { month: 'short' });
+  const hour = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+  const tags = [];
+  if (item.needs_health_card) tags.push('<span>Tarjeta sanitaria</span>');
+  if (item.needs_id_card) tags.push('<span>DNI</span>');
+  if (item.needs_referral_document) tags.push('<span class="warning">Llevar volante</span>');
+  if (item.referral_given) tags.push('<span class="warning">Volante dado</span>');
+  if (item.discharge_given) tags.push('<span>Alta</span>');
+  if (item.followup_needed) tags.push('<span class="warning">Seguimiento</span>');
+
+  const summary = item.summary
+    ? `<div class="appointment-summary"><p>${escapeHtml(item.summary)}</p></div>`
+    : '';
+
+  const referral = item.referral_for
+    ? `<p><strong>Volante:</strong> ${escapeHtml(item.referral_for)}</p>`
+    : '';
+
+  return `
+    <article class="appointment-real-card">
+      <div class="appointment-date-badge">
+        <div>
+          <strong>${escapeHtml(day)}</strong>
+          <small>${escapeHtml(month)}</small>
+        </div>
+      </div>
+      <div class="appointment-real-body">
+        <h3>${escapeHtml(item.title)}</h3>
+        <p>${escapeHtml(hour)}${item.location ? ' · ' + escapeHtml(item.location) : ''}</p>
+        ${item.provider ? `<p>${escapeHtml(item.provider)}</p>` : ''}
+        ${item.notes ? `<p>${escapeHtml(item.notes)}</p>` : ''}
+        ${referral}
+        ${summary}
+        <div class="appointment-tags">${tags.join('')}</div>
+        <div class="appointment-card-actions">
+          ${mode === 'upcoming' ? `<button class="js-mark-completed" type="button" data-id="${escapeHtml(item.id)}">Completar</button>` : ''}
+          <button class="js-delete-appointment danger-text" type="button" data-id="${escapeHtml(item.id)}">Borrar</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function bindAppointmentActions(container) {
+  container.querySelectorAll('.js-delete-appointment').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const confirmed = window.confirm('¿Eliminar esta cita?');
+      if (!confirmed) return;
+
+      try {
+        await restRequest(`medical_appointments?id=eq.${encodeFilter(button.dataset.id)}`, {
+          method: 'DELETE',
+          headers: { Prefer: 'return=minimal' }
+        });
+        await loadMedicalAppointments();
+        showSyncStatus('Cita eliminada.', 'success');
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo borrar la cita.', 'error');
+      }
+    });
+  });
+
+  container.querySelectorAll('.js-mark-completed').forEach((button) => {
+    button.addEventListener('click', () => {
+      selectAppointmentTab('history');
+      const select = document.getElementById('appointment-result-select');
+      if (select) {
+        select.value = button.dataset.id;
+      }
+    });
+  });
+}
+
+function renderAppointmentSelect() {
+  const select = document.getElementById('appointment-result-select');
+  if (!select) return;
+
+  const options = medicalAppointments
+    .slice()
+    .sort((a, b) => new Date(b.appointment_at) - new Date(a.appointment_at))
+    .map((item) => {
+      const date = new Date(item.appointment_at);
+      const label = `${item.title} · ${date.toLocaleDateString('es-ES')} ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+      return `<option value="${escapeHtml(item.id)}">${escapeHtml(label)}</option>`;
+    })
+    .join('');
+
+  select.innerHTML = `<option value="">Selecciona una cita</option>${options}`;
+}
+
+function renderAppointmentsError() {
+  const upcoming = document.getElementById('upcoming-appointments');
+  const history = document.getElementById('appointment-history');
+
+  if (upcoming) {
+    upcoming.innerHTML = '<p class="empty error-text">No se pudieron cargar las citas. Ejecuta el SQL de VITA v0.9.</p>';
+  }
+
+  if (history) {
+    history.innerHTML = '<p class="empty error-text">No se pudo cargar el historial.</p>';
+  }
+}
+
 function setupDocumentDemo() {
   const downloadButton = document.getElementById('download-demo');
   const emailButton = document.getElementById('email-demo');
@@ -1100,6 +1380,7 @@ function boot() {
   setupNavigation();
   setupLogin();
   setupHealthRecords();
+  setupMedicalAppointments();
   setupShoppingForms();
   setupDocumentDemo();
   renderHealthRecords([]);
