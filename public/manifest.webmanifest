@@ -1,0 +1,18 @@
+{
+  "name": "VITA",
+  "short_name": "VITA",
+  "description": "Organización personal, salud, hogar y recordatorios.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fbf8ff",
+  "theme_color": "#7154c8",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
