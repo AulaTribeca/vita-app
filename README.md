@@ -1,29 +1,33 @@
-# VITA v2.1 saneada
+# VITA v3.0, versión TDAH, CRUD y push visible
 
-Versión de depuración real tras detectar acumulación de parches.
+Esta versión deja de añadir parches sobre la interfaz anterior y reorganiza VITA en cinco zonas claras:
 
-## Objetivo
+- Hoy
+- Calendario
+- Salud
+- Hogar
+- Cuenta
 
-Volver a una app sencilla, visual y utilizable, sin mensajes técnicos visibles ni dependencias de SQL antiguos.
+## Qué corrige
 
-## Cambios principales
-
-- Cuenta aparece solo en el icono superior.
-- Se elimina el panel técnico de diagnóstico.
-- Se eliminan mensajes de depuración visibles.
-- Se repara el error de sincronización causado por una función antigua de notificaciones.
-- Salud ya no remite a versiones antiguas.
-- Vehículos quedan cubiertos por un SQL único de reparación.
-- Push y PWA se mantienen, pero en interfaz simplificada.
+- El botón de avisos ya muestra siempre un mensaje de estado.
+- El acceso a Cuenta aparece solo en la navegación y en el icono superior.
+- Se eliminan mensajes de depuración.
+- Salud, vehículos, facturas, contactos, calendario y viajes tienen editar y borrar.
+- Se añade calendario con vista de día, semana, mes y año.
+- Se añaden vacaciones del trabajo y datos de viajes.
+- Se añaden contactos útiles.
+- Se añade aviso del 30 de junio de 2026 por la domiciliación del impuesto de la renta.
+- Se incluye SQL único para reparar base de datos y no depender de versiones antiguas.
 
 ## Supabase
 
-Ejecutar:
+Ejecuta:
 
-`docs/supabase_v2_1_reparacion_total.sql`
+`docs/supabase_v3_0_tdah_crud_push.sql`
 
-## No subir a GitHub
+## GitHub
 
-Si existe y contiene claves privadas:
+Copia todo el paquete y haz commit:
 
-`docs/VAPID_SECRETS_NO_SUBIR_A_GITHUB.md`
+`VITA v3.0 TDAH CRUD push`

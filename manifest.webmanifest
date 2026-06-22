@@ -1,7 +1,7 @@
 {
   "name": "VITA",
   "short_name": "VITA",
-  "description": "Organización personal, salud, hogar y recordatorios.",
+  "description": "Organización personal, salud, hogar, calendario y avisos.",
   "id": "/",
   "start_url": "./index.html",
   "scope": "./",
@@ -27,6 +27,5 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "version": "2.1.0"
+  ]
 }

@@ -1,16 +1,7 @@
-/*
-  VITA v2.1
-
-  Configuración pública de Supabase para el frontend.
-
-  Esta clave es publishable/anon y puede estar en el frontend.
-  No pegues nunca aquí la service_role key.
-*/
-
 window.VITA_CONFIG = {
   SUPABASE_URL: "https://vbcqiggxpzlecilbukvn.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_MdUXjMd7qYe_he2OZoRXZQ_PJayheBR",
-  APP_VERSION: "2.1.0",
+  APP_VERSION: "3.0.0",
   USER_ALIASES: {
     "patricia": "patricia@vitaapp.com",
     "patri": "patricia@vitaapp.com",
