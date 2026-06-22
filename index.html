@@ -1,16 +1,668 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#7154c8" />
-    <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios en una app visual." />
-    <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <title>VITA</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="./src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#7154c8">
+  <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
+  <title>VITA</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./assets/vita-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon.svg">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+  <section id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="login-brand">
+        <img src="./assets/vita-icon.svg" alt="" class="login-logo">
+        <span>VITA</span>
+      </div>
+
+      <span class="eyebrow">Acceso privado</span>
+      <h1>Iniciar sesión</h1>
+      <p class="login-intro">Tus datos de salud, medicación, facturas, hogar y documentos son sensibles. VITA necesita usuario y contraseña antes de mostrar la app.</p>
+
+      <form id="password-login-form" class="login-form">
+        <label class="field">
+          <span>Usuario</span>
+          <input id="login-email" type="email" placeholder="tu@email.com" autocomplete="username" required>
+        </label>
+
+        <label class="field">
+          <span>Contraseña</span>
+          <div class="password-field">
+            <input id="login-password" type="password" placeholder="Contraseña" autocomplete="current-password" required>
+            <button id="toggle-password" type="button" aria-label="Mostrar u ocultar contraseña">
+              <span class="app-icon" data-icon="eye"></span>
+            </button>
+          </div>
+        </label>
+
+        <button class="login-submit" type="submit">
+          <span class="app-icon" data-icon="lock"></span>
+          Entrar en VITA
+        </button>
+      </form>
+
+      <button id="forgot-password" class="link-button" type="button">He olvidado mi contraseña</button>
+
+      <div class="login-message" id="login-message">
+        Supabase todavía no está configurado. Puedes revisar el diseño en modo demo, pero no introduzcas datos reales.
+      </div>
+
+      <button id="demo-access" class="demo-button" type="button">
+        Ver demo local sin datos reales
+      </button>
+
+      <p class="login-footnote">Los usuarios deben crearse en Supabase. Esta pantalla no permite registros públicos.</p>
+    </div>
+  </section>
+
+  <div id="app" class="app-shell is-hidden">
+    <main class="phone-frame" aria-live="polite">
+      <section class="screen is-active" id="screen-hoy" data-screen="hoy">
+        <header class="topbar">
+          <div>
+            <div class="brand">
+              <img src="./assets/vita-icon.svg" alt="" class="brand-icon">
+              <span>VITA</span>
+            </div>
+            <h1>Hola, Patricia <span aria-hidden="true">👋</span></h1>
+            <p id="today-date">Tu resumen del día</p>
+          </div>
+          <button class="icon-button js-go" type="button" aria-label="Cuenta y seguridad" data-target="cuenta">
+            <span class="app-icon" data-icon="lock"></span>
+            <span class="notification-dot"></span>
+          </button>
+        </header>
+
+        <div class="notice">
+          VITA v0.4 · Acceso privado con usuario y contraseña.
+        </div>
+
+        <article class="account-mini-card" id="account-mini-card">
+          <div>
+            <span class="eyebrow">Cuenta</span>
+            <h2 id="account-mini-title">Modo local</h2>
+            <p id="account-mini-text">Tus pantallas funcionan. En este nivel preparamos Supabase para guardar datos reales.</p>
+          </div>
+          <button class="js-go" type="button" data-target="cuenta">Ver</button>
+        </article>
+
+        <div class="summary-grid">
+          <article class="summary-card lilac">
+            <span class="summary-number">2</span>
+            <span class="summary-label">tareas hoy</span>
+            <span class="summary-icon app-icon" data-icon="check"></span>
+          </article>
+          <article class="summary-card teal">
+            <span class="summary-number">2</span>
+            <span class="summary-label">tomas hoy</span>
+            <span class="summary-icon app-icon" data-icon="pill"></span>
+          </article>
+          <article class="summary-card blue">
+            <span class="summary-number">20</span>
+            <span class="summary-label">mayo, 10:30</span>
+            <span class="summary-icon app-icon" data-icon="calendar"></span>
+          </article>
+          <article class="summary-card coral">
+            <span class="summary-number">1</span>
+            <span class="summary-label">volante pendiente</span>
+            <span class="summary-icon app-icon" data-icon="file"></span>
+          </article>
+        </div>
+
+        <div class="section-title">
+          <h2>Lo importante de hoy</h2>
+        </div>
+
+        <article class="card checklist">
+          <label class="check-row">
+            <input type="checkbox">
+            <span>Llevar volante al especialista</span>
+            <em>Salud</em>
+          </label>
+          <label class="check-row">
+            <input type="checkbox" checked>
+            <span>Comprar medicación</span>
+            <em>Medicación</em>
+          </label>
+          <label class="check-row">
+            <input type="checkbox">
+            <span>Pagar factura de luz</span>
+            <em>Hogar</em>
+          </label>
+        </article>
+
+        <button class="appointment-card mint js-go" type="button" data-target="citas">
+          <span class="date-pill">
+            <strong>20</strong>
+            <small>MAY</small>
+          </span>
+          <span>
+            <strong>Próxima cita</strong>
+            <small>Endocrinología, 10:30 · Hospital Virxe da Xunqueira</small>
+          </span>
+          <span class="app-icon" data-icon="chevron"></span>
+        </button>
+
+        <div class="quick-actions" aria-label="Acciones rápidas">
+          <button class="js-go" type="button" data-target="salud">
+            <span class="app-icon" data-icon="heart"></span>
+            <span>Registro salud</span>
+          </button>
+          <button class="js-go" type="button" data-target="citas">
+            <span class="app-icon" data-icon="upload"></span>
+            <span>Guardar volante</span>
+          </button>
+          <button class="js-go" type="button" data-target="medicacion">
+            <span class="app-icon" data-icon="cart"></span>
+            <span>Medicación</span>
+          </button>
+          <button class="js-go" type="button" data-target="listas">
+            <span class="app-icon" data-icon="list"></span>
+            <span>Listas</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-salud" data-screen="salud">
+        <header class="topbar compact">
+          <div>
+            <h1>Registro rápido</h1>
+            <p>¿Qué necesitas guardar hoy?</p>
+          </div>
+        </header>
+
+        <div class="quick-grid">
+          <button class="quick-tile teal js-health-record" type="button" data-kind="Baño">
+            <span class="app-icon" data-icon="bath"></span>
+            <strong>Baño</strong>
+          </button>
+          <button class="quick-tile lilac js-health-record" type="button" data-kind="Síntomas">
+            <span class="app-icon" data-icon="user"></span>
+            <strong>Síntomas</strong>
+          </button>
+          <button class="quick-tile purple js-health-record" type="button" data-kind="Sueño">
+            <span class="app-icon" data-icon="moon"></span>
+            <strong>Sueño</strong>
+          </button>
+          <button class="quick-tile pink js-health-record" type="button" data-kind="Regla">
+            <span class="app-icon" data-icon="drop"></span>
+            <strong>Regla</strong>
+          </button>
+          <button class="quick-tile peach js-health-record" type="button" data-kind="Dolor">
+            <span class="app-icon" data-icon="zap"></span>
+            <strong>Dolor</strong>
+          </button>
+          <button class="quick-tile yellow js-health-record" type="button" data-kind="Ánimo">
+            <span class="app-icon" data-icon="smile"></span>
+            <strong>Ánimo</strong>
+          </button>
+          <button class="quick-tile blue wide js-health-record" type="button" data-kind="Nota rápida">
+            <span class="app-icon" data-icon="note"></span>
+            <strong>Nota rápida</strong>
+          </button>
+        </div>
+
+        <div class="section-title">
+          <h2>Actividad reciente</h2>
+          <button type="button" id="clear-health">Borrar demo</button>
+        </div>
+
+        <article class="card activity-list" id="health-list">
+          <p class="empty">Todavía no hay registros. Pulsa un botón de arriba para probar.</p>
+        </article>
+      </section>
+
+      <section class="screen" id="screen-citas" data-screen="citas">
+        <header class="topbar compact">
+          <div>
+            <h1>Mis citas</h1>
+            <p>Citas, volantes y acciones pendientes</p>
+          </div>
+        </header>
+
+        <div class="tabs">
+          <button class="active" type="button">Próximas</button>
+          <button type="button">Historial</button>
+        </div>
+
+        <div class="section-title">
+          <h2>Próxima cita</h2>
+        </div>
+
+        <article class="medical-card mint">
+          <span class="date-pill">
+            <strong>20</strong>
+            <small>MAY</small>
+          </span>
+          <div>
+            <h3>Endocrinología</h3>
+            <p>10:30 · Hospital Virxe da Xunqueira</p>
+            <small>Sala 17</small>
+          </div>
+        </article>
+
+        <article class="warning-card">
+          <span class="app-icon" data-icon="bell"></span>
+          <h3>Acción pendiente</h3>
+          <p>Después de una cita, VITA debe recordarte guardar el volante. Si ese volante está asociado a otra cita, debe recordarte llevarlo.</p>
+          <button type="button">
+            <span class="app-icon" data-icon="upload"></span>
+            Guardar volante
+          </button>
+          <button class="secondary" type="button">
+            <span class="app-icon" data-icon="file"></span>
+            Llevar volante a especialista
+          </button>
+        </article>
+      </section>
+
+      <section class="screen" id="screen-medicacion" data-screen="medicacion">
+        <header class="topbar compact">
+          <div>
+            <h1>Mi medicación</h1>
+            <p>Stock, tomas y avisos de compra</p>
+          </div>
+        </header>
+
+        <div class="tabs">
+          <button class="active" type="button">Hoy</button>
+          <button type="button">Stock</button>
+          <button type="button">Historial</button>
+        </div>
+
+        <article class="medicine-card">
+          <span class="medicine-icon app-icon" data-icon="pill"></span>
+          <div>
+            <h3>Medicamento diario 1</h3>
+            <p>1 comprimido</p>
+            <div class="time-row">
+              <span>10:00</span>
+              <span>22:00</span>
+            </div>
+            <small>Quedan 14 comprimidos</small>
+            <div class="progress"><span style="width:70%"></span></div>
+          </div>
+        </article>
+
+        <article class="medicine-card">
+          <span class="medicine-icon app-icon" data-icon="pill"></span>
+          <div>
+            <h3>Medicamento diario 2</h3>
+            <p>1 comprimido</p>
+            <div class="time-row">
+              <span>08:00</span>
+            </div>
+            <small>Quedan 8 comprimidos</small>
+            <div class="progress"><span style="width:40%"></span></div>
+          </div>
+        </article>
+
+        <article class="purchase-alert coral">
+          <div>
+            <small>Recordatorio</small>
+            <h3>Comprar medicación en 5 días</h3>
+          </div>
+          <span class="app-icon" data-icon="cart"></span>
+        </article>
+      </section>
+
+      <section class="screen" id="screen-hogar" data-screen="hogar">
+        <header class="topbar compact">
+          <div>
+            <h1>Hogar</h1>
+            <p>Casa, pagos, coche y gestiones compartidas</p>
+          </div>
+          <button class="icon-button" type="button" aria-label="Añadir">
+            <span class="app-icon" data-icon="plus"></span>
+          </button>
+        </header>
+
+        <div class="household">
+          <span>P</span>
+          <span>R</span>
+          <button type="button" aria-label="Añadir persona">
+            <span class="app-icon" data-icon="plus"></span>
+          </button>
+        </div>
+
+        <div class="home-shortcuts">
+          <button class="js-go" type="button" data-target="listas">
+            <span class="app-icon" data-icon="cart"></span>
+            <strong>Lista de la compra</strong>
+            <small>Compartida y personal</small>
+          </button>
+          <button class="js-go" type="button" data-target="documentos">
+            <span class="app-icon" data-icon="download"></span>
+            <strong>Documentos</strong>
+            <small>Descargar o enviar</small>
+          </button>
+        </div>
+
+        <div class="section-title">
+          <h2>Próximos pagos y gestiones</h2>
+        </div>
+
+        <article class="home-item">
+          <span class="home-item-icon luz app-icon" data-icon="zap"></span>
+          <div>
+            <h3>Factura de luz</h3>
+            <p>Vence el 28 mayo</p>
+          </div>
+          <strong>45,80 € <em>3 días</em></strong>
+        </article>
+
+        <article class="home-item">
+          <span class="home-item-icon casa app-icon" data-icon="home"></span>
+          <div>
+            <h3>Hipoteca</h3>
+            <p>Vence el 01 junio</p>
+          </div>
+          <strong>850,00 € <em>7 días</em></strong>
+        </article>
+
+        <article class="home-item">
+          <span class="home-item-icon coche app-icon" data-icon="car"></span>
+          <div>
+            <h3>Seguro del coche</h3>
+            <p>Vence el 12 junio</p>
+          </div>
+          <strong>320,50 € <em>18 días</em></strong>
+        </article>
+
+        <article class="home-item">
+          <span class="home-item-icon obras app-icon" data-icon="hammer"></span>
+          <div>
+            <h3>Obras</h3>
+            <p>Revisión de presupuestos</p>
+          </div>
+          <strong><em>En curso</em></strong>
+        </article>
+
+        <div class="section-title">
+          <h2>Lista compartida</h2>
+        </div>
+
+        <article class="card checklist">
+          <label class="check-row">
+            <input type="checkbox" checked>
+            <span>Comprar bombillas</span>
+          </label>
+          <label class="check-row">
+            <input type="checkbox" checked>
+            <span>Pedir cita ITV</span>
+          </label>
+          <label class="check-row">
+            <input type="checkbox">
+            <span>Revisar presupuesto obras</span>
+          </label>
+        </article>
+      </section>
+
+
+      <section class="screen" id="screen-listas" data-screen="listas">
+        <header class="topbar compact">
+          <div>
+            <h1>Listas</h1>
+            <p>Compra, compras personales y deseos</p>
+          </div>
+          <button class="icon-button" type="button" aria-label="Añadir">
+            <span class="app-icon" data-icon="plus"></span>
+          </button>
+        </header>
+
+        <div class="tabs compact-tabs">
+          <button class="active" type="button">Compartidas</button>
+          <button type="button">Personales</button>
+          <button type="button">Deseos</button>
+        </div>
+
+        <article class="list-panel shared-list">
+          <div class="list-header">
+            <span class="app-icon" data-icon="cart"></span>
+            <div>
+              <span class="eyebrow">Hogar</span>
+              <h2>Lista de la compra compartida</h2>
+              <p>Visible para Patricia y Román.</p>
+            </div>
+          </div>
+
+          <label class="check-row">
+            <input type="checkbox" checked>
+            <span>Leche</span>
+            <em>Comprado</em>
+          </label>
+          <label class="check-row">
+            <input type="checkbox">
+            <span>Papel higiénico</span>
+            <em>Casa</em>
+          </label>
+          <label class="check-row">
+            <input type="checkbox">
+            <span>Fruta para smoothies</span>
+            <em>Comida</em>
+          </label>
+
+          <form class="mini-form" id="shared-shopping-form">
+            <input id="shared-shopping-input" type="text" placeholder="Añadir a la compra compartida">
+            <button type="submit">Añadir</button>
+          </form>
+        </article>
+
+        <article class="list-panel private-list">
+          <div class="list-header">
+            <span class="app-icon" data-icon="lock"></span>
+            <div>
+              <span class="eyebrow">Privado</span>
+              <h2>Mis compras personales</h2>
+              <p>Solo visible para tu perfil.</p>
+            </div>
+          </div>
+
+          <label class="check-row">
+            <input type="checkbox">
+            <span>Recoger medicación</span>
+            <em>Salud</em>
+          </label>
+          <label class="check-row">
+            <input type="checkbox">
+            <span>Comprar bolígrafos para exámenes</span>
+            <em>UNED</em>
+          </label>
+        </article>
+
+        <article class="wishlist-card">
+          <div class="wishlist-image" aria-hidden="true">
+            <span class="app-icon" data-icon="gift"></span>
+          </div>
+          <div class="wishlist-content">
+            <span class="eyebrow">Lista de deseos</span>
+            <h2>Regalos que me gustaría recibir</h2>
+            <p>Artículos con enlace, imagen, precio orientativo y visibilidad seleccionada.</p>
+            <div class="wishlist-actions">
+              <button type="button">
+                <span class="app-icon" data-icon="link"></span>
+                Añadir enlace
+              </button>
+              <button class="secondary" type="button">
+                <span class="app-icon" data-icon="image"></span>
+                Añadir imagen
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <article class="wish-item">
+          <div class="wish-thumb">
+            <span class="app-icon" data-icon="gift"></span>
+          </div>
+          <div>
+            <h3>Ejemplo de regalo</h3>
+            <p>Visible para usuarios seleccionados · Cumpleaños / Navidad</p>
+            <small>Enlace e imagen pendientes</small>
+          </div>
+        </article>
+      </section>
+
+      <section class="screen" id="screen-documentos" data-screen="documentos">
+        <header class="topbar compact">
+          <div>
+            <h1>Documentos</h1>
+            <p>Generar, descargar o enviar por email</p>
+          </div>
+        </header>
+
+        <article class="export-card">
+          <span class="app-icon panel-icon" data-icon="download"></span>
+          <span class="eyebrow">Exportación</span>
+          <h2>Documentos generados por VITA</h2>
+          <p>Los informes, listados o resúmenes que genere la app deberán poder descargarse o enviarse por email.</p>
+
+          <div class="export-actions">
+            <button id="download-demo" type="button">
+              <span class="app-icon" data-icon="download"></span>
+              Descargar ejemplo
+            </button>
+            <button id="email-demo" class="secondary" type="button">
+              <span class="app-icon" data-icon="mail"></span>
+              Enviar por email
+            </button>
+          </div>
+
+          <p class="fine-print">En esta versión se prepara la interfaz. El envío real desde servidor se añadirá cuando conectemos Supabase Edge Functions o un servicio de email.</p>
+        </article>
+
+        <article class="document-type-grid">
+          <button type="button">
+            <span class="app-icon" data-icon="file"></span>
+            <strong>Informe de salud</strong>
+            <small>PDF o ZIP</small>
+          </button>
+          <button type="button">
+            <span class="app-icon" data-icon="cart"></span>
+            <strong>Lista de la compra</strong>
+            <small>PDF / email</small>
+          </button>
+          <button type="button">
+            <span class="app-icon" data-icon="home"></span>
+            <strong>Hogar</strong>
+            <small>Pagos y gestiones</small>
+          </button>
+          <button type="button">
+            <span class="app-icon" data-icon="gift"></span>
+            <strong>Lista de deseos</strong>
+            <small>Compartir regalos</small>
+          </button>
+        </article>
+      </section>
+
+      <section class="screen" id="screen-cuenta" data-screen="cuenta">
+        <header class="topbar compact">
+          <div>
+            <h1>Cuenta y privacidad</h1>
+            <p>Datos privados, hogar compartido y Supabase</p>
+          </div>
+        </header>
+
+        <article class="auth-panel" id="auth-panel">
+          <span class="app-icon panel-icon" data-icon="lock"></span>
+          <span class="eyebrow">Estado de conexión</span>
+          <h2 id="auth-title">Supabase sin configurar</h2>
+          <p id="auth-message">La app funciona en modo local. Cuando peguemos la URL y la clave pública en config.js, podrás iniciar sesión.</p>
+
+          <div class="session-box">
+            <span class="app-icon" data-icon="user"></span>
+            <div>
+              <strong id="session-email">Sin sesión iniciada</strong>
+              <small id="session-mode">Modo local o Supabase pendiente</small>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="go-login-button" type="button">
+              <span class="app-icon" data-icon="lock"></span>
+              Pantalla de acceso
+            </button>
+            <button id="logout-button" class="secondary" type="button">
+              Cerrar sesión
+            </button>
+          </div>
+
+          <p class="fine-print" id="auth-helper">No introduzcas datos médicos reales hasta que Supabase, login y políticas de seguridad estén configuradas.</p>
+        </article>
+
+        <article class="privacy-grid">
+          <div class="privacy-card">
+            <span class="app-icon" data-icon="user"></span>
+            <h3>Perfil Patricia</h3>
+            <p>Salud, medicación, citas, universidad y documentos personales.</p>
+            <strong>Privado</strong>
+          </div>
+          <div class="privacy-card">
+            <span class="app-icon" data-icon="users"></span>
+            <h3>Hogar compartido</h3>
+            <p>Hipoteca, casa, obras, facturas, coche y tareas comunes.</p>
+            <strong>Compartido</strong>
+          </div>
+          <div class="privacy-card">
+            <span class="app-icon" data-icon="shield"></span>
+            <h3>Datos separados</h3>
+            <p>Tus datos y los de Román quedarán separados por usuario.</p>
+            <strong>RLS</strong>
+          </div>
+        </article>
+
+        <article class="export-mini-card js-go" data-target="documentos">
+          <span class="app-icon" data-icon="download"></span>
+          <div>
+            <h3>Documentos generados</h3>
+            <p>Descarga o envío por email de informes, listados y resúmenes.</p>
+          </div>
+        </article>
+
+        <article class="setup-steps">
+          <h2>Qué haremos en Supabase</h2>
+          <ol>
+            <li>Crear el proyecto de Supabase.</li>
+            <li>Ejecutar el SQL de VITA v0.2.</li>
+            <li>Activar autenticación por email.</li>
+            <li>Pegar URL y clave pública en <code>config.js</code>.</li>
+            <li>Comprobar que el perfil Patricia se crea correctamente.</li>
+          </ol>
+        </article>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Navegación principal">
+        <button class="nav-item active" type="button" data-target="hoy">
+          <span class="app-icon" data-icon="home"></span>
+          <span>Hoy</span>
+        </button>
+        <button class="nav-item" type="button" data-target="salud">
+          <span class="app-icon" data-icon="heart"></span>
+          <span>Salud</span>
+        </button>
+        <button class="nav-item" type="button" data-target="citas">
+          <span class="app-icon" data-icon="calendar"></span>
+          <span>Citas</span>
+        </button>
+        <button class="nav-item" type="button" data-target="medicacion">
+          <span class="app-icon" data-icon="pill"></span>
+          <span>Medicación</span>
+        </button>
+        <button class="nav-item" type="button" data-target="hogar">
+          <span class="app-icon" data-icon="home"></span>
+          <span>Hogar</span>
+        </button>
+      </nav>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
 </html>

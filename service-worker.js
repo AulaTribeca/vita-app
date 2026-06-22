@@ -1,9 +1,12 @@
-const CACHE_NAME = 'vita-cache-v0-1';
+const CACHE_NAME = 'vita-static-v0-4';
 const APP_SHELL = [
   './',
   './index.html',
+  './styles.css',
+  './app.js',
+  './config.js',
   './manifest.webmanifest',
-  './favicon.svg'
+  './assets/vita-icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
