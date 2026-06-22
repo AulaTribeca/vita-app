@@ -31,13 +31,263 @@ const ICONS = {
   eye: '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>'
 };
 
+const SESSION_KEY = 'vita_session_v050';
 let currentUser = null;
+
+function getConfig() {
+  return window.VITA_CONFIG || {};
+}
+
+function getAuthEndpoint(path) {
+  const config = getConfig();
+  return `${config.SUPABASE_URL}/auth/v1/${path}`;
+}
+
+function getAuthHeaders(accessToken) {
+  const config = getConfig();
+  const headers = {
+    apikey: config.SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json'
+  };
+
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  return headers;
+}
+
+function normalizeLoginName(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function resolveLoginEmail(value) {
+  const rawValue = String(value || '').trim();
+
+  if (!rawValue) return null;
+
+  if (rawValue.includes('@')) {
+    return rawValue.toLowerCase();
+  }
+
+  const aliases = getConfig().USER_ALIASES || {};
+  const normalized = normalizeLoginName(rawValue);
+
+  for (const [alias, email] of Object.entries(aliases)) {
+    if (normalizeLoginName(alias) === normalized) {
+      return email;
+    }
+  }
+
+  return null;
+}
+
+function getDisplayNameForEmail(email) {
+  const names = getConfig().USER_DISPLAY_NAMES || {};
+  return names[email] || email || 'Usuario';
+}
+
+function saveSession(session) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+function getStoredSession() {
+  try {
+    const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+    if (!session || !session.access_token || !session.user) return null;
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+async function signInWithPassword(email, password) {
+  const response = await fetch(getAuthEndpoint('token?grant_type=password'), {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ email, password })
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok || !payload.access_token || !payload.user) {
+    throw new Error('Usuario o contraseña incorrectos.');
+  }
+
+  return payload;
+}
+
+async function recoverPassword(email) {
+  const response = await fetch(getAuthEndpoint('recover'), {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      email,
+      redirect_to: window.location.href.split('#')[0]
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error('No se pudo enviar la recuperación.');
+  }
+}
+
+async function signOut() {
+  const session = getStoredSession();
+
+  if (session && session.access_token) {
+    try {
+      await fetch(getAuthEndpoint('logout'), {
+        method: 'POST',
+        headers: getAuthHeaders(session.access_token)
+      });
+    } catch {
+      /* La sesión local se elimina igualmente. */
+    }
+  }
+
+  clearSession();
+  currentUser = null;
+}
 
 function injectIcons() {
   document.querySelectorAll('.app-icon').forEach((node) => {
     const key = node.dataset.icon;
     node.innerHTML = ICONS[key] || ICONS.heart;
   });
+}
+
+function setLoginMessage(text, type = 'neutral') {
+  const node = document.getElementById('login-message');
+  if (!node) return;
+  node.textContent = text;
+  node.dataset.type = type;
+}
+
+function setText(node, value) {
+  if (node) node.textContent = value;
+}
+
+function updateUserText() {
+  const displayName = currentUser ? getDisplayNameForEmail(currentUser.email) : 'Usuario';
+
+  setText(document.getElementById('hello-title'), `Hola, ${displayName} 👋`);
+  setText(document.getElementById('account-mini-title'), displayName);
+  setText(document.getElementById('account-mini-text'), 'Sesión privada activa.');
+  setText(document.getElementById('auth-title'), 'Sesión iniciada');
+  setText(document.getElementById('auth-message'), displayName);
+  setText(document.getElementById('session-email'), displayName);
+  setText(document.getElementById('session-mode'), 'Sesión segura');
+  setText(document.getElementById('auth-helper'), 'Tus datos se protegen con sesión privada.');
+}
+
+function renderAccess(forceLogin = false) {
+  const loginScreen = document.getElementById('login-screen');
+  const appShell = document.getElementById('app');
+  const canEnter = Boolean(currentUser && !forceLogin);
+
+  loginScreen.classList.toggle('is-hidden', canEnter);
+  appShell.classList.toggle('is-hidden', !canEnter);
+
+  if (canEnter) {
+    updateUserText();
+  } else {
+    setLoginMessage('Introduce tu usuario y contraseña.', 'neutral');
+  }
+}
+
+function setupLogin() {
+  const form = document.getElementById('password-login-form');
+  const usernameInput = document.getElementById('login-username');
+  const passwordInput = document.getElementById('login-password');
+  const togglePassword = document.getElementById('toggle-password');
+  const forgotButton = document.getElementById('forgot-password');
+  const logoutButton = document.getElementById('logout-button');
+
+  form.noValidate = true;
+  usernameInput.type = 'text';
+
+  togglePassword.addEventListener('click', () => {
+    passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
+    const email = resolveLoginEmail(username);
+
+    if (!username || !password) {
+      setLoginMessage('Escribe usuario y contraseña.', 'warning');
+      return;
+    }
+
+    if (!email) {
+      setLoginMessage('Usuario no reconocido.', 'error');
+      return;
+    }
+
+    try {
+      setLoginMessage('Accediendo...', 'neutral');
+      const session = await signInWithPassword(email, password);
+      saveSession(session);
+      currentUser = session.user;
+      passwordInput.value = '';
+      renderAccess();
+      showScreen('hoy');
+    } catch (error) {
+      setLoginMessage(error.message || 'Usuario o contraseña incorrectos.', 'error');
+    }
+  });
+
+  forgotButton.addEventListener('click', async () => {
+    const username = usernameInput.value.trim();
+    const email = resolveLoginEmail(username);
+
+    if (!username) {
+      setLoginMessage('Escribe tu usuario para recuperar la contraseña.', 'warning');
+      return;
+    }
+
+    if (!email) {
+      setLoginMessage('Usuario no reconocido.', 'error');
+      return;
+    }
+
+    try {
+      await recoverPassword(email);
+      setLoginMessage('Revisa el correo asociado a tu usuario.', 'success');
+    } catch {
+      setLoginMessage('No se pudo enviar la recuperación.', 'error');
+    }
+  });
+
+  logoutButton.addEventListener('click', async () => {
+    await signOut();
+    renderAccess(true);
+  });
+}
+
+function setupDate() {
+  const dateNode = document.getElementById('today-date');
+  if (!dateNode) return;
+
+  const formatter = new Intl.DateTimeFormat('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  });
+
+  dateNode.textContent = formatter.format(new Date());
 }
 
 function showScreen(target) {
@@ -59,19 +309,6 @@ function setupNavigation() {
   });
 }
 
-function setupDate() {
-  const dateNode = document.getElementById('today-date');
-  if (!dateNode) return;
-
-  const formatter = new Intl.DateTimeFormat('es-ES', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long'
-  });
-
-  dateNode.textContent = formatter.format(new Date());
-}
-
 function getRecords() {
   try {
     return JSON.parse(localStorage.getItem('vita-health-records') || '[]');
@@ -89,6 +326,7 @@ function renderHealthRecords() {
   if (!list) return;
 
   const records = getRecords();
+
   if (!records.length) {
     list.innerHTML = '<p class="empty">Todavía no hay registros. Pulsa un botón de arriba para probar.</p>';
     return;
@@ -138,192 +376,6 @@ function setupHealthRecords() {
   }
 }
 
-function getConfig() {
-  return window.VITA_CONFIG || {};
-}
-
-
-
-function isSupabaseReady() {
-  const config = getConfig();
-  return Boolean(config.SUPABASE_URL && config.SUPABASE_ANON_KEY);
-}
-
-
-
-async function initSupabase() {
-  if (!isSupabaseReady()) {
-    currentUser = null;
-    renderAuthState();
-    renderAppAccess();
-    return;
-  }
-
-  const session = getStoredSession();
-
-  if (session && session.access_token && session.user) {
-    currentUser = session.user;
-  } else {
-    currentUser = null;
-  }
-
-  renderAuthState();
-  renderAppAccess();
-}
-
-
-function renderAuthState() {
-  const title = document.getElementById('auth-title');
-  const message = document.getElementById('auth-message');
-  const helper = document.getElementById('auth-helper');
-  const miniTitle = document.getElementById('account-mini-title');
-  const miniText = document.getElementById('account-mini-text');
-  const sessionEmail = document.getElementById('session-email');
-  const sessionMode = document.getElementById('session-mode');
-
-  if (!isSupabaseReady()) {
-    setText(title, 'Acceso no disponible');
-    setText(message, 'No se pudo conectar con el acceso privado. Recarga la página e inténtalo de nuevo.');
-    setText(helper, 'La app permanecerá bloqueada hasta que el acceso esté disponible.');
-    setText(miniTitle, 'Acceso protegido');
-    setText(miniText, 'Inicia sesión para acceder a VITA.');
-    setText(sessionEmail, 'Sin sesión iniciada');
-    setText(sessionMode, 'Acceso bloqueado');
-    return;
-  }
-
-  if (currentUser) {
-    const displayName = getDisplayNameForEmail(currentUser.email);
-    setText(title, 'Sesión iniciada');
-    setText(message, displayName);
-    setText(helper, 'Acceso privado activo.');
-    setText(miniTitle, displayName);
-    setText(miniText, 'Sesión privada activa.');
-    setText(sessionEmail, displayName);
-    setText(sessionMode, 'Sesión segura');
-  } else {
-    setText(title, 'Sesión no iniciada');
-    setText(message, 'Para acceder a VITA debes iniciar sesión.');
-    setText(helper, 'Acceso reservado a usuarios autorizados.');
-    setText(miniTitle, 'VITA protegida');
-    setText(miniText, 'Inicia sesión para acceder a la app.');
-    setText(sessionEmail, 'Sin sesión iniciada');
-    setText(sessionMode, 'Acceso bloqueado');
-  }
-}
-
-
-
-
-function setupAuthButtons() {
-  const loginForm = document.getElementById('password-login-form');
-  const loginUsername = document.getElementById('login-username') || document.getElementById('login-email');
-  const loginPassword = document.getElementById('login-password');
-  const forgotPassword = document.getElementById('forgot-password');
-  const togglePassword = document.getElementById('toggle-password');
-  const goLoginButton = document.getElementById('go-login-button');
-  const logoutButton = document.getElementById('logout-button');
-
-  if (loginForm) {
-    loginForm.noValidate = true;
-  }
-
-  if (loginUsername) {
-    loginUsername.type = 'text';
-    loginUsername.placeholder = 'Patricia o Román';
-    loginUsername.setAttribute('autocomplete', 'username');
-    loginUsername.setAttribute('autocapitalize', 'none');
-    loginUsername.setAttribute('spellcheck', 'false');
-  }
-
-  if (togglePassword && loginPassword) {
-    togglePassword.addEventListener('click', () => {
-      loginPassword.type = loginPassword.type === 'password' ? 'text' : 'password';
-    });
-  }
-
-  if (loginForm) {
-    loginForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-
-      const username = loginUsername ? loginUsername.value.trim() : '';
-      const password = loginPassword ? loginPassword.value : '';
-      const email = resolveLoginEmail(username);
-
-      if (!username || !password) {
-        setLoginMessage('Escribe usuario y contraseña.', 'warning');
-        return;
-      }
-
-      if (!email) {
-        setLoginMessage('Usuario no reconocido.', 'error');
-        return;
-      }
-
-      if (!isSupabaseReady()) {
-        setLoginMessage('Acceso no configurado.', 'error');
-        return;
-      }
-
-      setLoginMessage('Accediendo...', 'neutral');
-
-      const result = await signInWithPasswordRest(email, password);
-
-      if (!result.ok) {
-        setLoginMessage(result.message || 'Usuario o contraseña incorrectos.', 'error');
-        return;
-      }
-
-      saveSession(result.session);
-      currentUser = result.session.user;
-      renderAuthState();
-      renderAppAccess();
-      showScreen('hoy');
-    });
-  }
-
-  if (forgotPassword) {
-    forgotPassword.addEventListener('click', async () => {
-      const username = loginUsername ? loginUsername.value.trim() : '';
-      const email = resolveLoginEmail(username);
-
-      if (!username) {
-        setLoginMessage('Escribe tu usuario para recuperar la contraseña.', 'warning');
-        return;
-      }
-
-      if (!email) {
-        setLoginMessage('Usuario no reconocido.', 'error');
-        return;
-      }
-
-      const result = await sendPasswordRecoveryRest(email);
-
-      if (!result.ok) {
-        setLoginMessage('No se pudo enviar la recuperación de contraseña.', 'error');
-      } else {
-        setLoginMessage('Revisa el correo asociado a tu usuario.', 'success');
-      }
-    });
-  }
-
-  if (goLoginButton) {
-    goLoginButton.addEventListener('click', () => {
-      renderAppAccess(true);
-    });
-  }
-
-  if (logoutButton) {
-    logoutButton.addEventListener('click', async () => {
-      await signOutRest();
-      currentUser = null;
-      renderAuthState();
-      renderAppAccess(true);
-    });
-  }
-}
-
-
 function setupShoppingDemo() {
   const form = document.getElementById('shared-shopping-form');
   const input = document.getElementById('shared-shopping-input');
@@ -359,7 +411,7 @@ function setupDocumentDemo() {
         '',
         'Este archivo prueba la descarga de documentos generados por la app.',
         'Más adelante se generarán PDF, CSV, JSON y ZIP reales.'
-      ].join('\\n');
+      ].join('\n');
 
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -376,186 +428,11 @@ function setupDocumentDemo() {
   if (emailButton) {
     emailButton.addEventListener('click', () => {
       const subject = encodeURIComponent('Documento generado por VITA');
-      const body = encodeURIComponent('Adjunto o comparto un documento generado por VITA.\\n\\nEn una versión posterior el envío se hará desde servidor.');
+      const body = encodeURIComponent('Adjunto o comparto un documento generado por VITA.\n\nEn una versión posterior el envío se hará desde servidor.');
       window.location.href = `mailto:?subject=${subject}&body=${body}`;
     });
   }
 }
-
-
-
-
-
-const VITA_SESSION_KEY = 'vita_secure_session';
-
-function getAuthEndpoint(path) {
-  const config = getConfig();
-  return `${config.SUPABASE_URL}/auth/v1/${path}`;
-}
-
-function getAuthHeaders(accessToken) {
-  const config = getConfig();
-  const headers = {
-    apikey: config.SUPABASE_ANON_KEY,
-    'Content-Type': 'application/json'
-  };
-
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  }
-
-  return headers;
-}
-
-async function signInWithPasswordRest(email, password) {
-  try {
-    const response = await fetch(getAuthEndpoint('token?grant_type=password'), {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ email, password })
-    });
-
-    const payload = await response.json().catch(() => ({}));
-
-    if (!response.ok || !payload.access_token || !payload.user) {
-      return {
-        ok: false,
-        message: 'Usuario o contraseña incorrectos.'
-      };
-    }
-
-    return {
-      ok: true,
-      session: payload
-    };
-  } catch (_error) {
-    return {
-      ok: false,
-      message: 'No se pudo conectar con el acceso privado.'
-    };
-  }
-}
-
-async function sendPasswordRecoveryRest(email) {
-  try {
-    const response = await fetch(getAuthEndpoint('recover'), {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        email,
-        redirect_to: window.location.href.split('#')[0]
-      })
-    });
-
-    return { ok: response.ok };
-  } catch (_error) {
-    return { ok: false };
-  }
-}
-
-async function signOutRest() {
-  const session = getStoredSession();
-
-  try {
-    if (session && session.access_token) {
-      await fetch(getAuthEndpoint('logout'), {
-        method: 'POST',
-        headers: getAuthHeaders(session.access_token)
-      });
-    }
-  } catch (_error) {
-    /* La sesión local se elimina igualmente. */
-  }
-
-  clearSession();
-}
-
-function saveSession(session) {
-  localStorage.setItem(VITA_SESSION_KEY, JSON.stringify(session));
-}
-
-function getStoredSession() {
-  try {
-    return JSON.parse(localStorage.getItem(VITA_SESSION_KEY) || 'null');
-  } catch {
-    return null;
-  }
-}
-
-function clearSession() {
-  localStorage.removeItem(VITA_SESSION_KEY);
-}
-
-
-function normalizeLoginName(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
-
-function resolveLoginEmail(value) {
-  const config = getConfig();
-  const rawValue = String(value || '').trim();
-
-  if (!rawValue) return null;
-
-  if (rawValue.includes('@')) {
-    return rawValue.toLowerCase();
-  }
-
-  const aliases = config.USER_ALIASES || {};
-  const normalized = normalizeLoginName(rawValue);
-
-  for (const [alias, email] of Object.entries(aliases)) {
-    if (normalizeLoginName(alias) === normalized) {
-      return email;
-    }
-  }
-
-  return null;
-}
-
-function getDisplayNameForEmail(email) {
-  const config = getConfig();
-  const names = config.USER_DISPLAY_NAMES || {};
-  return names[email] || email || 'Usuario';
-}
-
-
-
-
-function renderAppAccess(forceLogin = false) {
-  const loginScreen = document.getElementById('login-screen');
-  const appShell = document.getElementById('app');
-  const canEnter = !forceLogin && Boolean(isSupabaseReady() && currentUser);
-
-  if (loginScreen) {
-    loginScreen.classList.toggle('is-hidden', canEnter);
-  }
-
-  if (appShell) {
-    appShell.classList.toggle('is-hidden', !canEnter);
-  }
-
-  if (!canEnter) {
-    if (!isSupabaseReady()) {
-      setLoginMessage('Acceso no configurado.', 'error');
-    } else {
-      setLoginMessage('Introduce tu usuario y contraseña.', 'neutral');
-    }
-  }
-}
-
-
-function setLoginMessage(text, type = 'neutral') {
-  const node = document.getElementById('login-message');
-  if (!node) return;
-  node.textContent = text;
-  node.dataset.type = type;
-}
-
 
 function escapeHtml(value) {
   return String(value)
@@ -570,19 +447,24 @@ function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js').catch(() => {
-      console.info('Service worker no registrado en modo local.');
-    });
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
   });
 }
 
-injectIcons();
-setupDate();
-setupNavigation();
-setupHealthRecords();
-setupAuthButtons();
-setupShoppingDemo();
-setupDocumentDemo();
-renderHealthRecords();
-initSupabase();
-registerServiceWorker();
+function boot() {
+  injectIcons();
+  setupDate();
+  setupNavigation();
+  setupLogin();
+  setupHealthRecords();
+  setupShoppingDemo();
+  setupDocumentDemo();
+  renderHealthRecords();
+
+  const stored = getStoredSession();
+  currentUser = stored ? stored.user : null;
+  renderAccess();
+  registerServiceWorker();
+}
+
+boot();
