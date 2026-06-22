@@ -10,10 +10,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="description" content="VITA, organización personal, salud, hogar, calendario y avisos.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=3.2.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=3.2.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=3.2.0">
-  <link rel="stylesheet" href="./styles.css?v=3.2.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=4.1.1">
+  <link rel="icon" href="./assets/vita-icon.svg?v=4.1.1" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=4.1.1">
+  <link rel="stylesheet" href="./styles.css?v=4.1.1">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -59,33 +59,31 @@
 
       <div id="global-status" class="global-status">VITA lista.</div>
 
-      <div class="focus-grid">
-        <button class="focus-card js-go" data-target="calendario" type="button">
-          <span class="app-icon" data-icon="calendar"></span>
-          <strong>Calendario</strong>
-          <small id="today-events-count">0 eventos próximos</small>
-        </button>
-        <button class="focus-card js-go" data-target="salud" type="button">
-          <span class="app-icon" data-icon="heart"></span>
-          <strong>Salud</strong>
-          <small>Registrar rápido</small>
-        </button>
-        <button class="focus-card js-go" data-target="hogar" type="button">
-          <span class="app-icon" data-icon="home"></span>
-          <strong>Hogar</strong>
-          <small>Facturas, coche y contactos</small>
-        </button>
-      </div>
+      <article class="today-hero">
+        <div>
+          <span class="eyebrow">Prioridad</span>
+          <h2 id="today-focus-title">Cargando pendientes...</h2>
+          <p id="today-focus-text">VITA ordena lo urgente y te guía paso a paso.</p>
+        </div>
+        <button id="refresh-data" type="button">Actualizar</button>
+      </article>
 
       <article class="panel">
         <div class="section-title">
-          <h2>Lo próximo</h2>
-          <button id="refresh-data" type="button">Actualizar</button>
+          <h2>Hoy</h2>
+          <span id="today-count" class="count-pill">0</span>
         </div>
-        <div id="today-list" class="card-list">
-          <p class="empty">Cargando...</p>
-        </div>
+        <div id="today-list" class="card-list"><p class="empty">Cargando...</p></div>
       </article>
+
+      <article class="panel">
+        <div class="section-title">
+          <h2>Resto de la semana</h2>
+          <span id="week-count" class="count-pill">0</span>
+        </div>
+        <div id="week-list" class="card-list"><p class="empty">Cargando...</p></div>
+      </article>
+
     </section>
 
     <section class="screen" data-screen="calendario">
@@ -106,7 +104,15 @@
           </select>
           <input id="calendar-date" type="date">
         </div>
-        <div id="calendar-list" class="card-list">
+        <div class="filter-strip" id="calendar-filters">
+          <label><input type="checkbox" value="general" checked> General</label>
+          <label><input type="checkbox" value="medical" checked> Médico</label>
+          <label><input type="checkbox" value="bill" checked> Facturas</label>
+          <label><input type="checkbox" value="tax" checked> Impuestos</label>
+          <label><input type="checkbox" value="work_vacation" checked> Vacaciones</label>
+          <label><input type="checkbox" value="travel" checked> Viajes</label>
+        </div>
+        <div id="calendar-list" class="calendar-surface">
           <p class="empty">Cargando calendario...</p>
         </div>
       </article>
@@ -133,6 +139,22 @@
           <label class="field"><span>Notas</span><textarea id="event-notes" rows="3" placeholder="Detalles importantes"></textarea></label>
           <button class="form-submit" type="submit">Guardar evento</button>
         </form>
+      </article>
+
+      <article class="panel">
+        <details>
+          <summary>Exportar calendario a PDF</summary>
+          <p class="soft-text">Escoge qué tipos de evento quieres incluir.</p>
+          <div class="filter-strip" id="export-filters">
+            <label><input type="checkbox" value="general" checked> General</label>
+            <label><input type="checkbox" value="medical" checked> Médico</label>
+            <label><input type="checkbox" value="bill" checked> Facturas</label>
+            <label><input type="checkbox" value="tax" checked> Impuestos</label>
+            <label><input type="checkbox" value="work_vacation" checked> Vacaciones</label>
+            <label><input type="checkbox" value="travel" checked> Viajes</label>
+          </div>
+          <button id="export-calendar-pdf" class="form-submit" type="button">Generar PDF imprimible</button>
+        </details>
       </article>
 
       <article class="panel">
@@ -197,6 +219,56 @@
     </section>
 
 
+
+    <section class="screen" data-screen="citas">
+      <header class="topbar compact">
+        <div>
+          <h1>Citas médicas</h1>
+          <p>Resumen, volantes y seguimiento</p>
+        </div>
+      </header>
+
+      <article class="panel">
+        <form id="appointment-form" class="form-grid">
+          <label class="field"><span>Cita</span><input id="appointment-title" type="text" placeholder="Ej. Endocrino, alergología..."></label>
+          <div class="form-two">
+            <label class="field"><span>Fecha y hora</span><input id="appointment-at" type="datetime-local"></label>
+            <label class="field"><span>Especialidad</span><input id="appointment-specialty" type="text" placeholder="Endocrino, digestivo..."></label>
+          </div>
+          <label class="field"><span>Lugar / profesional</span><input id="appointment-location" type="text"></label>
+          <label class="field"><span>Notas previas</span><textarea id="appointment-notes" rows="3" placeholder="Qué preguntar, qué llevar..."></textarea></label>
+          <button class="form-submit" type="submit">Guardar cita</button>
+        </form>
+      </article>
+
+      <article class="panel">
+        <div class="section-title"><h2>Próximas e historial</h2></div>
+        <div id="appointment-list" class="card-list"></div>
+      </article>
+
+      <article class="panel">
+        <div class="section-title"><h2>Volantes y documentos</h2></div>
+        <form id="medical-document-form" class="form-grid">
+          <label class="field"><span>Título</span><input id="document-title" type="text" placeholder="Ej. Volante endocrino"></label>
+          <div class="form-two">
+            <label class="field"><span>Especialidad relacionada</span><input id="document-specialty" type="text"></label>
+            <label class="field"><span>Estado</span>
+              <select id="document-status">
+                <option value="pending_upload">Pendiente de subir</option>
+                <option value="pending_to_use">Pendiente de llevar</option>
+                <option value="used">Usado</option>
+                <option value="archived">Archivado</option>
+              </select>
+            </label>
+          </div>
+          <label class="field"><span>Archivo o foto</span><input id="document-file" type="file" accept="image/*,.pdf"></label>
+          <label class="field"><span>Notas</span><textarea id="document-notes" rows="2"></textarea></label>
+          <button class="form-submit" type="submit">Guardar volante / documento</button>
+        </form>
+        <div id="document-list" class="card-list block-gap"></div>
+      </article>
+    </section>
+
     <section class="screen" data-screen="medicacion">
       <header class="topbar compact">
         <div>
@@ -223,6 +295,49 @@
       <article class="panel">
         <div class="section-title"><h2>Mi medicación</h2></div>
         <div id="medication-list" class="card-list"></div>
+      </article>
+    </section>
+
+
+    <section class="screen" data-screen="listas">
+      <header class="topbar compact">
+        <div>
+          <h1>Listas</h1>
+          <p>Compra compartida, privadas y deseos</p>
+        </div>
+      </header>
+
+      <div class="subtabs">
+        <button class="active" type="button" data-list-tab="shared">Compra</button>
+        <button type="button" data-list-tab="private">Privada</button>
+        <button type="button" data-list-tab="wishlist">Deseos</button>
+      </div>
+
+      <article class="panel list-section" data-list-section="shared">
+        <div id="shopping-wallet-strip" class="wallet-strip"></div>
+        <form id="shared-list-form" class="inline-form">
+          <input id="shared-item-title" type="text" placeholder="Añadir a la lista de la compra compartida">
+          <button type="submit">Añadir</button>
+        </form>
+        <div id="shared-list" class="card-list block-gap"></div>
+      </article>
+
+      <article class="panel list-section is-hidden" data-list-section="private">
+        <form id="private-list-form" class="inline-form">
+          <input id="private-item-title" type="text" placeholder="Añadir a mi lista privada">
+          <button type="submit">Añadir</button>
+        </form>
+        <div id="private-list" class="card-list block-gap"></div>
+      </article>
+
+      <article class="panel list-section is-hidden" data-list-section="wishlist">
+        <form id="wishlist-form" class="form-grid">
+          <label class="field"><span>Deseo</span><input id="wishlist-title" type="text" placeholder="Artículo, regalo, enlace..."></label>
+          <label class="field"><span>Enlace</span><input id="wishlist-url" type="url" placeholder="https://..."></label>
+          <label class="field"><span>Visible para</span><select id="wishlist-viewer"></select></label>
+          <button class="form-submit" type="submit">Añadir deseo</button>
+        </form>
+        <div id="wishlist-list" class="card-list block-gap"></div>
       </article>
     </section>
 
@@ -281,6 +396,7 @@
               <option value="other">Otra</option>
             </select>
           </label>
+          <label class="field"><span>Foto o archivo de la tarjeta</span><input id="wallet-file" type="file" accept="image/*,.pdf"></label>
           <label class="check-inline"><input id="wallet-shopping" type="checkbox" checked> Mostrar junto a la lista de la compra</label>
           <label class="field"><span>Notas</span><textarea id="wallet-notes" rows="2"></textarea></label>
           <button class="form-submit" type="submit">Guardar tarjeta</button>
@@ -347,13 +463,14 @@
     <nav class="bottom-nav" aria-label="Navegación principal">
       <button class="nav-item active" type="button" data-target="hoy"><span class="app-icon" data-icon="home"></span><span>Hoy</span></button>
       <button class="nav-item" type="button" data-target="calendario"><span class="app-icon" data-icon="calendar"></span><span>Calendario</span></button>
-      <button class="nav-item" type="button" data-target="salud"><span class="app-icon" data-icon="heart"></span><span>Salud</span></button>
+      <button class="nav-item" type="button" data-target="citas"><span class="app-icon" data-icon="heart"></span><span>Citas</span></button>
       <button class="nav-item" type="button" data-target="medicacion"><span class="app-icon" data-icon="pill"></span><span>Medicación</span></button>
+      <button class="nav-item" type="button" data-target="listas"><span class="app-icon" data-icon="list"></span><span>Listas</span></button>
       <button class="nav-item" type="button" data-target="hogar"><span class="app-icon" data-icon="car"></span><span>Hogar</span></button>
     </nav>
   </main>
 
-  <script src="./config.js?v=3.2.0"></script>
-  <script src="./app.js?v=3.2.0"></script>
+  <script src="./config.js?v=4.1.1"></script>
+  <script src="./app.js?v=4.1.1"></script>
 </body>
 </html>

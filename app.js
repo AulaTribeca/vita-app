@@ -10,6 +10,7 @@ const ICONS = {
   trash: '<svg viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>',
   plane: '<svg viewBox="0 0 24 24"><path d="M22 16.5 2 9l2-2 16 4-6-7 2-2 6 9v5.5Z"></path><path d="m8 13-2 7 2-2 3-4"></path></svg>',
+  list: '<svg viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>',
   pill: '<svg viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a5 5 0 0 0-7-7l-10 10a5 5 0 0 0 7 7Z"></path><path d="m8.5 8.5 7 7"></path></svg>',
   phone: '<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2Z"></path></svg>'
 };
@@ -29,6 +30,11 @@ let state = {
   travel: [],
   contacts: [],
   wallet: [],
+  appointments: [],
+  documents: [],
+  lists: [],
+  listItems: [],
+  viewers: [],
   medications: [],
   medicalDocuments: []
 };
@@ -171,6 +177,45 @@ async function remove(table, id) {
   });
 }
 
+
+async function uploadFile(bucket, file) {
+  if (!file) return null;
+  const session = getSession();
+  if (!session) throw new Error('Sesión no disponible.');
+  const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+  const path = `${currentUser.id}/${Date.now()}-${safeName}`;
+  const response = await fetch(`${config().SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: config().SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': 'true'
+    },
+    body: file
+  });
+  if (!response.ok) throw new Error('No se pudo subir el archivo.');
+  return { path, name: file.name, type: file.type || null };
+}
+
+async function openStorageFile(bucket, path) {
+  const session = getSession();
+  if (!session) throw new Error('Sesión no disponible.');
+  const response = await fetch(`${config().SUPABASE_URL}/storage/v1/object/sign/${bucket}/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: config().SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ expiresIn: 3600 })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.signedURL) throw new Error('No se pudo abrir el archivo.');
+  const url = data.signedURL.startsWith('http') ? data.signedURL : `${config().SUPABASE_URL}/storage/v1${data.signedURL}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 function renderAccess() {
   const session = getSession();
   currentUser = session?.user || null;
@@ -213,8 +258,12 @@ async function loadAll() {
   const loaders = [
     rest(`health_records?select=*&owner_id=eq.${user}&order=occurred_at.desc`).then((d) => state.health = d),
     rest(`medications?select=*&owner_id=eq.${user}&active=eq.true&order=created_at.asc`).then((d) => state.medications = d).catch(() => state.medications = []),
-    rest(`medical_documents?select=*&owner_id=eq.${user}&order=created_at.desc`).then((d) => state.medicalDocuments = d).catch(() => state.medicalDocuments = []),
-    rest(`wallet_cards?select=*&owner_id=eq.${user}&order=created_at.desc`).then((d) => state.wallet = d).catch(() => state.wallet = [])
+    rest(`medical_documents?select=*&owner_id=eq.${user}&order=created_at.desc`).then((d) => { state.medicalDocuments = d; state.documents = d; }).catch(() => { state.medicalDocuments = []; state.documents = []; }),
+    rest(`medical_appointments?select=*&owner_id=eq.${user}&order=appointment_at.asc`).then((d) => state.appointments = d).catch(() => state.appointments = []),
+    rest(`wallet_cards?select=*&owner_id=eq.${user}&active=eq.true&order=created_at.desc`).then((d) => state.wallet = d).catch(() => state.wallet = []),
+    rest(`shopping_lists?select=*&order=created_at.asc`).then((d) => state.lists = d).catch(() => state.lists = []),
+    rest(`shopping_list_items?select=*&order=created_at.desc`).then((d) => state.listItems = d).catch(() => state.listItems = []),
+    rest(`wishlist_viewers?select=*&viewer_id=eq.${user}`).then((d) => state.viewers = d).catch(() => state.viewers = [])
   ];
 
   if (household) {
@@ -264,18 +313,22 @@ function toLocalInputValue(value) {
   return local.toISOString().slice(0, 16);
 }
 
-function card({ icon = 'file', title, body = '', tags = [], table, id, editField = 'title' }) {
+
+function card({ icon = 'file', title, body = '', tags = [], table, id, editField = 'title', actions = '' }) {
   return `
     <article class="card">
       <span class="card-icon app-icon" data-icon="${escapeHtml(icon)}"></span>
       <div class="card-body">
         <h3>${escapeHtml(title)}</h3>
         ${body ? `<p>${escapeHtml(body)}</p>` : ''}
-        ${tags.length ? `<div class="card-tags">${tags.map((t) => `<span class="${String(t).startsWith('Vencido') ? 'danger' : ''}">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
-        ${table && id ? `
+        ${tags.filter(Boolean).length ? `<div class="card-tags">${tags.filter(Boolean).map((t) => `<span class="${String(t).startsWith('Vencido') ? 'danger' : ''}">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+        ${(actions || (table && id)) ? `
           <div class="card-actions">
-            <button type="button" data-action="edit" data-table="${escapeHtml(table)}" data-id="${escapeHtml(id)}" data-field="${escapeHtml(editField)}"><span class="app-icon" data-icon="edit"></span> Editar</button>
-            <button class="danger" type="button" data-action="delete" data-table="${escapeHtml(table)}" data-id="${escapeHtml(id)}"><span class="app-icon" data-icon="trash"></span> Borrar</button>
+            ${actions || ''}
+            ${table && id ? `
+              <button type="button" data-action="edit" data-table="${escapeHtml(table)}" data-id="${escapeHtml(id)}" data-field="${escapeHtml(editField)}" data-current="${escapeHtml(title)}"><span class="app-icon" data-icon="edit"></span> Editar</button>
+              <button class="danger" type="button" data-action="delete" data-table="${escapeHtml(table)}" data-id="${escapeHtml(id)}"><span class="app-icon" data-icon="trash"></span> Borrar</button>
+            ` : ''}
           </div>
         ` : ''}
       </div>
@@ -283,33 +336,78 @@ function card({ icon = 'file', title, body = '', tags = [], table, id, editField
   `;
 }
 
+
 function renderToday() {
-  const list = document.getElementById('today-list');
-  const upcoming = [
-    ...state.events.map((e) => ({ title: e.title, body: e.notes || e.location || '', date: e.start_at, icon: iconForType(e.event_type) })),
-    ...state.bills.filter((b) => b.status !== 'paid').map((b) => ({ title: b.title, body: `${b.provider || ''} ${b.amount ? `${b.amount} €` : ''}`.trim(), date: b.due_date, icon: 'bell' })),
-    ...state.travel.map((t) => ({ title: t.title, body: `${t.trip_title || ''} ${t.provider || ''}`.trim(), date: t.start_at, icon: 'plane' })),
-    ...state.medications.filter((m) => medicationDaysLeft(m) <= Number(m.warning_threshold_days || 7)).map((m) => ({ title: `Revisar stock: ${m.name}`, body: `Quedan ${medicationDaysLeft(m)} días aprox.`, date: new Date().toISOString(), icon: 'pill' }))
-  ].filter((item) => item.date).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 8);
+  const todayList = document.getElementById('today-list');
+  const weekList = document.getElementById('week-list');
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const tomorrow = new Date(todayStart); tomorrow.setDate(tomorrow.getDate() + 1);
+  const weekEnd = new Date(todayStart); weekEnd.setDate(weekEnd.getDate() + 7);
 
-  document.getElementById('today-events-count').textContent = `${upcoming.length} eventos próximos`;
+  const items = [
+    ...state.events.map((e) => ({ title: e.title, body: e.notes || e.location || '', date: e.start_at, icon: iconForType(e.event_type), type: e.event_type || 'general' })),
+    ...state.appointments.filter((a) => a.status !== 'completed').map((a) => ({ title: a.title, body: [a.specialty, a.location, a.notes].filter(Boolean).join(' · '), date: a.appointment_at, icon: 'heart', type: 'medical' })),
+    ...state.bills.filter((b) => b.status !== 'paid').map((b) => ({ title: b.title, body: `${b.provider || ''} ${b.amount ? `${b.amount} €` : ''}`.trim(), date: b.due_date, icon: 'bell', type: b.category === 'tax' ? 'tax' : 'bill' })),
+    ...state.travel.map((t) => ({ title: t.title, body: `${t.trip_title || ''} ${t.provider || ''}`.trim(), date: t.start_at, icon: 'plane', type: t.item_type === 'work_vacation' ? 'work_vacation' : 'travel' })),
+    ...state.medications.filter((m) => medicationDaysLeft(m) <= Number(m.warning_threshold_days || 7)).map((m) => ({ title: `Comprar o retirar ${m.name}`, body: `Quedan ${m.current_stock || 0} unidades, ${medicationDaysLeft(m)} días aprox.`, date: new Date().toISOString(), icon: 'pill', type: 'medication' })),
+    ...state.documents.filter((d) => ['pending_upload','pending_to_use'].includes(d.status)).map((d) => ({ title: d.status === 'pending_upload' ? `Subir ${d.title}` : `Llevar ${d.title}`, body: d.related_specialty || d.notes || '', date: new Date().toISOString(), icon: 'file', type: 'document' }))
+  ].filter((item) => item.date).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  if (!upcoming.length) {
-    list.innerHTML = '<p class="empty">No hay avisos próximos.</p>';
-    return;
-  }
+  const today = items.filter((item) => {
+    const d = new Date(item.date);
+    return d >= todayStart && d < tomorrow;
+  });
 
-  list.innerHTML = upcoming.map((item) => card({
+  const week = items.filter((item) => {
+    const d = new Date(item.date);
+    return d >= tomorrow && d < weekEnd;
+  });
+
+  document.getElementById('today-count').textContent = today.length;
+  document.getElementById('week-count').textContent = week.length;
+  document.getElementById('today-focus-title').textContent = today.length ? `${today.length} pendiente(s) para hoy` : 'Hoy no hay urgencias';
+  document.getElementById('today-focus-text').textContent = week.length ? `${week.length} cosa(s) más esta semana.` : 'Sin pendientes relevantes esta semana.';
+
+  todayList.innerHTML = today.length ? today.map((item) => card({
     icon: item.icon,
-    title: item.title,
+    title: item.title || item.name || 'Elemento',
     body: item.body,
-    tags: [dateText(item.date)]
-  })).join('');
+    tags: [dateText(item.date), labelCalendarType(item.type)]
+  })).join('') : '<p class="empty">Nada pendiente para hoy.</p>';
+
+  weekList.innerHTML = week.length ? week.map((item) => card({
+    icon: item.icon,
+    title: item.title || item.name || 'Elemento',
+    body: item.body,
+    tags: [dateText(item.date), labelCalendarType(item.type)]
+  })).join('') : '<p class="empty">Nada pendiente en el resto de la semana.</p>';
 }
+
 
 function iconForType(type) {
   const map = { tax: 'bell', medical: 'heart', bill: 'bell', work_vacation: 'calendar', travel: 'plane', general: 'calendar' };
   return map[type] || 'calendar';
+}
+
+
+function labelCalendarType(type) {
+  const labels = {
+    general: 'General',
+    medical: 'Médico',
+    bill: 'Factura',
+    tax: 'Impuesto',
+    work_vacation: 'Vacaciones',
+    travel: 'Viaje',
+    medication: 'Medicación',
+    document: 'Documento'
+  };
+  return labels[type] || type || 'Evento';
+}
+
+function selectedCalendarTypes(containerId) {
+  const inputs = document.querySelectorAll(`#${containerId} input:checked`);
+  const values = Array.from(inputs).map((input) => input.value);
+  return values.length ? values : ['general', 'medical', 'bill', 'tax', 'work_vacation', 'travel'];
 }
 
 function calendarRange() {
@@ -342,30 +440,67 @@ function inRange(value, start, end) {
   return date >= start && date < end;
 }
 
+
 function renderCalendar() {
   const { start, end } = calendarRange();
+  const view = document.getElementById('calendar-view').value;
+  const selected = new Date(`${document.getElementById('calendar-date').value || todayIso()}T00:00:00`);
+  const types = selectedCalendarTypes('calendar-filters');
+
   const items = [
-    ...state.events.map((e) => ({ ...e, source: 'calendar_events', icon: iconForType(e.event_type), date: e.start_at, field: 'title' })),
-    ...state.bills.map((b) => ({ ...b, source: 'household_bills', icon: 'bell', date: b.due_date, field: 'title' })),
-    ...state.travel.map((t) => ({ ...t, source: 'travel_items', icon: 'plane', date: t.start_at, field: 'title' }))
-  ].filter((item) => inRange(item.date, start, end)).sort((a, b) => new Date(a.date) - new Date(b.date));
+    ...state.events.map((e) => ({ ...e, source: 'calendar_events', icon: iconForType(e.event_type), date: e.start_at, field: 'title', type: e.event_type || 'general' })),
+    ...state.appointments.map((a) => ({ ...a, source: 'medical_appointments', icon: 'heart', date: a.appointment_at, field: 'title', type: 'medical' })),
+    ...state.bills.map((b) => ({ ...b, source: 'household_bills', icon: 'bell', date: b.due_date, field: 'title', type: b.category === 'tax' ? 'tax' : 'bill' })),
+    ...state.travel.map((t) => ({ ...t, source: 'travel_items', icon: 'plane', date: t.start_at, field: 'title', type: t.item_type === 'work_vacation' ? 'work_vacation' : 'travel' }))
+  ].filter((item) => item.date && types.includes(item.type) && inRange(item.date, start, end)).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const node = document.getElementById('calendar-list');
-  if (!items.length) {
-    node.innerHTML = '<p class="empty">No hay eventos en esta vista.</p>';
+
+  if (view === 'day') {
+    node.innerHTML = items.length ? `<div class="cal-day-list">${items.map(renderCalendarCard).join('')}</div>` : '<p class="empty">No hay eventos este día.</p>';
+    injectIcons(node);
     return;
   }
 
-  node.innerHTML = items.map((item) => card({
+  if (view === 'week') {
+    const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d; });
+    node.innerHTML = `<div class="cal-grid week">${days.map((d) => calendarCell(d, items)).join('')}</div>`;
+    return;
+  }
+
+  if (view === 'month') {
+    const first = new Date(selected.getFullYear(), selected.getMonth(), 1);
+    const gridStart = new Date(first);
+    gridStart.setDate(first.getDate() - ((first.getDay() + 6) % 7));
+    const days = Array.from({ length: 42 }, (_, i) => { const d = new Date(gridStart); d.setDate(gridStart.getDate() + i); return d; });
+    node.innerHTML = `<div class="cal-grid month">${days.map((d) => calendarCell(d, items, d.getMonth() !== selected.getMonth())).join('')}</div>`;
+    return;
+  }
+
+  node.innerHTML = `<div class="cal-grid year">${Array.from({ length: 12 }, (_, m) => {
+    const monthItems = items.filter((item) => new Date(item.date).getMonth() === m);
+    return `<div class="cal-cell"><strong>${new Date(selected.getFullYear(), m, 1).toLocaleDateString('es-ES', { month: 'long' })}</strong>${monthItems.slice(0, 4).map((item) => `<span class="cal-chip">${escapeHtml(item.title)}</span>`).join('')}${monthItems.length > 4 ? `<span class="cal-chip">+${monthItems.length - 4} más</span>` : ''}</div>`;
+  }).join('')}</div>`;
+}
+
+function renderCalendarCard(item) {
+  return card({
     icon: item.icon,
-    title: item.title,
-    body: item.notes || item.location || item.provider || '',
-    tags: [dateText(item.date)],
+    title: item.title || item.name || 'Elemento',
+    body: item.notes || item.location || item.provider || item.specialty || '',
+    tags: [dateText(item.date), labelCalendarType(item.type)],
     table: item.source,
     id: item.id,
     editField: item.field
-  })).join('');
+  });
 }
+
+function calendarCell(day, items, muted = false) {
+  const dayItems = items.filter((item) => new Date(item.date).toDateString() === day.toDateString());
+  return `<div class="cal-cell" style="${muted ? 'opacity:.45' : ''}"><strong>${day.toLocaleDateString('es-ES', { day: '2-digit', weekday: 'short' })}</strong>${dayItems.slice(0, 3).map((item) => `<span class="cal-chip">${escapeHtml(item.title)}</span>`).join('')}${dayItems.length > 3 ? `<span class="cal-chip">+${dayItems.length - 3}</span>` : ''}</div>`;
+}
+
+
 
 function renderHealth() {
   const node = document.getElementById('health-list');
@@ -445,6 +580,97 @@ function labelWallet(type) {
   return labels[type] || 'Tarjeta';
 }
 
+
+function renderAppointments() {
+  const node = document.getElementById('appointment-list');
+  if (!node) return;
+  node.innerHTML = state.appointments.length ? state.appointments.map((a) => card({
+    icon: 'heart',
+    title: a.title,
+    body: [a.specialty, a.location, a.summary || a.notes].filter(Boolean).join(' · '),
+    tags: [dateText(a.appointment_at), a.status === 'completed' ? 'Completada' : 'Pendiente'],
+    table: 'medical_appointments',
+    id: a.id,
+    editField: 'title',
+    actions: a.status !== 'completed' ? `<button type="button" data-action="complete-appointment" data-id="${escapeHtml(a.id)}">Completar cita</button>` : ''
+  })).join('') : '<p class="empty">Sin citas médicas.</p>';
+}
+
+function renderDocuments() {
+  const node = document.getElementById('document-list');
+  if (!node) return;
+  node.innerHTML = state.documents.length ? state.documents.map((d) => card({
+    icon: 'file',
+    title: d.title,
+    body: [d.related_specialty, d.notes].filter(Boolean).join(' · '),
+    tags: [labelDocumentStatus(d.status), d.file_path ? 'Archivo subido' : 'Sin archivo'],
+    table: 'medical_documents',
+    id: d.id,
+    editField: 'title',
+    actions: d.file_path ? `<button type="button" data-action="open-file" data-bucket="${config().STORAGE_BUCKETS.MEDICAL_DOCUMENTS}" data-path="${escapeHtml(d.file_path)}">Abrir archivo</button>` : ''
+  })).join('') : '<p class="empty">Sin volantes o documentos.</p>';
+}
+
+function labelDocumentStatus(status) {
+  const labels = {
+    pending_upload: 'Pendiente de subir',
+    pending_to_use: 'Pendiente de llevar',
+    used: 'Usado',
+    archived: 'Archivado'
+  };
+  return labels[status] || status || 'Documento';
+}
+
+function mapDefaultLists() {
+  const own = state.lists.filter((list) => list.owner_id === currentUser?.id);
+  return {
+    shared: state.lists.find((list) => list.list_type === 'shared' && list.visibility === 'household') || own.find((list) => list.list_type === 'shared'),
+    private: own.find((list) => list.list_type === 'private'),
+    wishlist: own.find((list) => list.list_type === 'wishlist')
+  };
+}
+
+function renderLists() {
+  const defaults = mapDefaultLists();
+  const strip = document.getElementById('shopping-wallet-strip');
+  if (strip) {
+    const wallet = state.wallet.filter((w) => w.show_in_shopping);
+    strip.innerHTML = wallet.length ? wallet.map((w) => `<span class="wallet-pill">${escapeHtml(w.name)}</span>`).join('') : '<p class="empty">Sin tarjetas de compra en wallet.</p>';
+  }
+
+  renderListItems('shared-list', defaults.shared);
+  renderListItems('private-list', defaults.private);
+  renderListItems('wishlist-list', defaults.wishlist);
+  renderWishlistViewerOptions();
+}
+
+function renderListItems(containerId, list) {
+  const node = document.getElementById(containerId);
+  if (!node) return;
+  if (!list) {
+    node.innerHTML = '<p class="empty">Lista no disponible. Ejecuta el SQL v4.0.</p>';
+    return;
+  }
+  const items = state.listItems.filter((item) => item.list_id === list.id);
+  node.innerHTML = items.length ? items.map((item) => card({
+    icon: 'list',
+    title: item.title || item.name || 'Elemento',
+    body: item.url || item.notes || '',
+    tags: [item.checked ? 'Hecho' : 'Pendiente'],
+    table: 'shopping_list_items',
+    id: item.id,
+    editField: 'title',
+    actions: `<button type="button" data-action="toggle-list-item" data-id="${escapeHtml(item.id)}" data-checked="${item.checked ? 'true' : 'false'}">${item.checked ? 'Pendiente' : 'Hecho'}</button>`
+  })).join('') : '<p class="empty">Sin elementos.</p>';
+}
+
+function renderWishlistViewerOptions() {
+  const select = document.getElementById('wishlist-viewer');
+  if (!select) return;
+  const others = currentHouseholdMembers.filter((member) => member.user_id !== currentUser?.id);
+  select.innerHTML = '<option value="">Solo yo</option>' + others.map((member) => `<option value="${escapeHtml(member.user_id)}">Otro usuario</option>`).join('');
+}
+
 function renderHome() {
   const vehicleNode = document.getElementById('vehicle-list');
   vehicleNode.innerHTML = state.vehicles.length ? state.vehicles.map((v) => card({
@@ -477,6 +703,20 @@ function renderHome() {
     id: c.id,
     editField: 'name'
   })).join('') : '<p class="empty">Sin contactos guardados.</p>';
+
+  const walletNode = document.getElementById('wallet-list');
+  if (walletNode) {
+    walletNode.innerHTML = state.wallet.length ? state.wallet.map((w) => card({
+      icon: 'file',
+      title: w.name,
+      body: [w.provider, w.card_number ? `N.º ${w.card_number}` : '', w.notes].filter(Boolean).join(' · '),
+      tags: [w.show_in_shopping ? 'Lista de la compra' : 'Wallet', w.file_path ? 'Archivo subido' : 'Sin archivo'],
+      table: 'wallet_cards',
+      id: w.id,
+      editField: 'name',
+      actions: w.file_path ? `<button type="button" data-action="open-file" data-bucket="${config().STORAGE_BUCKETS.WALLET_CARDS}" data-path="${escapeHtml(w.file_path)}">Ver tarjeta</button>` : ''
+    })).join('') : '<p class="empty">Sin tarjetas guardadas.</p>';
+  }
 
   const travelNode = document.getElementById('travel-list');
   travelNode.innerHTML = state.travel.length ? state.travel.map((t) => card({
@@ -561,6 +801,8 @@ function setupForms() {
   document.getElementById('wallet-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     await saveWithStatus(async () => {
+      const fileInput = document.getElementById('wallet-file');
+      const uploaded = fileInput?.files?.[0] ? await uploadFile(config().STORAGE_BUCKETS.WALLET_CARDS, fileInput.files[0]) : null;
       await upsert('wallet_cards', {
         owner_id: currentUser.id,
         name: document.getElementById('wallet-name').value.trim(),
@@ -568,12 +810,52 @@ function setupForms() {
         card_number: document.getElementById('wallet-number').value.trim() || null,
         card_type: document.getElementById('wallet-type').value,
         show_in_shopping: document.getElementById('wallet-shopping').checked,
+        file_path: uploaded?.path || null,
+        file_name: uploaded?.name || null,
+        mime_type: uploaded?.type || null,
         notes: document.getElementById('wallet-notes').value.trim() || null,
         active: true
       });
       event.target.reset();
       document.getElementById('wallet-shopping').checked = true;
     }, 'Tarjeta guardada.');
+  });
+
+
+  document.getElementById('appointment-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    await saveWithStatus(async () => {
+      const appointmentAt = document.getElementById('appointment-at').value ? new Date(document.getElementById('appointment-at').value).toISOString() : new Date().toISOString();
+      await upsert('medical_appointments', {
+        owner_id: currentUser.id,
+        title: document.getElementById('appointment-title').value.trim(),
+        appointment_at: appointmentAt,
+        specialty: document.getElementById('appointment-specialty').value.trim() || null,
+        location: document.getElementById('appointment-location').value.trim() || null,
+        notes: document.getElementById('appointment-notes').value.trim() || null,
+        status: 'scheduled'
+      });
+      event.target.reset();
+    }, 'Cita médica guardada.');
+  });
+
+  document.getElementById('medical-document-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    await saveWithStatus(async () => {
+      const fileInput = document.getElementById('document-file');
+      const uploaded = fileInput?.files?.[0] ? await uploadFile(config().STORAGE_BUCKETS.MEDICAL_DOCUMENTS, fileInput.files[0]) : null;
+      await upsert('medical_documents', {
+        owner_id: currentUser.id,
+        title: document.getElementById('document-title').value.trim(),
+        related_specialty: document.getElementById('document-specialty').value.trim() || null,
+        status: uploaded ? 'pending_to_use' : document.getElementById('document-status').value,
+        file_path: uploaded?.path || null,
+        file_name: uploaded?.name || null,
+        mime_type: uploaded?.type || null,
+        notes: document.getElementById('document-notes').value.trim() || null
+      });
+      event.target.reset();
+    }, 'Volante o documento guardado.');
   });
 
   document.getElementById('vehicle-form').addEventListener('submit', async (event) => {
@@ -667,7 +949,56 @@ function setupForms() {
       event.target.reset();
     }, 'Vacaciones o viaje guardado.');
   });
+
+  document.getElementById('shared-list-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const list = mapDefaultLists().shared;
+    await saveListItem(event, list, 'shared-item-title');
+  });
+
+  document.getElementById('private-list-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const list = mapDefaultLists().private;
+    await saveListItem(event, list, 'private-item-title');
+  });
+
+  document.getElementById('wishlist-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const list = mapDefaultLists().wishlist;
+    await saveWithStatus(async () => {
+      if (!list) throw new Error('Lista de deseos no disponible. Ejecuta el SQL v4.0.');
+      await upsert('shopping_list_items', {
+        list_id: list.id,
+        created_by: currentUser.id,
+        title: document.getElementById('wishlist-title').value.trim(),
+        url: document.getElementById('wishlist-url').value.trim() || null,
+        checked: false
+      });
+      const viewer = document.getElementById('wishlist-viewer').value;
+      if (viewer) {
+        await upsert('wishlist_viewers', {
+          list_id: list.id,
+          viewer_id: viewer
+        });
+      }
+      event.target.reset();
+    }, 'Deseo guardado.');
+  });
 }
+
+async function saveListItem(event, list, inputId) {
+  await saveWithStatus(async () => {
+    if (!list) throw new Error('Lista no disponible. Ejecuta el SQL v4.0.');
+    await upsert('shopping_list_items', {
+      list_id: list.id,
+      created_by: currentUser.id,
+      title: document.getElementById(inputId).value.trim(),
+      checked: false
+    });
+    event.target.reset();
+  }, 'Elemento añadido.');
+}
+
 
 async function saveWithStatus(action, message) {
   try {
@@ -679,25 +1010,91 @@ async function saveWithStatus(action, message) {
   }
 }
 
+
 async function handleCardAction(event) {
   const button = event.target.closest('[data-action]');
   if (!button) return;
 
-  const table = button.dataset.table;
-  const id = button.dataset.id;
   const action = button.dataset.action;
+  const id = button.dataset.id;
 
-  if (action === 'delete') {
-    if (!confirm('¿Borrar este registro?')) return;
-    await saveWithStatus(async () => remove(table, id), 'Registro borrado.');
-  }
+  try {
+    if (action === 'open-file') {
+      await openStorageFile(button.dataset.bucket, button.dataset.path);
+      return;
+    }
 
-  if (action === 'edit') {
-    const field = button.dataset.field || 'title';
-    const next = prompt('Nuevo texto');
-    if (next === null) return;
-    await saveWithStatus(async () => patch(table, id, { [field]: next }), 'Registro editado.');
+    if (action === 'delete') {
+      if (!confirm('¿Borrar este registro?')) return;
+      await saveWithStatus(async () => remove(button.dataset.table, id), 'Registro borrado.');
+    }
+
+    if (action === 'edit') {
+      const current = button.dataset.current || '';
+      const value = window.prompt('Nuevo texto', current);
+      if (value === null) return;
+      await saveWithStatus(async () => patch(button.dataset.table, id, { [button.dataset.field || 'title']: value }), 'Registro editado.');
+    }
+
+    if (action === 'complete-appointment') {
+      const summary = window.prompt('Resumen de lo que ocurrió en la cita');
+      if (summary === null) return;
+      const gotDoc = window.confirm('¿Te dieron un volante, informe u otra documentación?');
+      const referralFor = gotDoc ? window.prompt('¿Para qué especialista o prueba es?') : null;
+      await saveWithStatus(async () => {
+        await patch('medical_appointments', id, {
+          status: 'completed',
+          summary,
+          referral_given: gotDoc,
+          referral_for: referralFor || null,
+          completed_at: new Date().toISOString()
+        });
+        if (gotDoc) {
+          await upsert('medical_documents', {
+            owner_id: currentUser.id,
+            appointment_id: id,
+            title: referralFor ? `Volante para ${referralFor}` : 'Volante o documento pendiente',
+            related_specialty: referralFor || null,
+            status: 'pending_upload',
+            notes: 'Pendiente de subir tras cita médica.'
+          });
+        }
+      }, gotDoc ? 'Cita completada. Se creó el recordatorio del volante.' : 'Cita completada.');
+    }
+
+    if (action === 'toggle-list-item') {
+      await saveWithStatus(async () => patch('shopping_list_items', id, { checked: button.dataset.checked !== 'true' }), 'Lista actualizada.');
+    }
+  } catch (error) {
+    setStatus(error.message || 'No se pudo completar la acción.', 'error');
   }
+}
+
+
+
+function setupTabs() {
+  document.querySelectorAll('[data-list-tab]').forEach((button) => {
+    button.addEventListener('click', () => {
+      document.querySelectorAll('[data-list-tab]').forEach((b) => b.classList.toggle('active', b === button));
+      document.querySelectorAll('[data-list-section]').forEach((section) => section.classList.toggle('is-hidden', section.dataset.listSection !== button.dataset.listTab));
+    });
+  });
+}
+
+function exportCalendarPdf() {
+  const selected = selectedCalendarTypes('export-filters');
+  const items = [
+    ...state.events.map((e) => ({ title: e.title, body: e.notes || e.location || '', date: e.start_at, type: e.event_type || 'general' })),
+    ...state.appointments.map((a) => ({ title: a.title, body: [a.specialty, a.location, a.summary || a.notes].filter(Boolean).join(' · '), date: a.appointment_at, type: 'medical' })),
+    ...state.bills.map((b) => ({ title: b.title, body: [b.provider, b.amount ? `${b.amount} €` : ''].filter(Boolean).join(' · '), date: b.due_date, type: b.category === 'tax' ? 'tax' : 'bill' })),
+    ...state.travel.map((t) => ({ title: t.title, body: [t.trip_title, t.provider].filter(Boolean).join(' · '), date: t.start_at, type: t.item_type === 'work_vacation' ? 'work_vacation' : 'travel' }))
+  ].filter((item) => item.date && selected.includes(item.type)).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Calendario VITA</title><style>body{font-family:system-ui;margin:28px;color:#25223a}h1{color:#7154c8}.item{border-bottom:1px solid #ddd7f2;padding:10px 0}.tag{color:#7154c8;font-weight:700}@media print{button{display:none}}</style></head><body><button onclick="window.print()">Guardar como PDF</button><h1>Calendario VITA</h1><p>Tipos incluidos: ${selected.map(labelCalendarType).join(', ')}</p>${items.map((item) => `<div class="item"><strong>${escapeHtml(item.title)}</strong><br><span class="tag">${escapeHtml(dateText(item.date))} · ${escapeHtml(labelCalendarType(item.type))}</span><p>${escapeHtml(item.body || '')}</p></div>`).join('')}</body></html>`;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener,noreferrer');
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
 function setupNavigation() {
@@ -752,6 +1149,9 @@ function setupBasics() {
   document.getElementById('refresh-data').addEventListener('click', loadAll);
   document.getElementById('calendar-view').addEventListener('change', renderCalendar);
   document.getElementById('calendar-date').addEventListener('change', renderCalendar);
+  document.querySelectorAll('#calendar-filters input').forEach((input) => input.addEventListener('change', renderCalendar));
+  const exportButton = document.getElementById('export-calendar-pdf');
+  if (exportButton) exportButton.addEventListener('click', exportCalendarPdf);
   document.addEventListener('click', handleCardAction);
 }
 
@@ -920,6 +1320,7 @@ async function boot() {
   injectIcons();
   setupBasics();
   setupNavigation();
+  setupTabs();
   setupLogin();
   setupForms();
   setupPwa();

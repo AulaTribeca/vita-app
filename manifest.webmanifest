@@ -1,7 +1,7 @@
 {
   "name": "VITA",
   "short_name": "VITA",
-  "description": "Organización personal, salud, hogar, calendario y avisos.",
+  "description": "Planificador visual para pendientes, calendario, salud, listas, hogar y avisos.",
   "id": "/",
   "start_url": "./index.html",
   "scope": "./",
@@ -28,5 +28,5 @@
       "purpose": "any maskable"
     }
   ],
-  "version": "3.2.0"
+  "version": "4.1.1"
 }

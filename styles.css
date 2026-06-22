@@ -464,3 +464,349 @@ h3 { font-size: 1rem; margin-bottom: 4px; }
   width: 18px;
   height: 18px;
 }
+
+
+.today-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(113,84,200,.13), rgba(255,255,255,.88));
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+
+.today-hero button,
+.section-title button {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(113,84,200,.09);
+  color: var(--purple);
+  padding: 9px 12px;
+  font-weight: 900;
+}
+
+.count-pill {
+  min-width: 34px;
+  text-align: center;
+  border-radius: 999px;
+  background: rgba(113,84,200,.1);
+  color: var(--purple);
+  padding: 5px 9px;
+  font-weight: 950;
+}
+
+.filter-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.filter-strip label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  background: rgba(113,84,200,.08);
+  color: var(--purple-dark);
+  padding: 7px 10px;
+  font-size: .78rem;
+  font-weight: 900;
+}
+
+.calendar-surface {
+  margin-top: 12px;
+}
+
+.cal-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.cal-grid.month {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.cal-grid.week {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.cal-grid.year {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.cal-cell {
+  min-height: 92px;
+  border: 1px solid rgba(86,77,128,.12);
+  border-radius: 18px;
+  background: rgba(255,255,255,.7);
+  padding: 8px;
+  overflow: hidden;
+}
+
+.cal-cell strong {
+  display: block;
+  color: var(--purple-dark);
+  margin-bottom: 5px;
+}
+
+.cal-chip {
+  display: block;
+  border-radius: 10px;
+  background: rgba(113,84,200,.1);
+  color: var(--purple-dark);
+  padding: 4px 6px;
+  font-size: .68rem;
+  font-weight: 850;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-day-list {
+  display: grid;
+  gap: 8px;
+}
+
+.subtabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background: rgba(113,84,200,.07);
+  border-radius: 24px;
+  padding: 6px;
+}
+
+.subtabs button {
+  border: 0;
+  border-radius: 18px;
+  padding: 10px 6px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 950;
+}
+
+.subtabs button.active {
+  background: var(--purple);
+  color: #fff;
+}
+
+.inline-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.inline-form input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.95);
+  border-radius: 18px;
+  padding: 12px 13px;
+  color: var(--ink);
+  outline: none;
+}
+
+.inline-form button {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 14px;
+  background: linear-gradient(135deg, var(--purple), #8c6ee6);
+  color: white;
+  font-weight: 950;
+}
+
+.wallet-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.wallet-pill {
+  border: 1px solid rgba(86,77,128,.12);
+  background: rgba(255,255,255,.8);
+  border-radius: 18px;
+  padding: 8px 10px;
+  color: var(--purple-dark);
+  font-weight: 900;
+}
+
+.block-gap {
+  margin-top: 12px;
+}
+
+.bottom-nav {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+@media (max-width: 680px) {
+  .cal-grid.month {
+    grid-template-columns: repeat(7, minmax(38px, 1fr));
+  }
+
+  .cal-grid.week,
+  .cal-grid.year {
+    grid-template-columns: 1fr;
+  }
+
+  .cal-cell {
+    min-height: 76px;
+    padding: 6px;
+  }
+
+  .inline-form {
+    grid-template-columns: 1fr;
+  }
+
+  .subtabs {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* VITA v4.1, capa visual y TDAH-friendly */
+@keyframes vitaRise {
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes vitaPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 18px 45px rgba(62,48,110,.10); }
+  50% { transform: scale(1.012); box-shadow: 0 22px 54px rgba(113,84,200,.16); }
+}
+
+@keyframes vitaGlow {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(113,84,200,0)); }
+  50% { filter: drop-shadow(0 0 14px rgba(113,84,200,.22)); }
+}
+
+.screen.is-active {
+  animation: vitaRise .32s ease both;
+}
+
+.today-hero {
+  animation: vitaRise .42s ease both;
+  position: relative;
+  overflow: hidden;
+}
+
+.today-hero::after {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  right: -55px;
+  top: -70px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(113,84,200,.18), transparent 65%);
+  pointer-events: none;
+}
+
+.today-hero h2 {
+  margin-bottom: 4px;
+}
+
+.panel {
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+  animation: vitaRise .28s ease both;
+}
+
+.card {
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.card:active,
+.focus-card:active,
+.nav-item:active,
+button:active {
+  transform: scale(.985);
+}
+
+@media (hover: hover) {
+  .card:hover,
+  .panel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 50px rgba(62,48,110,.14);
+  }
+}
+
+.brand-icon,
+.login-logo {
+  animation: vitaGlow 4s ease-in-out infinite;
+}
+
+.nav-item {
+  transition: background .2s ease, color .2s ease, transform .18s ease;
+}
+
+.nav-item.active {
+  position: relative;
+}
+
+.nav-item.active::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--purple);
+  position: absolute;
+  bottom: 3px;
+}
+
+.global-status {
+  transition: background .2s ease, color .2s ease, transform .2s ease;
+}
+
+.global-status.success {
+  animation: vitaPulse 1.2s ease 1;
+}
+
+.calendar-surface {
+  min-height: 180px;
+}
+
+.cal-grid {
+  animation: vitaRise .28s ease both;
+}
+
+.cal-cell {
+  transition: transform .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.cal-cell:active {
+  transform: scale(.985);
+}
+
+.cal-chip {
+  transition: background .18s ease, transform .18s ease;
+}
+
+.filter-strip label,
+.wallet-pill,
+.count-pill {
+  transition: transform .18s ease, background .18s ease;
+}
+
+.filter-strip label:active,
+.wallet-pill:active {
+  transform: scale(.97);
+}
+
+details[open] summary {
+  color: var(--purple);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

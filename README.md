@@ -1,21 +1,32 @@
-VITA v3.2, refresco de logo
+# VITA v4.1.1, depuración final
 
-Archivos incluidos:
-- index.html
-- config.js
-- service-worker.js
-- manifest.webmanifest
-- assets/vita-icon.svg
-- assets/vita-icon-192.png
-- assets/vita-icon-512.png
+Corrige el fallo de `shopping_lists.name` y consolida una app más funcional.
 
-Qué hace:
-- Sustituye el logo e icono de VITA por el nuevo diseño.
-- Actualiza favicon, icono de login, icono de cabecera y assets PWA.
-- Fuerza refresco de caché subiendo la versión a 3.2.0.
+## Error corregido
 
-Qué debes hacer:
-1. Sustituir estos archivos en tu proyecto.
-2. Hacer commit y push.
-3. En el móvil, borrar la PWA instalada de VITA.
-4. Abrir de nuevo la web y reinstalar la app.
+`null value in column "name" of relation "shopping_lists" violates not-null constraint`
+
+El problema venía de una estructura antigua de Supabase que exigía `name`, mientras que las versiones nuevas usaban `title`. Esta versión usa ambos campos y rellena valores antiguos vacíos.
+
+## Cambios de app
+
+- Volantes/documentos ya permiten adjuntar archivo o foto.
+- Wallet permite adjuntar archivo o foto de la tarjeta.
+- Las tarjetas con archivo muestran botón para abrirlo.
+- Los errores internos se muestran con el sistema visual de VITA.
+- Se mantiene la pantalla Hoy como planificador de pendientes.
+- Se mantienen calendario, citas, medicación, listas, hogar y wallet.
+
+## Supabase
+
+Ejecuta:
+
+`docs/supabase_v4_1_1_depura_final.sql`
+
+## GitHub
+
+Commit sugerido:
+
+`VITA v4.1.1 depuracion final`
+
+Después borra la PWA del móvil y reinstala.
