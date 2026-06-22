@@ -208,16 +208,16 @@ function renderAuthState() {
 
   if (currentUser) {
     setText(title, 'Sesión iniciada');
-    setText(message, currentUser.email || 'Usuario conectado');
+    setText(message, getDisplayNameForEmail(currentUser.email) || 'Usuario conectado');
     setText(helper, 'Supabase está conectado. En el siguiente nivel guardaremos registros reales en la base de datos.');
-    setText(miniTitle, 'Patricia conectada');
+    setText(miniTitle, getDisplayNameForEmail(currentUser.email) + ' conectado/a');
     setText(miniText, 'Perfil privado preparado. Hogar compartido listo para vincular a Román más adelante.');
-    setText(sessionEmail, currentUser.email || 'Usuario conectado');
+    setText(sessionEmail, getDisplayNameForEmail(currentUser.email) || 'Usuario conectado');
     setText(sessionMode, 'Sesión segura con Supabase');
   } else {
     setText(title, 'Sesión no iniciada');
-    setText(message, 'Para acceder a VITA debes iniciar sesión con usuario y contraseña.');
-    setText(helper, 'Los usuarios deben crearse manualmente en Supabase. No hay registro público en la app.');
+    setText(message, 'Para acceder a VITA debes iniciar sesión con nombre de usuario y contraseña.');
+    setText(helper, 'Los usuarios se crean manualmente en Supabase. La app traduce Patricia/Román al email interno.');
     setText(miniTitle, 'VITA protegida');
     setText(miniText, 'Inicia sesión para ver o guardar datos reales.');
     setText(sessionEmail, 'Sin sesión iniciada');
@@ -227,7 +227,7 @@ function renderAuthState() {
 
 function setupAuthButtons() {
   const loginForm = document.getElementById('password-login-form');
-  const loginEmail = document.getElementById('login-email');
+  const loginUsername = document.getElementById('login-username');
   const loginPassword = document.getElementById('login-password');
   const loginMessage = document.getElementById('login-message');
   const demoAccess = document.getElementById('demo-access');
@@ -251,11 +251,17 @@ function setupAuthButtons() {
         return;
       }
 
-      const email = loginEmail.value.trim();
+      const username = loginUsername.value.trim();
       const password = loginPassword.value;
+      const email = resolveLoginEmail(username);
 
-      if (!email || !password) {
+      if (!username || !password) {
         setLoginMessage('Escribe usuario y contraseña.', 'warning');
+        return;
+      }
+
+      if (!email) {
+        setLoginMessage('Usuario no reconocido. Usa Patricia o Román.', 'error');
         return;
       }
 
@@ -299,9 +305,16 @@ function setupAuthButtons() {
         return;
       }
 
-      const email = loginEmail.value.trim();
+      const username = loginUsername.value.trim();
+      const email = resolveLoginEmail(username);
+
+      if (!username) {
+        setLoginMessage('Escribe tu nombre de usuario para enviarte el enlace de recuperación.', 'warning');
+        return;
+      }
+
       if (!email) {
-        setLoginMessage('Escribe tu email de usuario para enviarte el enlace de recuperación.', 'warning');
+        setLoginMessage('Usuario no reconocido. Usa Patricia o Román.', 'error');
         return;
       }
 
@@ -398,6 +411,44 @@ function setupDocumentDemo() {
 
 
 
+
+function normalizeLoginName(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function resolveLoginEmail(value) {
+  const config = getConfig();
+  const rawValue = String(value || '').trim();
+
+  if (!rawValue) return null;
+
+  if (rawValue.includes('@')) {
+    return rawValue.toLowerCase();
+  }
+
+  const aliases = config.USER_ALIASES || {};
+  const normalized = normalizeLoginName(rawValue);
+
+  for (const [alias, email] of Object.entries(aliases)) {
+    if (normalizeLoginName(alias) === normalized) {
+      return email;
+    }
+  }
+
+  return null;
+}
+
+function getDisplayNameForEmail(email) {
+  const config = getConfig();
+  const names = config.USER_DISPLAY_NAMES || {};
+  return names[email] || email || 'Usuario';
+}
+
+
 function renderAppAccess(forceLogin = false) {
   const loginScreen = document.getElementById('login-screen');
   const appShell = document.getElementById('app');
@@ -422,7 +473,7 @@ function renderAppAccess(forceLogin = false) {
   if (!configured && !demoMode) {
     setLoginMessage('Supabase todavía no está configurado. Puedes revisar el diseño en modo demo, pero no introduzcas datos reales.', 'warning');
   } else if (configured && !currentUser) {
-    setLoginMessage('Introduce el usuario y la contraseña creados en Supabase.', 'neutral');
+    setLoginMessage('Introduce tu nombre de usuario y contraseña.', 'neutral');
   }
 }
 

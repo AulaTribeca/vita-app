@@ -1,35 +1,28 @@
-# VITA v0.4
+# VITA v0.4.2
 
-Nivel 4 de VITA.
+Nivel 4.2 de VITA.
 
-## Incluye
+## Qué cambia
 
-- Pantalla de inicio de sesión.
-- Acceso con usuario y contraseña.
-- Bloqueo de la app si no hay sesión iniciada.
-- Modo demo local solo si Supabase no está configurado.
-- Restablecimiento de contraseña preparado.
-- Pantalla de cuenta adaptada a sesión segura.
+- La pantalla de inicio de sesión ya no pide el email ficticio.
+- Ahora se entra con nombre de usuario:
+  - `Patricia`
+  - `Román`
+- La app convierte internamente ese usuario en el email de Supabase:
+  - `patricia@vitaapp.com`
+  - `roman@vitaapp.com`
 
 ## Seguridad
 
-La app no permite crear usuarios desde la interfaz. Los usuarios deben crearse manualmente en Supabase.
+Supabase sigue usando email y contraseña por debajo, pero la interfaz no muestra ni exige el email ficticio.
 
-Esto es importante porque VITA manejará datos sensibles:
+No hay registro público en la app. Los usuarios deben seguir creándose en Supabase.
 
-- salud;
-- medicación;
-- citas médicas;
-- volantes;
-- facturas;
-- hipoteca;
-- hogar compartido;
-- documentos personales.
+## Archivos modificados
 
-## Pendiente
-
-- Crear proyecto de Supabase.
-- Ejecutar SQL v0.2 y v0.3.
-- Crear usuarios en Supabase.
-- Pegar URL y anon/public key en `config.js`.
-- Verificar login real.
+- `index.html`
+- `app.js`
+- `config.js`
+- `service-worker.js`
+- `README.md`
+- `docs/instrucciones_v0_4_2.md`

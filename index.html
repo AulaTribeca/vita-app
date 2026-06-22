@@ -27,7 +27,7 @@
       <form id="password-login-form" class="login-form">
         <label class="field">
           <span>Usuario</span>
-          <input id="login-email" type="email" placeholder="tu@email.com" autocomplete="username" required>
+          <input id="login-username" type="text" placeholder="Patricia o Román" autocomplete="username" autocapitalize="none" required>
         </label>
 
         <label class="field">
@@ -49,14 +49,14 @@
       <button id="forgot-password" class="link-button" type="button">He olvidado mi contraseña</button>
 
       <div class="login-message" id="login-message">
-        Supabase todavía no está configurado. Puedes revisar el diseño en modo demo, pero no introduzcas datos reales.
+        Supabase está configurado. Entra con tu nombre de usuario y contraseña.
       </div>
 
       <button id="demo-access" class="demo-button" type="button">
         Ver demo local sin datos reales
       </button>
 
-      <p class="login-footnote">Los usuarios deben crearse en Supabase. Esta pantalla no permite registros públicos.</p>
+      <p class="login-footnote">Los usuarios se crean en Supabase. Aquí se accede con nombre de usuario, no con el email ficticio.</p>
     </div>
   </section>
 
@@ -79,7 +79,7 @@
         </header>
 
         <div class="notice">
-          VITA v0.4 · Acceso privado con usuario y contraseña.
+          VITA v0.4.2 · Acceso privado con nombre de usuario y contraseña.
         </div>
 
         <article class="account-mini-card" id="account-mini-card">
