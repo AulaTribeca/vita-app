@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./assets/vita-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./assets/vita-icon.svg">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=0.4.3">
 </head>
 <body>
 
@@ -24,10 +24,10 @@
       <h1>Iniciar sesión</h1>
       <p class="login-intro">Tus datos de salud, medicación, facturas, hogar y documentos son sensibles. VITA necesita usuario y contraseña antes de mostrar la app.</p>
 
-      <form id="password-login-form" class="login-form">
+      <form id="password-login-form" class="login-form" novalidate>
         <label class="field">
           <span>Usuario</span>
-          <input id="login-username" type="text" placeholder="Patricia o Román" autocomplete="username" autocapitalize="none" required>
+          <input id="login-username" type="text" placeholder="Patricia o Román" autocomplete="username" autocapitalize="none" spellcheck="false" required>
         </label>
 
         <label class="field">
@@ -49,7 +49,7 @@
       <button id="forgot-password" class="link-button" type="button">He olvidado mi contraseña</button>
 
       <div class="login-message" id="login-message">
-        Supabase está configurado. Entra con tu nombre de usuario y contraseña.
+        Entra con Patricia o Román y tu contraseña.
       </div>
 
       <button id="demo-access" class="demo-button" type="button">
@@ -79,7 +79,7 @@
         </header>
 
         <div class="notice">
-          VITA v0.4.2 · Acceso privado con nombre de usuario y contraseña.
+          VITA v0.4.3 · Acceso por usuario, sin email visible.
         </div>
 
         <article class="account-mini-card" id="account-mini-card">
@@ -662,7 +662,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./config.js"></script>
-  <script src="./app.js"></script>
+  <script src="./config.js?v=0.4.3"></script>
+  <script src="./app.js?v=0.4.3"></script>
 </body>
 </html>

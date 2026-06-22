@@ -1,22 +1,19 @@
-# VITA v0.4.2
+# VITA v0.4.3
 
-Nivel 4.2 de VITA.
+Corrección del login por nombre de usuario.
 
-## Qué cambia
+## Qué corrige
 
-- La pantalla de inicio de sesión ya no pide el email ficticio.
-- Ahora se entra con nombre de usuario:
+- El campo Usuario queda forzado como texto, no como email.
+- El formulario queda con `novalidate` para que el navegador no exija `@`.
+- La app acepta:
   - `Patricia`
+  - `Patri`
   - `Román`
-- La app convierte internamente ese usuario en el email de Supabase:
-  - `patricia@vitaapp.com`
-  - `roman@vitaapp.com`
-
-## Seguridad
-
-Supabase sigue usando email y contraseña por debajo, pero la interfaz no muestra ni exige el email ficticio.
-
-No hay registro público en la app. Los usuarios deben seguir creándose en Supabase.
+  - `Roman`
+- Internamente traduce esos nombres al email de Supabase.
+- Se añade cache busting a `app.js` y `config.js`.
+- Se actualiza la caché del service worker.
 
 ## Archivos modificados
 
@@ -25,4 +22,4 @@ No hay registro público en la app. Los usuarios deben seguir creándose en Supa
 - `config.js`
 - `service-worker.js`
 - `README.md`
-- `docs/instrucciones_v0_4_2.md`
+- `docs/instrucciones_v0_4_3.md`

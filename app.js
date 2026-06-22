@@ -225,16 +225,28 @@ function renderAuthState() {
   }
 }
 
+
 function setupAuthButtons() {
   const loginForm = document.getElementById('password-login-form');
-  const loginUsername = document.getElementById('login-username');
+  const loginUsername = document.getElementById('login-username') || document.getElementById('login-email');
   const loginPassword = document.getElementById('login-password');
-  const loginMessage = document.getElementById('login-message');
   const demoAccess = document.getElementById('demo-access');
   const forgotPassword = document.getElementById('forgot-password');
   const togglePassword = document.getElementById('toggle-password');
   const goLoginButton = document.getElementById('go-login-button');
   const logoutButton = document.getElementById('logout-button');
+
+  if (loginForm) {
+    loginForm.noValidate = true;
+  }
+
+  if (loginUsername) {
+    loginUsername.type = 'text';
+    loginUsername.placeholder = 'Patricia o Román';
+    loginUsername.setAttribute('autocomplete', 'username');
+    loginUsername.setAttribute('autocapitalize', 'none');
+    loginUsername.setAttribute('spellcheck', 'false');
+  }
 
   if (togglePassword && loginPassword) {
     togglePassword.addEventListener('click', () => {
@@ -247,12 +259,12 @@ function setupAuthButtons() {
       event.preventDefault();
 
       if (!isSupabaseReady() || !supabaseClient) {
-        setLoginMessage('Supabase todavía no está configurado. Puedes entrar en demo, pero sin datos reales.', 'warning');
+        setLoginMessage('Supabase no está disponible en esta carga. Revisa que config.js esté actualizado y recarga sin caché.', 'warning');
         return;
       }
 
-      const username = loginUsername.value.trim();
-      const password = loginPassword.value;
+      const username = loginUsername ? loginUsername.value.trim() : '';
+      const password = loginPassword ? loginPassword.value : '';
       const email = resolveLoginEmail(username);
 
       if (!username || !password) {
@@ -288,7 +300,7 @@ function setupAuthButtons() {
   if (demoAccess) {
     demoAccess.addEventListener('click', () => {
       if (isSupabaseReady()) {
-        setLoginMessage('Supabase ya está configurado. Usa tu usuario y contraseña.', 'warning');
+        setLoginMessage('Supabase ya está configurado. Usa Patricia o Román y tu contraseña.', 'warning');
         return;
       }
 
@@ -305,11 +317,11 @@ function setupAuthButtons() {
         return;
       }
 
-      const username = loginUsername.value.trim();
+      const username = loginUsername ? loginUsername.value.trim() : '';
       const email = resolveLoginEmail(username);
 
       if (!username) {
-        setLoginMessage('Escribe tu nombre de usuario para enviarte el enlace de recuperación.', 'warning');
+        setLoginMessage('Escribe Patricia o Román para enviar la recuperación.', 'warning');
         return;
       }
 
@@ -471,9 +483,9 @@ function renderAppAccess(forceLogin = false) {
   }
 
   if (!configured && !demoMode) {
-    setLoginMessage('Supabase todavía no está configurado. Puedes revisar el diseño en modo demo, pero no introduzcas datos reales.', 'warning');
+    setLoginMessage('Supabase no está disponible en esta carga. Si acabas de actualizar, borra caché o espera al deploy.', 'warning');
   } else if (configured && !currentUser) {
-    setLoginMessage('Introduce tu nombre de usuario y contraseña.', 'neutral');
+    setLoginMessage('Introduce Patricia o Román y tu contraseña.', 'neutral');
   }
 }
 
