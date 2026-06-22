@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#7154c8">
   <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=1.2.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=1.2.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=1.2.0">
-  <link rel="stylesheet" href="./styles.css?v=1.2.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=1.5.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=1.5.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=1.5.0">
+  <link rel="stylesheet" href="./styles.css?v=1.5.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -57,6 +57,7 @@
 
   <div id="app" class="app-shell is-hidden">
     <main class="phone-frame" aria-live="polite">
+
       <section class="screen is-active" id="screen-hoy" data-screen="hoy">
         <header class="topbar">
           <div>
@@ -85,52 +86,43 @@
 
         <div class="summary-grid">
           <article class="summary-card lilac">
-            <span class="summary-number">2</span>
-            <span class="summary-label">tareas hoy</span>
-            <span class="summary-icon app-icon" data-icon="check"></span>
+            <span class="summary-number" id="today-reminders-count">0</span>
+            <span class="summary-label">avisos activos</span>
+            <span class="summary-icon app-icon" data-icon="bell"></span>
           </article>
           <article class="summary-card teal">
-            <span class="summary-number">2</span>
-            <span class="summary-label">tomas hoy</span>
+            <span class="summary-number" id="today-doses-count">0</span>
+            <span class="summary-label">tomas pendientes</span>
             <span class="summary-icon app-icon" data-icon="pill"></span>
           </article>
           <article class="summary-card blue">
-            <span class="summary-number">20</span>
-            <span class="summary-label">mayo, 10:30</span>
+            <span class="summary-number" id="today-next-appointment-day">--</span>
+            <span class="summary-label" id="today-next-appointment-label">sin cita próxima</span>
             <span class="summary-icon app-icon" data-icon="calendar"></span>
           </article>
           <article class="summary-card coral">
-            <span class="summary-number">1</span>
-            <span class="summary-label">volante pendiente</span>
+            <span class="summary-number" id="today-pending-docs-count">0</span>
+            <span class="summary-label">volantes pendientes</span>
             <span class="summary-icon app-icon" data-icon="file"></span>
           </article>
         </div>
 
-        <div class="section-title"><h2>Lo importante de hoy</h2></div>
+        <div class="section-title">
+          <h2>Recordatorios inteligentes</h2>
+          <button type="button" id="refresh-reminders">Actualizar</button>
+        </div>
 
-        <article class="card checklist">
-          <label class="check-row">
-            <input type="checkbox">
-            <span>Llevar volante al especialista</span>
-            <em>Salud</em>
-          </label>
-          <label class="check-row">
-            <input type="checkbox" checked>
-            <span>Comprar medicación</span>
-            <em>Medicación</em>
-          </label>
-          <label class="check-row">
-            <input type="checkbox">
-            <span>Pagar factura de luz</span>
-            <em>Hogar</em>
-          </label>
+        <article class="smart-reminders-card">
+          <div id="smart-reminders-list" class="smart-reminders-list">
+            <p class="empty">Cargando recordatorios...</p>
+          </div>
         </article>
 
-        <button class="appointment-card mint js-go" type="button" data-target="citas">
-          <span class="date-pill"><strong>20</strong><small>MAY</small></span>
+        <button class="appointment-card mint js-go" type="button" data-target="citas" id="next-appointment-card">
+          <span class="date-pill"><strong id="next-appointment-day">--</strong><small id="next-appointment-month">---</small></span>
           <span>
-            <strong>Próxima cita</strong>
-            <small>Endocrinología, 10:30 · Hospital Virxe da Xunqueira</small>
+            <strong id="next-appointment-title">Próxima cita</strong>
+            <small id="next-appointment-detail">No hay citas próximas guardadas.</small>
           </span>
           <span class="app-icon" data-icon="chevron"></span>
         </button>
@@ -139,7 +131,8 @@
           <button class="js-go" type="button" data-target="salud"><span class="app-icon" data-icon="heart"></span><span>Registro salud</span></button>
           <button class="js-go" type="button" data-target="citas"><span class="app-icon" data-icon="upload"></span><span>Guardar volante</span></button>
           <button class="js-go" type="button" data-target="medicacion"><span class="app-icon" data-icon="cart"></span><span>Medicación</span></button>
-          <button class="js-go" type="button" data-target="listas"><span class="app-icon" data-icon="list"></span><span>Listas</span></button>
+          <button class="js-go" type="button" data-target="hogar"><span class="app-icon" data-icon="home"></span><span>Hogar</span></button>
+          <button class="js-go" type="button" data-target="documentos"><span class="app-icon" data-icon="download"></span><span>Exportar</span></button>
         </div>
       </section>
 
@@ -1011,31 +1004,85 @@
         </article>
       </section>
 
+
       <section class="screen" id="screen-documentos" data-screen="documentos">
         <header class="topbar compact">
           <div>
             <h1>Documentos</h1>
-            <p>Generar, descargar o enviar por email</p>
+            <p>Exportar, descargar y preparar informes</p>
           </div>
         </header>
 
         <article class="export-card">
           <span class="app-icon panel-icon" data-icon="download"></span>
           <span class="eyebrow">Exportación</span>
-          <h2>Documentos generados por VITA</h2>
-          <p>Los informes, listados o resúmenes que genere la app deberán poder descargarse o enviarse por email.</p>
+          <h2>Generar informe de VITA</h2>
+          <p>Descarga tus datos por módulo y periodo. Para PDF, VITA abre un informe imprimible que puedes guardar como PDF desde el navegador.</p>
+
+          <form id="export-form" class="export-form">
+            <label class="field">
+              <span>Módulo</span>
+              <select id="export-module-input">
+                <option value="all">Todo VITA</option>
+                <option value="health">Salud</option>
+                <option value="medication">Medicación</option>
+                <option value="appointments">Citas y volantes</option>
+                <option value="home">Hogar</option>
+                <option value="lists">Listas y deseos</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Periodo</span>
+              <select id="export-period-input">
+                <option value="all">Todo</option>
+                <option value="today">Hoy</option>
+                <option value="week">Últimos 7 días</option>
+                <option value="month">Últimos 30 días</option>
+                <option value="year">Último año</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Formato</span>
+              <select id="export-format-input">
+                <option value="json">JSON completo</option>
+                <option value="csv">CSV / Excel</option>
+                <option value="txt">Resumen TXT</option>
+                <option value="html">Informe imprimible / PDF</option>
+              </select>
+            </label>
+
+            <button class="form-submit" type="submit">
+              <span class="app-icon" data-icon="download"></span>
+              Generar y descargar
+            </button>
+          </form>
 
           <div class="export-actions">
-            <button id="download-demo" type="button"><span class="app-icon" data-icon="download"></span>Descargar ejemplo</button>
-            <button id="email-demo" class="secondary" type="button"><span class="app-icon" data-icon="mail"></span>Enviar por email</button>
+            <button id="download-full-json" type="button"><span class="app-icon" data-icon="download"></span>Descargar copia completa</button>
+            <button id="email-export-summary" class="secondary" type="button"><span class="app-icon" data-icon="mail"></span>Preparar email</button>
+          </div>
+        </article>
+
+        <article class="export-card">
+          <span class="app-icon panel-icon" data-icon="file"></span>
+          <span class="eyebrow">Historial</span>
+          <h2>Informes generados en esta sesión</h2>
+          <p>Se muestran los documentos creados mientras la app está abierta.</p>
+
+          <div id="export-history-list" class="export-history-list">
+            <p class="empty">Todavía no has generado informes.</p>
           </div>
         </article>
 
         <article class="document-type-grid">
-          <button type="button"><span class="app-icon" data-icon="file"></span><strong>Informe de salud</strong><small>PDF o ZIP</small></button>
-          <button type="button"><span class="app-icon" data-icon="cart"></span><strong>Lista de la compra</strong><small>PDF / email</small></button>
-          <button type="button"><span class="app-icon" data-icon="home"></span><strong>Hogar</strong><small>Pagos y gestiones</small></button>
-          <button type="button"><span class="app-icon" data-icon="gift"></span><strong>Lista de deseos</strong><small>Compartir regalos</small></button>
+          <button type="button" class="js-export-preset" data-module="health"><span class="app-icon" data-icon="heart"></span><strong>Informe de salud</strong><small>Registros diarios</small></button>
+          <button type="button" class="js-export-preset" data-module="medication"><span class="app-icon" data-icon="pill"></span><strong>Medicación</strong><small>Tomas y stock</small></button>
+          <button type="button" class="js-export-preset" data-module="appointments"><span class="app-icon" data-icon="calendar"></span><strong>Citas y volantes</strong><small>Historial médico</small></button>
+          <button type="button" class="js-export-preset" data-module="home"><span class="app-icon" data-icon="home"></span><strong>Hogar</strong><small>Facturas y gestiones</small></button>
+          <button type="button" class="js-export-preset" data-module="lists"><span class="app-icon" data-icon="gift"></span><strong>Listas y deseos</strong><small>Compras y regalos</small></button>
+          <button type="button" class="js-export-preset" data-module="all"><span class="app-icon" data-icon="download"></span><strong>Todo VITA</strong><small>Copia completa</small></button>
         </article>
       </section>
 
@@ -1070,7 +1117,51 @@
 
           <p class="fine-print" id="auth-helper">Tus datos se protegen con sesión privada.</p>
 
-          <div id="sync-status" class="sync-status">VITA conectada a Supabase.</div>
+          <div id="sync-status" class="sync-status">VITA conectada a Supabase con avisos automáticos.</div>
+
+        </article>
+
+        <article class="auth-panel notification-panel">
+          <span class="app-icon panel-icon" data-icon="bell"></span>
+          <span class="eyebrow">Avisos automáticos</span>
+          <h2>Notificaciones de VITA</h2>
+          <p id="notification-status">Las notificaciones todavía no están activadas en este dispositivo.</p>
+
+          <div class="button-row">
+            <button id="enable-notifications" type="button">
+              <span class="app-icon" data-icon="bell"></span>
+              Activar avisos
+            </button>
+            <button id="test-notification" class="secondary" type="button">
+              <span class="app-icon" data-icon="check"></span>
+              Probar
+            </button>
+          </div>
+
+          <div class="notification-preferences">
+            <label class="check-row">
+              <input class="js-notification-pref" type="checkbox" data-pref="medication" checked>
+              <span>Medicación y stock bajo</span>
+            </label>
+            <label class="check-row">
+              <input class="js-notification-pref" type="checkbox" data-pref="appointments" checked>
+              <span>Citas próximas y qué llevar</span>
+            </label>
+            <label class="check-row">
+              <input class="js-notification-pref" type="checkbox" data-pref="documents" checked>
+              <span>Volantes o documentos pendientes</span>
+            </label>
+            <label class="check-row">
+              <input class="js-notification-pref" type="checkbox" data-pref="home" checked>
+              <span>Facturas, coche y gestiones</span>
+            </label>
+            <label class="check-row">
+              <input class="js-notification-pref" type="checkbox" data-pref="health" checked>
+              <span>Registro diario de salud</span>
+            </label>
+          </div>
+
+          <p class="fine-print">Estos avisos funcionan cuando la PWA está instalada o abierta en el navegador. Las notificaciones push con envío desde servidor se dejarán preparadas para una fase posterior si quieres avisos aunque la app esté completamente cerrada.</p>
         </article>
 
         <article class="privacy-grid">
@@ -1090,7 +1181,7 @@
     </main>
   </div>
 
-  <script src="./config.js?v=1.2.0"></script>
-  <script src="./app.js?v=1.2.0"></script>
+  <script src="./config.js?v=1.5.0"></script>
+  <script src="./app.js?v=1.5.0"></script>
 </body>
 </html>

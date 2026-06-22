@@ -44,22 +44,15 @@ let currentHouseholdMembers = [];
 let healthRecords = [];
 let medicalAppointments = [];
 let medicalDocuments = [];
-  medications = [];
-  medicationDosesToday = [];
-  householdBills = [];
-  householdVehicles = [];
-  vehicleTasks = [];
-  householdTasks = [];
 let medications = [];
 let medicationDosesToday = [];
-  householdBills = [];
-  householdVehicles = [];
-  vehicleTasks = [];
-  householdTasks = [];
 let householdBills = [];
 let householdVehicles = [];
 let vehicleTasks = [];
 let householdTasks = [];
+let smartReminders = [];
+let exportedReports = [];
+let notificationInterval = null;
 
 const HEALTH_TYPES = {
   bathroom: { label: 'Baño', icon: 'bath' },
@@ -335,6 +328,7 @@ async function signOut() {
   householdVehicles = [];
   vehicleTasks = [];
   householdTasks = [];
+  smartReminders = [];
 }
 
 function injectIcons() {
@@ -665,6 +659,7 @@ async function loadHealthRecords() {
     healthRecords = await restRequest(`health_records?select=id,record_type,occurred_at,value_text,intensity,notes,metadata,created_at&owner_id=eq.${encodeFilter(currentUser.id)}&order=occurred_at.desc&limit=30`);
     renderHealthRecords(healthRecords);
     renderHealthStats(healthRecords);
+    renderTodayDashboard();
   } catch (error) {
     if (list) {
       list.innerHTML = '<p class="empty error-text">No se pudieron cargar los registros de salud. Ejecuta el SQL de VITA v0.8.</p>';
@@ -866,6 +861,8 @@ async function initializePrivateData() {
   await safeDataLoad('volantes', loadMedicalDocuments);
   await safeDataLoad('medicación', loadMedications);
   await safeDataLoad('hogar', loadHomeData);
+  renderTodayDashboard();
+  evaluateNotifications();
 
   showSyncStatus('Datos sincronizados.', 'success');
 }
@@ -898,6 +895,7 @@ async function loadProfileAndHousehold() {
   householdVehicles = [];
   vehicleTasks = [];
   householdTasks = [];
+  smartReminders = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -919,6 +917,7 @@ async function loadProfileAndHousehold() {
   householdVehicles = [];
   vehicleTasks = [];
   householdTasks = [];
+  smartReminders = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -1348,6 +1347,7 @@ async function loadMedicalAppointments() {
     renderMedicalAppointments();
     renderAppointmentSelect();
     renderDocumentAppointmentSelect();
+    renderTodayDashboard();
   } catch (error) {
     renderAppointmentsError();
   }
@@ -1583,6 +1583,8 @@ async function loadMedicalDocuments() {
     medicalDocuments = await restRequest(`medical_documents?select=*&owner_id=eq.${encodeFilter(currentUser.id)}&order=created_at.desc`);
     renderMedicalDocuments();
     renderDocumentAppointmentSelect();
+    renderTodayDashboard();
+    renderTodayDashboard();
   } catch (error) {
     renderDocumentsError();
   }
@@ -1834,6 +1836,7 @@ async function loadMedications() {
     medications = await restRequest(`medications?select=*&owner_id=eq.${encodeFilter(currentUser.id)}&active=eq.true&order=created_at.asc`);
     medicationDosesToday = await loadMedicationDosesToday();
     renderMedications();
+    renderTodayDashboard();
   } catch (error) {
     renderMedicationsError();
     throw error;
@@ -2307,6 +2310,7 @@ async function loadHomeData() {
   householdTasks = await restRequest(`household_tasks?select=*&household_id=eq.${householdId}&order=due_date.asc`);
 
   renderHomeData();
+  renderTodayDashboard();
 }
 
 function renderHomeData() {
@@ -2610,39 +2614,974 @@ function getHomeCategoryLabel(value) {
 }
 
 
+
+function setupSmartReminders() {
+  const refresh = document.getElementById('refresh-reminders');
+  if (refresh) {
+    refresh.addEventListener('click', () => {
+      renderTodayDashboard();
+      showSyncStatus('Recordatorios actualizados.', 'success');
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    const goButton = event.target.closest('.js-reminder-go');
+    if (goButton) {
+      showScreen(goButton.dataset.target);
+      return;
+    }
+
+    const dismissButton = event.target.closest('.js-reminder-dismiss');
+    if (dismissButton) {
+      dismissReminderForToday(dismissButton.dataset.id);
+      renderTodayDashboard();
+    }
+  });
+}
+
+function renderTodayDashboard() {
+  if (!document.getElementById('smart-reminders-list')) return;
+
+  smartReminders = generateSmartReminders().filter((reminder) => !isReminderDismissedToday(reminder.id));
+  renderSmartReminders();
+  renderTodaySummary();
+  renderNextAppointmentCard();
+  evaluateNotifications();
+}
+
+function generateSmartReminders() {
+  const reminders = [];
+  const now = new Date();
+
+  // Medicación: tomas pendientes de hoy.
+  medications.forEach((medication) => {
+    (medication.schedule_times || []).forEach((time) => {
+      const taken = medicationDosesToday.some((dose) => dose.medication_id === medication.id && dose.scheduled_time === time);
+      if (!taken) {
+        const scheduledDate = getDateForTodayTime(time);
+        const priority = scheduledDate < now ? 'high' : 'medium';
+        reminders.push({
+          id: `dose-${medication.id}-${time}`,
+          type: 'medication',
+          priority,
+          icon: 'pill',
+          title: `${medication.name}, toma de ${time}`,
+          body: medication.dose_text || 'Toma pendiente de hoy.',
+          target: 'medicacion',
+          dismissible: true
+        });
+      }
+    });
+
+    const daysLeft = getMedicationDaysLeft(medication);
+    const threshold = Number(medication.warning_threshold_days || 7);
+    if (daysLeft <= threshold) {
+      reminders.push({
+        id: `stock-${medication.id}`,
+        type: 'stock',
+        priority: daysLeft <= 2 ? 'high' : 'medium',
+        icon: 'cart',
+        title: `Comprar o retirar ${medication.name}`,
+        body: `Quedan aproximadamente ${daysLeft} días de medicación.`,
+        target: 'medicacion',
+        dismissible: true
+      });
+    }
+  });
+
+  // Citas próximas.
+  medicalAppointments
+    .filter((appointment) => appointment.status === 'scheduled')
+    .filter((appointment) => isWithinDays(appointment.appointment_at, 7))
+    .forEach((appointment) => {
+      const needed = [];
+      if (appointment.needs_health_card) needed.push('tarjeta sanitaria');
+      if (appointment.needs_id_card) needed.push('DNI');
+      if (appointment.needs_referral_document) needed.push('volante o informe');
+
+      reminders.push({
+        id: `appointment-${appointment.id}`,
+        type: 'appointment',
+        priority: isWithinDays(appointment.appointment_at, 1) ? 'high' : 'medium',
+        icon: 'calendar',
+        title: `Cita: ${appointment.title}`,
+        body: `${formatDateTimeForReminder(appointment.appointment_at)}${needed.length ? ` · Llevar: ${needed.join(', ')}` : ''}`,
+        target: 'citas',
+        dismissible: true
+      });
+    });
+
+  // Volantes/documentos pendientes.
+  medicalDocuments
+    .filter((documentItem) => ['pending_upload', 'pending_to_use'].includes(documentItem.status))
+    .forEach((documentItem) => {
+      reminders.push({
+        id: `document-${documentItem.id}`,
+        type: 'document',
+        priority: documentItem.status === 'pending_to_use' ? 'high' : 'medium',
+        icon: 'file',
+        title: documentItem.status === 'pending_upload' ? `Subir archivo: ${documentItem.title}` : `Llevar documento: ${documentItem.title}`,
+        body: documentItem.related_specialty ? `Relacionado con ${documentItem.related_specialty}.` : 'Documento médico pendiente.',
+        target: 'citas',
+        dismissible: true
+      });
+    });
+
+  // Facturas próximas o vencidas.
+  householdBills
+    .filter((bill) => bill.status !== 'paid')
+    .filter((bill) => isWithinDays(bill.due_date, 7) || isOverdueDate(bill.due_date))
+    .forEach((bill) => {
+      reminders.push({
+        id: `bill-${bill.id}`,
+        type: 'bill',
+        priority: isOverdueDate(bill.due_date) ? 'high' : 'medium',
+        icon: 'zap',
+        title: `Factura: ${bill.title}`,
+        body: `${formatMoney(bill.amount)} · ${formatDueDate(bill.due_date)}`,
+        target: 'hogar',
+        dismissible: true
+      });
+    });
+
+  // Coche.
+  vehicleTasks
+    .filter((task) => task.status !== 'done')
+    .filter((task) => isWithinDays(task.due_date, 30) || isOverdueDate(task.due_date))
+    .forEach((task) => {
+      reminders.push({
+        id: `vehicle-task-${task.id}`,
+        type: 'vehicle',
+        priority: isOverdueDate(task.due_date) || isWithinDays(task.due_date, 7) ? 'high' : 'medium',
+        icon: 'car',
+        title: `Coche: ${task.title}`,
+        body: `${getTaskTypeLabel(task.task_type)} · ${formatDueDate(task.due_date)}`,
+        target: 'hogar',
+        dismissible: true
+      });
+    });
+
+  // Gestiones.
+  householdTasks
+    .filter((task) => task.status !== 'done')
+    .filter((task) => isWithinDays(task.due_date, 7) || isOverdueDate(task.due_date))
+    .forEach((task) => {
+      reminders.push({
+        id: `home-task-${task.id}`,
+        type: 'task',
+        priority: isOverdueDate(task.due_date) ? 'high' : 'medium',
+        icon: 'check',
+        title: `Gestión pendiente: ${task.title}`,
+        body: `${getHomeCategoryLabel(task.category)} · ${formatDueDate(task.due_date)}`,
+        target: 'hogar',
+        dismissible: true
+      });
+    });
+
+  // Salud diaria: sugerencia amable si no hay ningún registro hoy.
+  if (currentUser && !hasHealthRecordToday()) {
+    reminders.push({
+      id: `health-daily-${new Date().toISOString().slice(0, 10)}`,
+      type: 'health',
+      priority: 'low',
+      icon: 'heart',
+      title: 'Registrar cómo estás hoy',
+      body: 'Un registro breve ayuda a detectar patrones de sueño, regla, dolor o síntomas.',
+      target: 'salud',
+      dismissible: true
+    });
+  }
+
+  return reminders.sort(compareReminderPriority);
+}
+
+function renderSmartReminders() {
+  const container = document.getElementById('smart-reminders-list');
+  if (!container) return;
+
+  if (!smartReminders.length) {
+    container.innerHTML = '<p class="empty">No hay avisos importantes ahora mismo.</p>';
+    return;
+  }
+
+  container.innerHTML = smartReminders.slice(0, 8).map((reminder) => `
+    <article class="smart-reminder" data-priority="${escapeHtml(reminder.priority)}">
+      <span class="smart-reminder-icon app-icon" data-icon="${escapeHtml(reminder.icon)}"></span>
+      <div class="smart-reminder-body">
+        <h3>${escapeHtml(reminder.title)}</h3>
+        <p>${escapeHtml(reminder.body)}</p>
+        <div class="smart-reminder-actions">
+          <button class="js-reminder-go" type="button" data-target="${escapeHtml(reminder.target)}">Abrir</button>
+          ${reminder.dismissible ? `<button class="js-reminder-dismiss soft-dismiss" type="button" data-id="${escapeHtml(reminder.id)}">Ocultar hoy</button>` : ''}
+        </div>
+      </div>
+    </article>
+  `).join('');
+
+  injectIcons();
+}
+
+function renderTodaySummary() {
+  const pendingDoses = medications.reduce((total, medication) => {
+    const pending = (medication.schedule_times || []).filter((time) => {
+      return !medicationDosesToday.some((dose) => dose.medication_id === medication.id && dose.scheduled_time === time);
+    }).length;
+    return total + pending;
+  }, 0);
+
+  const pendingDocs = medicalDocuments.filter((item) => ['pending_upload', 'pending_to_use'].includes(item.status)).length;
+
+  setText(document.getElementById('today-reminders-count'), String(smartReminders.length));
+  setText(document.getElementById('today-doses-count'), String(pendingDoses));
+  setText(document.getElementById('today-pending-docs-count'), String(pendingDocs));
+
+  const nextAppointment = getNextAppointment();
+  if (nextAppointment) {
+    const date = new Date(nextAppointment.appointment_at);
+    setText(document.getElementById('today-next-appointment-day'), date.toLocaleDateString('es-ES', { day: '2-digit' }));
+    setText(document.getElementById('today-next-appointment-label'), date.toLocaleDateString('es-ES', { month: 'short' }));
+  } else {
+    setText(document.getElementById('today-next-appointment-day'), '--');
+    setText(document.getElementById('today-next-appointment-label'), 'sin cita próxima');
+  }
+}
+
+function renderNextAppointmentCard() {
+  const appointment = getNextAppointment();
+
+  if (!appointment) {
+    setText(document.getElementById('next-appointment-day'), '--');
+    setText(document.getElementById('next-appointment-month'), '---');
+    setText(document.getElementById('next-appointment-title'), 'Próxima cita');
+    setText(document.getElementById('next-appointment-detail'), 'No hay citas próximas guardadas.');
+    return;
+  }
+
+  const date = new Date(appointment.appointment_at);
+  const hour = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+  setText(document.getElementById('next-appointment-day'), date.toLocaleDateString('es-ES', { day: '2-digit' }));
+  setText(document.getElementById('next-appointment-month'), date.toLocaleDateString('es-ES', { month: 'short' }));
+  setText(document.getElementById('next-appointment-title'), appointment.title);
+  setText(document.getElementById('next-appointment-detail'), `${hour}${appointment.location ? ` · ${appointment.location}` : ''}`);
+}
+
+function getNextAppointment() {
+  const now = new Date();
+
+  return medicalAppointments
+    .filter((appointment) => appointment.status === 'scheduled')
+    .filter((appointment) => new Date(appointment.appointment_at) >= now)
+    .sort((a, b) => new Date(a.appointment_at) - new Date(b.appointment_at))[0] || null;
+}
+
+function getMedicationDaysLeft(medication) {
+  const dosesPerDay = Math.max(1, (medication.schedule_times || []).length);
+  return Math.floor(Number(medication.current_stock || 0) / dosesPerDay);
+}
+
+function getDateForTodayTime(time) {
+  const [hour, minute] = String(time || '00:00').split(':').map(Number);
+  const date = new Date();
+  date.setHours(hour || 0, minute || 0, 0, 0);
+  return date;
+}
+
+function isWithinDays(value, days) {
+  if (!value) return false;
+
+  const date = String(value).includes('T') ? new Date(value) : new Date(`${value}T23:59:59`);
+  const now = new Date();
+  const future = new Date();
+  future.setDate(future.getDate() + days);
+
+  return date >= now && date <= future;
+}
+
+function isOverdueDate(value) {
+  if (!value) return false;
+
+  const date = String(value).includes('T') ? new Date(value) : new Date(`${value}T23:59:59`);
+  return date < new Date();
+}
+
+function formatDateTimeForReminder(value) {
+  const date = new Date(value);
+  return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) + ', ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+
+function hasHealthRecordToday() {
+  const today = new Date().toISOString().slice(0, 10);
+  return healthRecords.some((record) => new Date(record.occurred_at).toISOString().slice(0, 10) === today);
+}
+
+function compareReminderPriority(a, b) {
+  const order = { high: 0, medium: 1, low: 2 };
+  return (order[a.priority] ?? 9) - (order[b.priority] ?? 9);
+}
+
+function getDismissedReminderKey() {
+  return `vita-dismissed-reminders-${currentUser?.id || 'anonymous'}-${new Date().toISOString().slice(0, 10)}`;
+}
+
+function getDismissedRemindersToday() {
+  try {
+    return JSON.parse(localStorage.getItem(getDismissedReminderKey()) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function isReminderDismissedToday(id) {
+  return getDismissedRemindersToday().includes(id);
+}
+
+function dismissReminderForToday(id) {
+  const dismissed = new Set(getDismissedRemindersToday());
+  dismissed.add(id);
+  localStorage.setItem(getDismissedReminderKey(), JSON.stringify(Array.from(dismissed)));
+}
+
+
+
+
+function setupNotifications() {
+  loadNotificationPreferences();
+  updateNotificationStatus();
+
+  const enableButton = document.getElementById('enable-notifications');
+  if (enableButton) {
+    enableButton.addEventListener('click', requestVitaNotifications);
+  }
+
+  const testButton = document.getElementById('test-notification');
+  if (testButton) {
+    testButton.addEventListener('click', async () => {
+      const ok = await ensureNotificationPermission();
+      if (!ok) return;
+
+      showVitaNotification({
+        id: 'test-notification',
+        title: 'VITA está lista',
+        body: 'Los avisos de este dispositivo están activados.',
+        target: 'hoy',
+        priority: 'low'
+      }, true);
+    });
+  }
+
+  document.querySelectorAll('.js-notification-pref').forEach((input) => {
+    input.addEventListener('change', saveNotificationPreferences);
+  });
+
+  if (notificationInterval) {
+    clearInterval(notificationInterval);
+  }
+
+  notificationInterval = setInterval(() => {
+    renderTodayDashboard();
+    evaluateNotifications();
+  }, 15 * 60 * 1000);
+}
+
+function getNotificationPreferences() {
+  const defaults = {
+    medication: true,
+    appointments: true,
+    documents: true,
+    home: true,
+    health: true
+  };
+
+  try {
+    return {
+      ...defaults,
+      ...JSON.parse(localStorage.getItem(getNotificationPreferencesKey()) || '{}')
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+function getNotificationPreferencesKey() {
+  return `vita-notification-preferences-${currentUser?.id || 'anonymous'}`;
+}
+
+function loadNotificationPreferences() {
+  const preferences = getNotificationPreferences();
+
+  document.querySelectorAll('.js-notification-pref').forEach((input) => {
+    input.checked = Boolean(preferences[input.dataset.pref]);
+  });
+}
+
+function saveNotificationPreferences() {
+  const preferences = {};
+
+  document.querySelectorAll('.js-notification-pref').forEach((input) => {
+    preferences[input.dataset.pref] = input.checked;
+  });
+
+  localStorage.setItem(getNotificationPreferencesKey(), JSON.stringify(preferences));
+  showSyncStatus('Preferencias de avisos guardadas.', 'success');
+  evaluateNotifications();
+}
+
+async function requestVitaNotifications() {
+  const ok = await ensureNotificationPermission();
+  updateNotificationStatus();
+
+  if (ok) {
+    localStorage.setItem(getNotificationsEnabledKey(), 'true');
+    showSyncStatus('Avisos activados en este dispositivo.', 'success');
+    await showVitaNotification({
+      id: 'welcome-notification',
+      title: 'Avisos de VITA activados',
+      body: 'Te avisaré de medicación, citas, volantes, facturas y gestiones cuando la app esté activa.',
+      target: 'hoy',
+      priority: 'low'
+    }, true);
+  }
+}
+
+async function ensureNotificationPermission() {
+  if (!('Notification' in window)) {
+    showSyncStatus('Este navegador no admite notificaciones.', 'error');
+    updateNotificationStatus();
+    return false;
+  }
+
+  if (Notification.permission === 'granted') {
+    return true;
+  }
+
+  if (Notification.permission === 'denied') {
+    showSyncStatus('Las notificaciones están bloqueadas en el navegador.', 'error');
+    updateNotificationStatus();
+    return false;
+  }
+
+  const permission = await Notification.requestPermission();
+  updateNotificationStatus();
+
+  if (permission !== 'granted') {
+    showSyncStatus('No se concedió permiso para notificaciones.', 'error');
+    return false;
+  }
+
+  return true;
+}
+
+function getNotificationsEnabledKey() {
+  return `vita-notifications-enabled-${currentUser?.id || 'anonymous'}`;
+}
+
+function areNotificationsEnabled() {
+  return localStorage.getItem(getNotificationsEnabledKey()) === 'true';
+}
+
+function updateNotificationStatus() {
+  const node = document.getElementById('notification-status');
+  if (!node) return;
+
+  if (!('Notification' in window)) {
+    node.textContent = 'Este navegador no admite notificaciones.';
+    return;
+  }
+
+  if (Notification.permission === 'granted' && areNotificationsEnabled()) {
+    node.textContent = 'Avisos activados en este dispositivo.';
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    node.textContent = 'Las notificaciones están bloqueadas. Debes permitirlas desde los ajustes del navegador.';
+    return;
+  }
+
+  node.textContent = 'Las notificaciones todavía no están activadas en este dispositivo.';
+}
+
+function evaluateNotifications() {
+  if (!currentUser || !areNotificationsEnabled()) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (!smartReminders.length) return;
+
+  const preferences = getNotificationPreferences();
+
+  smartReminders
+    .filter((reminder) => shouldNotifyReminder(reminder, preferences))
+    .slice(0, 3)
+    .forEach((reminder) => showVitaNotification(reminder));
+}
+
+function shouldNotifyReminder(reminder, preferences) {
+  if (hasNotificationBeenSentToday(reminder.id)) return false;
+  if (reminder.priority === 'low') return false;
+
+  if (['medication', 'stock'].includes(reminder.type)) {
+    return Boolean(preferences.medication);
+  }
+
+  if (reminder.type === 'appointment') {
+    return Boolean(preferences.appointments);
+  }
+
+  if (reminder.type === 'document') {
+    return Boolean(preferences.documents);
+  }
+
+  if (['bill', 'vehicle', 'task'].includes(reminder.type)) {
+    return Boolean(preferences.home);
+  }
+
+  if (reminder.type === 'health') {
+    return Boolean(preferences.health);
+  }
+
+  return true;
+}
+
+async function showVitaNotification(reminder, force = false) {
+  if (!force && hasNotificationBeenSentToday(reminder.id)) return;
+
+  const title = reminder.title || 'VITA';
+  const body = reminder.body || 'Tienes un aviso pendiente.';
+  const target = reminder.target || 'hoy';
+
+  try {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(title, {
+        body,
+        icon: './assets/vita-icon.svg',
+        badge: './assets/vita-icon.svg',
+        tag: reminder.id,
+        renotify: false,
+        data: {
+          url: `./#${target}`
+        }
+      });
+    } else {
+      new Notification(title, {
+        body,
+        icon: './assets/vita-icon.svg',
+        tag: reminder.id
+      });
+    }
+
+    markNotificationSentToday(reminder.id);
+  } catch (error) {
+    console.warn('VITA: no se pudo mostrar la notificación', error);
+  }
+}
+
+function getSentNotificationsKey() {
+  return `vita-sent-notifications-${currentUser?.id || 'anonymous'}-${new Date().toISOString().slice(0, 10)}`;
+}
+
+function getSentNotificationsToday() {
+  try {
+    return JSON.parse(localStorage.getItem(getSentNotificationsKey()) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function hasNotificationBeenSentToday(id) {
+  return getSentNotificationsToday().includes(id);
+}
+
+function markNotificationSentToday(id) {
+  const sent = new Set(getSentNotificationsToday());
+  sent.add(id);
+  localStorage.setItem(getSentNotificationsKey(), JSON.stringify(Array.from(sent)));
+}
+
+
 function setupDocumentDemo() {
-  const downloadButton = document.getElementById('download-demo');
-  const emailButton = document.getElementById('email-demo');
+  const form = document.getElementById('export-form');
+  const fullJsonButton = document.getElementById('download-full-json');
+  const emailButton = document.getElementById('email-export-summary');
 
-  if (downloadButton) {
-    downloadButton.addEventListener('click', () => {
-      const content = [
-        'VITA · Documento de ejemplo',
-        '',
-        'Este archivo prueba la descarga de documentos generados por la app.',
-        'Más adelante se generarán PDF, CSV, JSON y ZIP reales.'
-      ].join('\n');
+  if (form) {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
 
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = 'vita_documento_ejemplo.txt';
-      document.body.append(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
+      const module = document.getElementById('export-module-input').value;
+      const period = document.getElementById('export-period-input').value;
+      const format = document.getElementById('export-format-input').value;
+
+      await refreshAllExportData();
+      generateExport({ module, period, format });
+    });
+  }
+
+  if (fullJsonButton) {
+    fullJsonButton.addEventListener('click', async () => {
+      await refreshAllExportData();
+      generateExport({ module: 'all', period: 'all', format: 'json' });
     });
   }
 
   if (emailButton) {
-    emailButton.addEventListener('click', () => {
-      const subject = encodeURIComponent('Documento generado por VITA');
-      const body = encodeURIComponent('Adjunto o comparto un documento generado por VITA.\n\nEn una versión posterior el envío se hará desde servidor.');
+    emailButton.addEventListener('click', async () => {
+      await refreshAllExportData();
+      const summary = buildTextReport(buildExportPayload({ module: 'all', period: 'today' }));
+      const subject = encodeURIComponent('Resumen VITA');
+      const body = encodeURIComponent(`${summary}\n\nNota: para adjuntar archivos reales hará falta envío desde servidor en una versión posterior.`);
       window.location.href = `mailto:?subject=${subject}&body=${body}`;
     });
   }
+
+  document.querySelectorAll('.js-export-preset').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const module = button.dataset.module || 'all';
+      const moduleInput = document.getElementById('export-module-input');
+      const formatInput = document.getElementById('export-format-input');
+      if (moduleInput) moduleInput.value = module;
+      if (formatInput) formatInput.value = module === 'all' ? 'json' : 'html';
+      showSyncStatus('Preset de exportación preparado.', 'success');
+      showScreen('documentos');
+    });
+  });
 }
+
+async function refreshAllExportData() {
+  if (!currentUser) {
+    showSyncStatus('Inicia sesión para exportar.', 'error');
+    return;
+  }
+
+  await safeDataLoad('listas', loadListsAndItems);
+  await safeDataLoad('salud', loadHealthRecords);
+  await safeDataLoad('citas', loadMedicalAppointments);
+  await safeDataLoad('volantes', loadMedicalDocuments);
+  await safeDataLoad('medicación', loadMedications);
+  await safeDataLoad('hogar', loadHomeData);
+}
+
+function generateExport(options) {
+  const payload = buildExportPayload(options);
+  const stamp = new Date().toISOString().slice(0, 19).replaceAll(':', '-');
+  const moduleName = getExportModuleLabel(options.module).toLowerCase().replaceAll(' ', '-');
+  const periodName = getExportPeriodLabel(options.period).toLowerCase().replaceAll(' ', '-');
+  const baseName = `vita-${moduleName}-${periodName}-${stamp}`;
+
+  if (options.format === 'json') {
+    downloadTextFile(`${baseName}.json`, JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
+  }
+
+  if (options.format === 'csv') {
+    downloadTextFile(`${baseName}.csv`, buildCsvReport(payload), 'text/csv;charset=utf-8');
+  }
+
+  if (options.format === 'txt') {
+    downloadTextFile(`${baseName}.txt`, buildTextReport(payload), 'text/plain;charset=utf-8');
+  }
+
+  if (options.format === 'html') {
+    openPrintableReport(buildHtmlReport(payload));
+  }
+
+  exportedReports.unshift({
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    name: baseName,
+    module: options.module,
+    period: options.period,
+    format: options.format,
+    createdAt: new Date().toISOString(),
+    count: getExportItemCount(payload)
+  });
+
+  renderExportHistory();
+  showSyncStatus('Informe generado.', 'success');
+}
+
+function buildExportPayload({ module = 'all', period = 'all' } = {}) {
+  const profile = currentProfile ? {
+    id: currentProfile.id,
+    email: currentProfile.email,
+    preferred_name: currentProfile.preferred_name
+  } : null;
+
+  const household = currentHousehold ? {
+    id: currentHousehold.id,
+    name: currentHousehold.name
+  } : null;
+
+  const payload = {
+    generated_at: new Date().toISOString(),
+    app_version: getConfig().APP_VERSION || 'unknown',
+    owner: profile,
+    household,
+    module,
+    period,
+    data: {}
+  };
+
+  const addModule = (key, value) => {
+    if (module === 'all' || module === key) {
+      payload.data[key] = filterExportDataByPeriod(value, period);
+    }
+  };
+
+  addModule('health', healthRecords);
+  addModule('medication', {
+    medications,
+    dose_logs_today: medicationDosesToday
+  });
+  addModule('appointments', {
+    medical_appointments: medicalAppointments,
+    medical_documents: medicalDocuments
+  });
+  addModule('home', {
+    bills: householdBills,
+    vehicles: householdVehicles,
+    vehicle_tasks: vehicleTasks,
+    household_tasks: householdTasks
+  });
+  addModule('lists', {
+    lists: currentLists,
+    shared_list_items: getDomListSnapshot('shared-list-items'),
+    personal_list_items: getDomListSnapshot('personal-list-items'),
+    wishlist_items: getDomListSnapshot('wishlist-items'),
+    shared_wishlist_items: getDomListSnapshot('shared-wishlist-items')
+  });
+
+  return payload;
+}
+
+function filterExportDataByPeriod(value, period) {
+  if (period === 'all') return value;
+
+  const since = getPeriodStart(period);
+
+  if (Array.isArray(value)) {
+    return value.filter((item) => isItemInsidePeriod(item, since));
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nested]) => [key, filterExportDataByPeriod(nested, period)])
+    );
+  }
+
+  return value;
+}
+
+function getPeriodStart(period) {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+
+  if (period === 'today') return date;
+
+  if (period === 'week') {
+    date.setDate(date.getDate() - 7);
+    return date;
+  }
+
+  if (period === 'month') {
+    date.setDate(date.getDate() - 30);
+    return date;
+  }
+
+  if (period === 'year') {
+    date.setFullYear(date.getFullYear() - 1);
+    return date;
+  }
+
+  return new Date(0);
+}
+
+function isItemInsidePeriod(item, since) {
+  if (!item || typeof item !== 'object') return true;
+
+  const dateValue = item.occurred_at || item.appointment_at || item.taken_at || item.created_at || item.due_date || item.completed_at || item.paid_at;
+
+  if (!dateValue) return true;
+
+  const date = String(dateValue).includes('T') ? new Date(dateValue) : new Date(`${dateValue}T00:00:00`);
+  return date >= since;
+}
+
+function getDomListSnapshot(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return [];
+
+  return Array.from(container.querySelectorAll('h3, .list-item-main span, .wish-real-body h3'))
+    .map((node) => node.textContent.trim())
+    .filter(Boolean);
+}
+
+function buildTextReport(payload) {
+  const lines = [
+    'VITA · Informe generado',
+    `Fecha: ${new Date(payload.generated_at).toLocaleString('es-ES')}`,
+    `Usuario: ${payload.owner?.preferred_name || payload.owner?.email || 'Usuario'}`,
+    `Módulo: ${getExportModuleLabel(payload.module)}`,
+    `Periodo: ${getExportPeriodLabel(payload.period)}`,
+    '',
+    'Resumen'
+  ];
+
+  Object.entries(payload.data).forEach(([key, value]) => {
+    lines.push(`- ${getExportModuleLabel(key)}: ${countItems(value)} elementos`);
+  });
+
+  lines.push('', 'Contenido detallado', JSON.stringify(payload.data, null, 2));
+
+  return lines.join('\n');
+}
+
+function buildCsvReport(payload) {
+  const rows = [['modulo', 'tipo', 'titulo', 'fecha', 'estado', 'detalle']];
+
+  const pushRow = (moduleName, type, title, date, status, detail) => {
+    rows.push([moduleName, type || '', title || '', date || '', status || '', detail || '']);
+  };
+
+  const data = payload.data;
+
+  (data.health || []).forEach((item) => pushRow('salud', item.record_type, item.value_text || item.notes || 'Registro', item.occurred_at, '', item.notes));
+  (data.medication?.medications || []).forEach((item) => pushRow('medicacion', 'medicamento', item.name, item.created_at, item.active ? 'activo' : 'archivado', item.dose_text));
+  (data.appointments?.medical_appointments || []).forEach((item) => pushRow('citas', 'cita', item.title, item.appointment_at, item.status, item.summary || item.notes));
+  (data.appointments?.medical_documents || []).forEach((item) => pushRow('volantes', item.document_type, item.title, item.created_at, item.status, item.notes));
+  (data.home?.bills || []).forEach((item) => pushRow('hogar', 'factura', item.title, item.due_date, item.status, `${item.provider || ''} ${item.amount || ''}`));
+  (data.home?.vehicle_tasks || []).forEach((item) => pushRow('hogar', 'coche', item.title, item.due_date, item.status, item.task_type));
+  (data.home?.household_tasks || []).forEach((item) => pushRow('hogar', 'gestion', item.title, item.due_date, item.status, item.notes));
+  (data.lists?.shared_list_items || []).forEach((title) => pushRow('listas', 'compartida', title, '', '', ''));
+  (data.lists?.personal_list_items || []).forEach((title) => pushRow('listas', 'personal', title, '', '', ''));
+  (data.lists?.wishlist_items || []).forEach((title) => pushRow('listas', 'deseo', title, '', '', ''));
+
+  return rows.map((row) => row.map(escapeCsv).join(';')).join('\n');
+}
+
+function buildHtmlReport(payload) {
+  const sections = Object.entries(payload.data).map(([key, value]) => `
+    <section>
+      <h2>${escapeHtml(getExportModuleLabel(key))}</h2>
+      <p>${countItems(value)} elementos.</p>
+      <pre>${escapeHtml(JSON.stringify(value, null, 2))}</pre>
+    </section>
+  `).join('');
+
+  return `
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8">
+        <title>Informe VITA</title>
+        <style>
+          body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; color: #1d2442; }
+          h1 { color: #4c3a88; margin-bottom: 4px; }
+          h2 { color: #7154c8; border-bottom: 1px solid #ddd7f2; padding-bottom: 6px; margin-top: 28px; }
+          .meta { color: #70748c; margin-bottom: 28px; }
+          pre { white-space: pre-wrap; background: #fbf8ff; border: 1px solid #ddd7f2; border-radius: 14px; padding: 14px; font-size: 12px; }
+          @media print { button { display: none; } body { margin: 18mm; } }
+        </style>
+      </head>
+      <body>
+        <button onclick="window.print()">Guardar como PDF / Imprimir</button>
+        <h1>VITA · Informe</h1>
+        <p class="meta">
+          Generado: ${escapeHtml(new Date(payload.generated_at).toLocaleString('es-ES'))}<br>
+          Usuario: ${escapeHtml(payload.owner?.preferred_name || payload.owner?.email || 'Usuario')}<br>
+          Módulo: ${escapeHtml(getExportModuleLabel(payload.module))}<br>
+          Periodo: ${escapeHtml(getExportPeriodLabel(payload.period))}
+        </p>
+        ${sections}
+      </body>
+    </html>
+  `;
+}
+
+function openPrintableReport(html) {
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener,noreferrer');
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function downloadTextFile(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function renderExportHistory() {
+  const container = document.getElementById('export-history-list');
+  if (!container) return;
+
+  if (!exportedReports.length) {
+    container.innerHTML = '<p class="empty">Todavía no has generado informes.</p>';
+    return;
+  }
+
+  container.innerHTML = exportedReports.slice(0, 8).map((report) => `
+    <article class="export-history-item">
+      <span class="app-icon" data-icon="file"></span>
+      <div>
+        <h3>${escapeHtml(getExportModuleLabel(report.module))}</h3>
+        <p>${escapeHtml(getExportPeriodLabel(report.period))} · ${escapeHtml(report.format.toUpperCase())} · ${report.count} elementos</p>
+      </div>
+      <button type="button" disabled>Creado</button>
+    </article>
+  `).join('');
+
+  injectIcons();
+}
+
+function getExportItemCount(payload) {
+  return countItems(payload.data);
+}
+
+function countItems(value) {
+  if (Array.isArray(value)) return value.length;
+
+  if (value && typeof value === 'object') {
+    return Object.values(value).reduce((total, nested) => total + countItems(nested), 0);
+  }
+
+  return value ? 1 : 0;
+}
+
+function escapeCsv(value) {
+  const text = String(value ?? '');
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function getExportModuleLabel(value) {
+  const labels = {
+    all: 'Todo VITA',
+    health: 'Salud',
+    medication: 'Medicación',
+    appointments: 'Citas y volantes',
+    home: 'Hogar',
+    lists: 'Listas y deseos'
+  };
+
+  return labels[value] || value || 'VITA';
+}
+
+function getExportPeriodLabel(value) {
+  const labels = {
+    all: 'Todo',
+    today: 'Hoy',
+    week: 'Últimos 7 días',
+    month: 'Últimos 30 días',
+    year: 'Último año'
+  };
+
+  return labels[value] || value || 'Todo';
+}
+
 
 function escapeHtml(value) {
   return String(value)
@@ -2679,6 +3618,8 @@ function boot() {
   safeSetup('documentos médicos', setupMedicalDocuments);
   safeSetup('medicación', setupMedications);
   safeSetup('hogar', setupHome);
+  safeSetup('recordatorios', setupSmartReminders);
+  safeSetup('notificaciones', setupNotifications);
   safeSetup('listas', setupShoppingForms);
   safeSetup('documentos', setupDocumentDemo);
   safeSetup('registros de salud iniciales', () => renderHealthRecords([]));
@@ -2686,6 +3627,11 @@ function boot() {
   const stored = getStoredSession();
   currentUser = stored ? stored.user : null;
   renderAccess();
+
+  const initialTarget = window.location.hash ? window.location.hash.slice(1) : '';
+  if (initialTarget) {
+    setTimeout(() => showScreen(initialTarget), 150);
+  }
 
   if (currentUser) {
     initializePrivateData().catch((error) => {

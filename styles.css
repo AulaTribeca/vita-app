@@ -1893,3 +1893,179 @@ button { cursor: pointer; }
   color: #b8455a;
   background: rgba(232, 96, 116, 0.1);
 }
+
+
+.smart-reminders-card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(62, 48, 110, 0.08);
+  padding: 10px;
+}
+
+.smart-reminders-list {
+  display: grid;
+  gap: 8px;
+}
+
+.smart-reminder {
+  border: 1px solid rgba(86, 77, 128, 0.1);
+  background: rgba(255,255,255,0.78);
+  border-radius: 19px;
+  padding: 11px;
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.smart-reminder-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: rgba(113, 84, 200, 0.1);
+  color: var(--purple);
+}
+
+.smart-reminder[data-priority="high"] .smart-reminder-icon {
+  background: rgba(251, 140, 126, 0.16);
+  color: #b85e53;
+}
+
+.smart-reminder[data-priority="medium"] .smart-reminder-icon {
+  background: rgba(245, 178, 58, 0.16);
+  color: #df9415;
+}
+
+.smart-reminder-body h3 {
+  margin: 0 0 4px;
+  font-size: 0.94rem;
+}
+
+.smart-reminder-body p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.35;
+  font-size: 0.84rem;
+}
+
+.smart-reminder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.smart-reminder-actions button {
+  border: 0;
+  background: rgba(113, 84, 200, 0.08);
+  color: var(--purple);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.smart-reminder-actions .soft-dismiss {
+  background: rgba(112, 116, 140, 0.09);
+  color: var(--muted);
+}
+
+
+.quick-actions {
+  grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+}
+
+.export-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.export-history-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.export-history-item {
+  border: 1px solid rgba(86, 77, 128, 0.12);
+  background: rgba(255,255,255,0.76);
+  border-radius: 18px;
+  padding: 11px;
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.export-history-item .app-icon {
+  width: 42px;
+  height: 42px;
+  padding: 9px;
+  border-radius: 15px;
+  background: rgba(113, 84, 200, 0.1);
+  color: var(--purple);
+}
+
+.export-history-item h3 {
+  margin: 0 0 3px;
+  font-size: 0.92rem;
+}
+
+.export-history-item p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.export-history-item button {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(113, 84, 200, 0.08);
+  color: var(--purple);
+  padding: 7px 10px;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.document-type-grid .js-export-preset {
+  min-height: 96px;
+}
+
+
+.notification-panel {
+  background: linear-gradient(135deg, rgba(113, 84, 200, 0.1), rgba(255,255,255,0.96));
+}
+
+.notification-preferences {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  border: 1px solid rgba(86, 77, 128, 0.12);
+  background: rgba(255,255,255,0.62);
+  border-radius: 18px;
+  padding: 10px;
+}
+
+.notification-preferences .check-row {
+  background: transparent;
+  border: 0;
+  padding: 8px 4px;
+}
+
+.notification-preferences .check-row + .check-row {
+  border-top: 1px solid rgba(86, 77, 128, 0.08);
+}
+
+.notification-panel .button-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+.notification-panel .secondary {
+  background: rgba(113, 84, 200, 0.08);
+  color: var(--purple);
+}

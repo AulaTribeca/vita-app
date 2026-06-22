@@ -1,16 +1,27 @@
-# VITA v1.2
+# VITA v1.5
 
-Nivel 12 de VITA: hogar compartido real.
+Nivel 15 de VITA: avisos automáticos y notificaciones del dispositivo.
 
 ## Qué añade
 
-- Facturas y suministros.
-- Vehículos del hogar.
-- Avisos de coche: ITV, seguro, impuesto, revisión, neumáticos.
-- Gestiones comunes: casa, burocracia, UNED, banco, obras.
-- Resumen del hogar.
-- Datos compartidos entre Patricia y Román mediante el hogar común.
-- Políticas RLS por pertenencia al hogar.
+- Panel de notificaciones en Cuenta.
+- Botón para activar avisos en el dispositivo.
+- Botón de prueba.
+- Preferencias por tipo:
+  - medicación y stock;
+  - citas;
+  - volantes;
+  - hogar;
+  - salud.
+- Notificaciones del navegador/PWA basadas en los recordatorios inteligentes de Hoy.
+- Evita repetir el mismo aviso más de una vez al día.
+- Revisión automática cada 15 minutos mientras la app está abierta o instalada y activa.
+- Apertura de la app desde una notificación.
+- No requiere SQL nuevo.
+
+## Limitación importante
+
+Esta fase añade avisos reales del navegador cuando la app está abierta, instalada o activa en segundo plano según permita el dispositivo. Para avisos garantizados con la app totalmente cerrada hace falta un backend o una Edge Function con push web, que puede abordarse después.
 
 ## Archivos modificados
 
@@ -20,9 +31,4 @@ Nivel 12 de VITA: hogar compartido real.
 - `config.js`
 - `service-worker.js`
 - `README.md`
-- `docs/instrucciones_v1_2.md`
-- `docs/supabase_v1_2.sql`
-
-## Importante
-
-Antes de probar Hogar, ejecuta `docs/supabase_v1_2.sql` en Supabase.
+- `docs/instrucciones_v1_5.md`
