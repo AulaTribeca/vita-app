@@ -1,41 +1,66 @@
-# VITA v4.2, paneles clicables
+# VITA v5.0, reconstrucción limpia
 
-Versión centrada en el uso real: primero ver, luego añadir.
+Esta versión deja de parchear las tablas antiguas y usa una base nueva y limpia:
 
-## Cambios principales
+- `vita_cards`: todo lo organizable de la vida diaria.
+- `vita_push_subscriptions`: suscripciones push reales.
 
-- Recupera y refuerza los registros de salud.
-- Salud muestra tarjetas-resumen antes del formulario.
-- Citas, medicación y listas muestran primero lo existente.
-- Hogar pasa a ser un panel de activos:
-  - Casa y piso
-  - Vehículos
-  - Listas
-  - Wallet
-  - Facturas
-  - Contactos
-  - Vacaciones y viajes
-- Cada tarjeta abre su sección correspondiente.
-- Los formularios quedan ocultos dentro de “Añadir…”, para no saturar.
-- Calendario mejorado:
-  - días más legibles;
-  - cabecera de lunes a domingo;
-  - selección de día tocando en el calendario;
-  - lista de eventos visibles debajo.
-- SQL restaura `health_records` y crea `household_assets`.
+Las tablas antiguas no se borran. El SQL migra datos conocidos a `vita_cards` si existen.
 
-## Supabase
+## Orden obligatorio
 
-Ejecuta:
+1. Ejecuta `docs/supabase_v5_0_core.sql`.
+2. Copia todos los archivos de esta carpeta en GitHub.
+3. Despliega la Edge Function incluida en `supabase/functions/send-vita-push/index.ts`.
+4. En Supabase Edge Function Secrets configura:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `SUPABASE_ANON_KEY`
+   - `VAPID_PUBLIC_KEY`
+   - `VAPID_PRIVATE_KEY`
+   - `VAPID_SUBJECT`
+   - `CRON_SECRET`, inventa una cadena larga
+5. Haz commit: `VITA v5.0 reconstruccion limpia`.
+6. Borra la PWA anterior del móvil y reinstala.
+7. En la app, entra en Avisos y pulsa:
+   - Activar avisos
+   - Prueba local
+   - Prueba push real
+8. Cuando la prueba push real funcione, ejecuta `docs/supabase_v5_0_cron_opcional.sql` cambiando `REEMPLAZA_CRON_SECRET`.
 
-`docs/supabase_v4_2_paneles_clicables.sql`
+## Qué cambia
 
-Este sustituye a todos los SQL v4 anteriores.
+La app ya no muestra todo mezclado. Hay cuatro espacios principales:
 
-## GitHub
+- Hoy
+- Módulos
+- Calendario
+- Avisos
 
-Commit sugerido:
+Los módulos son tarjetas clicables. Al tocar una tarjeta se entra en su pantalla. Allí se ve lo que existe y se puede añadir, editar, borrar o marcar como hecho.
 
-`VITA v4.2 paneles clicables`
+## Módulos
 
-Después borra la PWA anterior y reinstala desde GitHub Pages.
+- Tareas
+- Salud
+- Citas médicas
+- Medicación
+- Hogar
+- Compra
+- Lista privada
+- Deseos
+- Wallet
+- Contactos
+- Viajes
+
+## Push
+
+Las push no pueden funcionar solo desde el frontend si la app está cerrada. Para avisos reales hace falta:
+
+- Service Worker
+- permiso de notificación
+- suscripción Push
+- Edge Function
+- cron o llamada programada a la Edge Function
+
+La pantalla Avisos diagnostica cada paso.

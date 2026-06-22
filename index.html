@@ -3,641 +3,191 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#7154c8">
+  <meta name="theme-color" content="#6E56CF">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="VITA">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="description" content="VITA, organización personal, salud, hogar, calendario y avisos.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=4.2.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=4.2.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=4.2.0">
-  <link rel="stylesheet" href="./styles.css?v=4.2.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=5.0.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=5.0.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=5.0.0">
+  <link rel="stylesheet" href="./styles.css?v=5.0.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
     <div class="login-card">
-      <div class="login-brand">
-        <img src="./assets/vita-icon.svg" alt="" class="login-logo">
-        <span>VITA</span>
-      </div>
-      <span class="eyebrow">Acceso privado</span>
-      <h1>Entrar</h1>
-      <p class="login-intro">Una app sencilla para recordar lo importante sin ruido.</p>
-      <form id="password-login-form" class="login-form" novalidate>
-        <label class="field">
-          <span>Usuario</span>
-          <input id="login-username" type="text" placeholder="Patricia o Román" autocomplete="username">
-        </label>
-        <label class="field password-field">
-          <span>Contraseña</span>
-          <input id="login-password" type="password" placeholder="Contraseña" autocomplete="current-password">
-          <button id="toggle-password" type="button">Ver</button>
-        </label>
-        <button class="form-submit" type="submit">Entrar en VITA</button>
+      <img src="./assets/vita-icon.svg" class="login-logo" alt="">
+      <p class="eyebrow">VITA v5</p>
+      <h1>Tu vida, en orden</h1>
+      <p>Entra para ver qué tienes que hacer hoy, qué viene esta semana y qué necesita tu atención.</p>
+      <form id="login-form" class="form-stack" novalidate>
+        <label class="field"><span>Usuario</span><input id="login-user" type="text" placeholder="Patricia o Román" autocomplete="username"></label>
+        <label class="field"><span>Contraseña</span><input id="login-pass" type="password" placeholder="Contraseña" autocomplete="current-password"></label>
+        <button class="primary-button" type="submit">Entrar</button>
       </form>
-      <p id="login-message" class="login-message">Introduce usuario y contraseña.</p>
+      <p id="login-msg" class="status-line">Acceso privado.</p>
     </div>
   </section>
 
-  <main id="app" class="app-shell is-hidden">
-    <section class="screen is-active" data-screen="hoy">
-      <header class="topbar">
-        <div>
-          <div class="brand">
-            <img src="./assets/vita-icon.svg" alt="" class="brand-icon">
-            <span>VITA</span>
-          </div>
-          <h1 id="hello-title">Hola</h1>
-          <p id="today-date">Resumen del día</p>
-        </div>
-        <button class="icon-button js-go" type="button" aria-label="Cuenta" data-target="cuenta">
-          <span class="app-icon" data-icon="user"></span>
-        </button>
-      </header>
+  <main id="app" class="app hidden">
+    <header class="app-header">
+      <div>
+        <div class="brand"><img src="./assets/vita-icon.svg" alt=""><span>VITA</span></div>
+        <h1 id="screen-title">Hoy</h1>
+        <p id="screen-subtitle">Lo urgente, lo próximo y lo que necesita acción.</p>
+      </div>
+      <button id="account-button" class="circle-button" type="button" aria-label="Cuenta">👤</button>
+    </header>
 
-      <div id="global-status" class="global-status">VITA lista.</div>
+    <section id="global-status" class="global-status">Cargando...</section>
 
-      <article class="today-hero">
+    <section id="screen-home" class="screen active">
+      <article id="push-warning" class="push-card">
         <div>
-          <span class="eyebrow">Prioridad</span>
-          <h2 id="today-focus-title">Cargando pendientes...</h2>
-          <p id="today-focus-text">VITA ordena lo urgente y te guía paso a paso.</p>
+          <span class="badge">Avisos</span>
+          <h2>Las notificaciones mandan</h2>
+          <p id="push-summary">Comprueba permisos, suscripción y envío real.</p>
         </div>
-        <button id="refresh-data" type="button">Actualizar</button>
+        <button class="secondary-button" data-nav="notifications" type="button">Revisar</button>
       </article>
 
-      <article class="panel">
+      <article class="focus-panel">
+        <div>
+          <span class="eyebrow">Ahora</span>
+          <h2 id="today-focus">Cargando pendientes...</h2>
+          <p id="today-focus-sub">VITA debe decirte qué toca, no obligarte a buscarlo.</p>
+        </div>
+        <button id="quick-add-task" class="primary-button" type="button">Añadir</button>
+      </article>
+
+      <section class="section-block">
         <div class="section-title">
           <h2>Hoy</h2>
           <span id="today-count" class="count-pill">0</span>
         </div>
-        <div id="today-list" class="card-list"><p class="empty">Cargando...</p></div>
-      </article>
+        <div id="today-list" class="stack-list"></div>
+      </section>
 
-      <article class="panel">
+      <section class="section-block">
         <div class="section-title">
-          <h2>Resto de la semana</h2>
+          <h2>Próximos 7 días</h2>
           <span id="week-count" class="count-pill">0</span>
         </div>
-        <div id="week-list" class="card-list"><p class="empty">Cargando...</p></div>
-      </article>
+        <div id="week-list" class="stack-list"></div>
+      </section>
 
+      <section class="section-block">
+        <div class="section-title">
+          <h2>Módulos</h2>
+          <span class="count-pill">tocar para entrar</span>
+        </div>
+        <div id="module-grid-home" class="module-grid"></div>
+      </section>
     </section>
 
-    <section class="screen" data-screen="calendario">
-      <header class="topbar compact">
-        <div>
-          <h1>Calendario</h1>
-          <p>Día, semana, mes y año</p>
-        </div>
-      </header>
+    <section id="screen-modules" class="screen">
+      <div id="module-grid" class="module-grid"></div>
+    </section>
 
-      <article class="panel">
-        <div class="calendar-controls">
-          <select id="calendar-view">
-            <option value="day">Día</option>
-            <option value="week">Semana</option>
-            <option value="month" selected>Mes</option>
-            <option value="year">Año</option>
-          </select>
+    <section id="screen-module-detail" class="screen">
+      <button class="back-button" type="button" data-nav="modules">← Volver a módulos</button>
+      <article class="module-hero">
+        <div>
+          <span id="module-detail-badge" class="badge"></span>
+          <h2 id="module-detail-title"></h2>
+          <p id="module-detail-subtitle"></p>
+        </div>
+        <button id="module-add-button" class="primary-button" type="button">Añadir</button>
+      </article>
+      <div id="module-items" class="stack-list"></div>
+    </section>
+
+    <section id="screen-calendar" class="screen">
+      <article class="section-block">
+        <div class="calendar-toolbar">
+          <button id="calendar-prev" class="small-button" type="button">←</button>
           <input id="calendar-date" type="date">
+          <button id="calendar-next" class="small-button" type="button">→</button>
         </div>
-        <div class="filter-strip" id="calendar-filters">
-          <label><input type="checkbox" value="general" checked> General</label>
-          <label><input type="checkbox" value="medical" checked> Médico</label>
-          <label><input type="checkbox" value="bill" checked> Facturas</label>
-          <label><input type="checkbox" value="tax" checked> Impuestos</label>
-          <label><input type="checkbox" value="work_vacation" checked> Vacaciones</label>
-          <label><input type="checkbox" value="travel" checked> Viajes</label>
+        <div class="view-switch">
+          <button class="active" data-view="month" type="button">Mes</button>
+          <button data-view="week" type="button">Semana</button>
+          <button data-view="day" type="button">Día</button>
         </div>
-        <div id="calendar-list" class="calendar-surface">
-          <p class="empty">Cargando calendario...</p>
-        </div>
-        <div class="section-title calendar-period-title">
-          <h2>Eventos visibles</h2>
-          <span class="count-pill" id="calendar-period-count">0</span>
-        </div>
-        <div id="calendar-period-list" class="card-list"></div>
+        <div id="calendar-grid" class="calendar-grid"></div>
       </article>
 
-      <article class="panel">
-        <div class="section-title"><h2>Añadir evento</h2></div>
-        <form id="event-form" class="form-grid">
-          <label class="field"><span>Título</span><input id="event-title" type="text" placeholder="Ej. Cargo Renta, médico, cumpleaños..."></label>
-          <label class="field"><span>Tipo</span>
-            <select id="event-type">
-              <option value="general">General</option>
-              <option value="tax">Impuestos</option>
-              <option value="medical">Médico</option>
-              <option value="bill">Factura</option>
-              <option value="work_vacation">Vacaciones trabajo</option>
-              <option value="travel">Viaje</option>
-            </select>
-          </label>
-          <div class="form-two">
-            <label class="field"><span>Inicio</span><input id="event-start" type="datetime-local"></label>
-            <label class="field"><span>Fin</span><input id="event-end" type="datetime-local"></label>
-          </div>
-          <label class="field"><span>Lugar</span><input id="event-location" type="text" placeholder="Lugar, si procede"></label>
-          <label class="field"><span>Notas</span><textarea id="event-notes" rows="3" placeholder="Detalles importantes"></textarea></label>
-          <button class="form-submit" type="submit">Guardar evento</button>
-        </form>
-      </article>
-
-      <article class="panel">
-        <details>
-          <summary>Exportar calendario a PDF</summary>
-          <p class="soft-text">Escoge qué tipos de evento quieres incluir.</p>
-          <div class="filter-strip" id="export-filters">
-            <label><input type="checkbox" value="general" checked> General</label>
-            <label><input type="checkbox" value="medical" checked> Médico</label>
-            <label><input type="checkbox" value="bill" checked> Facturas</label>
-            <label><input type="checkbox" value="tax" checked> Impuestos</label>
-            <label><input type="checkbox" value="work_vacation" checked> Vacaciones</label>
-            <label><input type="checkbox" value="travel" checked> Viajes</label>
-          </div>
-          <button id="export-calendar-pdf" class="form-submit" type="button">Generar PDF imprimible</button>
-        </details>
-      </article>
-
-      <article class="panel">
-        <div class="section-title"><h2>Vacaciones y viajes</h2></div>
-        <form id="travel-form" class="form-grid">
-          <label class="field"><span>Viaje o vacaciones</span><input id="travel-trip" type="text" placeholder="Ej. Vacaciones agosto"></label>
-          <label class="field"><span>Tipo de dato</span>
-            <select id="travel-type">
-              <option value="work_vacation">Vacaciones del trabajo</option>
-              <option value="flight">Vuelo</option>
-              <option value="stay">Estancia</option>
-              <option value="transfer">Desplazamiento</option>
-              <option value="activity">Actividad</option>
-              <option value="document">Documento</option>
-            </select>
-          </label>
-          <label class="field"><span>Detalle</span><input id="travel-title" type="text" placeholder="Ej. Vuelo Santiago-Madrid, hotel..."></label>
-          <div class="form-two">
-            <label class="field"><span>Inicio</span><input id="travel-start" type="datetime-local"></label>
-            <label class="field"><span>Fin</span><input id="travel-end" type="datetime-local"></label>
-          </div>
-          <label class="field"><span>Proveedor / referencia</span><input id="travel-provider" type="text" placeholder="Compañía, localizador, reserva..."></label>
-          <label class="field"><span>Notas</span><textarea id="travel-notes" rows="3"></textarea></label>
-          <button class="form-submit" type="submit">Guardar vacaciones / viaje</button>
-        </form>
-        <div id="travel-list" class="card-list"></div>
+      <article class="section-block">
+        <div class="section-title">
+          <h2 id="selected-day-title">Día seleccionado</h2>
+          <button id="calendar-add-button" class="small-button" type="button">Añadir evento</button>
+        </div>
+        <div id="selected-day-list" class="stack-list"></div>
       </article>
     </section>
 
-
-<section class="screen" data-screen="salud">
-  <header class="topbar compact">
-    <div>
-      <h1>Salud</h1>
-      <p>Primero ves tus registros; después añades lo que necesites</p>
-    </div>
-  </header>
-
-  <div class="overview-grid health-overview">
-    <button class="overview-card" type="button" data-action="open-section" data-open-target="salud-registros">
-      <span class="app-icon" data-icon="heart"></span>
-      <strong>Registros de salud</strong>
-      <small id="health-total">0 registros</small>
-    </button>
-    <button class="overview-card" type="button" data-action="go" data-target="citas">
-      <span class="app-icon" data-icon="calendar"></span>
-      <strong>Citas médicas</strong>
-      <small id="appointment-total">0 citas</small>
-    </button>
-    <button class="overview-card" type="button" data-action="go" data-target="medicacion">
-      <span class="app-icon" data-icon="pill"></span>
-      <strong>Medicación</strong>
-      <small id="medication-total">0 medicamentos</small>
-    </button>
-    <button class="overview-card" type="button" data-action="go" data-target="citas">
-      <span class="app-icon" data-icon="file"></span>
-      <strong>Volantes</strong>
-      <small id="document-total">0 documentos</small>
-    </button>
-  </div>
-
-  <article class="panel section-panel" id="salud-registros">
-    <div class="section-title">
-      <h2>Registros recientes</h2>
-      <span class="count-pill" id="health-count">0</span>
-    </div>
-    <div id="health-list" class="card-list"></div>
-
-    <details class="add-details">
-      <summary>Añadir registro de salud</summary>
-      <form id="health-form" class="form-grid">
-        <label class="field"><span>Tipo</span>
-          <select id="health-type">
-            <option value="bathroom">Baño</option>
-            <option value="symptoms">Síntomas</option>
-            <option value="sleep">Sueño</option>
-            <option value="period">Regla</option>
-            <option value="pain">Dolor</option>
-            <option value="mood">Ánimo</option>
-            <option value="note">Nota rápida</option>
-          </select>
-        </label>
-        <label class="field"><span>Registro</span><input id="health-value" type="text" placeholder="Ej. dolor leve, 7 horas, regla..."></label>
-        <label class="field"><span>Intensidad</span><input id="health-intensity" type="number" min="1" max="10" placeholder="1-10, opcional"></label>
-        <label class="field"><span>Notas</span><textarea id="health-notes" rows="3"></textarea></label>
-        <button class="form-submit" type="submit">Guardar salud</button>
-      </form>
-    </details>
-  </article>
-</section>
-
-
-
-
-<section class="screen" data-screen="citas">
-  <header class="topbar compact">
-    <div>
-      <h1>Citas médicas</h1>
-      <p>Primero historial y próximas citas; después añadir o completar</p>
-    </div>
-  </header>
-
-  <article class="panel section-panel" id="citas-listado">
-    <div class="section-title">
-      <h2>Próximas e historial</h2>
-      <span class="count-pill" id="appointment-count">0</span>
-    </div>
-    <div id="appointment-list" class="card-list"></div>
-
-    <details class="add-details">
-      <summary>Añadir cita médica</summary>
-      <form id="appointment-form" class="form-grid">
-        <label class="field"><span>Cita</span><input id="appointment-title" type="text" placeholder="Ej. Endocrino, alergología..."></label>
-        <div class="form-two">
-          <label class="field"><span>Fecha y hora</span><input id="appointment-at" type="datetime-local"></label>
-          <label class="field"><span>Especialidad</span><input id="appointment-specialty" type="text" placeholder="Endocrino, digestivo..."></label>
-        </div>
-        <label class="field"><span>Lugar / profesional</span><input id="appointment-location" type="text"></label>
-        <label class="field"><span>Notas previas</span><textarea id="appointment-notes" rows="3" placeholder="Qué preguntar, qué llevar..."></textarea></label>
-        <button class="form-submit" type="submit">Guardar cita</button>
-      </form>
-    </details>
-  </article>
-
-  <article class="panel section-panel" id="citas-documentos">
-    <div class="section-title">
-      <h2>Volantes y documentos</h2>
-      <span class="count-pill" id="documents-count">0</span>
-    </div>
-    <div id="document-list" class="card-list"></div>
-
-    <details class="add-details">
-      <summary>Añadir volante o documento</summary>
-      <form id="medical-document-form" class="form-grid">
-        <label class="field"><span>Título</span><input id="document-title" type="text" placeholder="Ej. Volante endocrino"></label>
-        <div class="form-two">
-          <label class="field"><span>Especialidad relacionada</span><input id="document-specialty" type="text"></label>
-          <label class="field"><span>Estado</span>
-            <select id="document-status">
-              <option value="pending_upload">Pendiente de subir</option>
-              <option value="pending_to_use">Pendiente de llevar</option>
-              <option value="used">Usado</option>
-              <option value="archived">Archivado</option>
-            </select>
-          </label>
-        </div>
-        <label class="field"><span>Archivo o foto</span><input id="document-file" type="file" accept="image/*,.pdf"></label>
-        <label class="field"><span>Notas</span><textarea id="document-notes" rows="2"></textarea></label>
-        <button class="form-submit" type="submit">Guardar volante / documento</button>
-      </form>
-    </details>
-  </article>
-</section>
-
-
-<section class="screen" data-screen="medicacion">
-  <header class="topbar compact">
-    <div>
-      <h1>Medicación</h1>
-      <p>Stock, tomas y avisos antes de que se termine</p>
-    </div>
-  </header>
-
-  <article class="panel section-panel">
-    <div class="section-title">
-      <h2>Mi medicación</h2>
-      <span class="count-pill" id="medication-count">0</span>
-    </div>
-    <div id="medication-list" class="card-list"></div>
-
-    <details class="add-details">
-      <summary>Añadir medicamento</summary>
-      <form id="medication-form" class="form-grid">
-        <label class="field"><span>Nombre</span><input id="medication-name" type="text" placeholder="Ej. Eutirox, Bilasten..."></label>
-        <label class="field"><span>Dosis o pauta</span><input id="medication-dose" type="text" placeholder="Ej. 1 comprimido/día en ayunas"></label>
-        <label class="field"><span>Horas de toma</span><input id="medication-times" type="text" placeholder="Ej. 08:00. Si lo dejas vacío, VITA usará 08:00"></label>
-        <div class="form-two">
-          <label class="field"><span>Unidades por caja</span><input id="medication-box" type="number" min="1" step="1"></label>
-          <label class="field"><span>Stock actual</span><input id="medication-stock" type="number" min="0" step="1"></label>
-        </div>
-        <label class="field"><span>Avisar cuando queden</span><input id="medication-warning" type="number" min="1" step="1" value="7"></label>
-        <label class="field"><span>Notas</span><textarea id="medication-notes" rows="2"></textarea></label>
-        <button class="form-submit" type="submit">Guardar medicación</button>
-      </form>
-    </details>
-  </article>
-</section>
-
-
-
-<section class="screen" data-screen="listas">
-  <header class="topbar compact">
-    <div>
-      <h1>Listas</h1>
-      <p>Compra compartida, listas privadas y deseos</p>
-    </div>
-  </header>
-
-  <div class="subtabs">
-    <button class="active" type="button" data-list-tab="shared">Compra</button>
-    <button type="button" data-list-tab="private">Privada</button>
-    <button type="button" data-list-tab="wishlist">Deseos</button>
-  </div>
-
-  <article class="panel list-section" data-list-section="shared">
-    <div class="section-title">
-      <h2>Lista de la compra compartida</h2>
-      <span class="count-pill" id="shared-list-count">0</span>
-    </div>
-    <div id="shopping-wallet-strip" class="wallet-strip"></div>
-    <div id="shared-list" class="card-list block-gap"></div>
-    <details class="add-details">
-      <summary>Añadir a la compra</summary>
-      <form id="shared-list-form" class="inline-form">
-        <input id="shared-item-title" type="text" placeholder="Añadir a la lista de la compra compartida">
-        <button type="submit">Añadir</button>
-      </form>
-    </details>
-  </article>
-
-  <article class="panel list-section is-hidden" data-list-section="private">
-    <div class="section-title">
-      <h2>Mi lista privada</h2>
-      <span class="count-pill" id="private-list-count">0</span>
-    </div>
-    <div id="private-list" class="card-list block-gap"></div>
-    <details class="add-details">
-      <summary>Añadir a mi lista privada</summary>
-      <form id="private-list-form" class="inline-form">
-        <input id="private-item-title" type="text" placeholder="Añadir a mi lista privada">
-        <button type="submit">Añadir</button>
-      </form>
-    </details>
-  </article>
-
-  <article class="panel list-section is-hidden" data-list-section="wishlist">
-    <div class="section-title">
-      <h2>Lista de deseos</h2>
-      <span class="count-pill" id="wishlist-list-count">0</span>
-    </div>
-    <div id="wishlist-list" class="card-list block-gap"></div>
-    <details class="add-details">
-      <summary>Añadir deseo</summary>
-      <form id="wishlist-form" class="form-grid">
-        <label class="field"><span>Deseo</span><input id="wishlist-title" type="text" placeholder="Artículo, regalo, enlace..."></label>
-        <label class="field"><span>Enlace</span><input id="wishlist-url" type="url" placeholder="https://..."></label>
-        <label class="field"><span>Visible para</span><select id="wishlist-viewer"></select></label>
-        <button class="form-submit" type="submit">Añadir deseo</button>
-      </form>
-    </details>
-  </article>
-</section>
-
-
-<section class="screen" data-screen="hogar">
-  <header class="topbar compact">
-    <div>
-      <h1>Hogar</h1>
-      <p>Activos y cosas importantes, visibles de un vistazo</p>
-    </div>
-  </header>
-
-  <div class="overview-grid assets-overview">
-    <button class="overview-card asset-card-main" type="button" data-action="open-section" data-open-target="hogar-activos">
-      <span class="app-icon" data-icon="home"></span>
-      <strong>Casa y piso</strong>
-      <small id="asset-total">0 activos</small>
-    </button>
-    <button class="overview-card" type="button" data-action="open-section" data-open-target="hogar-vehiculos">
-      <span class="app-icon" data-icon="car"></span>
-      <strong>Vehículos</strong>
-      <small id="vehicle-total">0 vehículos</small>
-    </button>
-    <button class="overview-card" type="button" data-action="go" data-target="listas">
-      <span class="app-icon" data-icon="list"></span>
-      <strong>Listas</strong>
-      <small>Compra, privadas y deseos</small>
-    </button>
-    <button class="overview-card" type="button" data-action="open-section" data-open-target="hogar-wallet">
-      <span class="app-icon" data-icon="file"></span>
-      <strong>Wallet</strong>
-      <small id="wallet-total">0 tarjetas</small>
-    </button>
-    <button class="overview-card" type="button" data-action="open-section" data-open-target="hogar-facturas">
-      <span class="app-icon" data-icon="bell"></span>
-      <strong>Facturas</strong>
-      <small id="bill-total">0 avisos</small>
-    </button>
-    <button class="overview-card" type="button" data-action="open-section" data-open-target="hogar-contactos">
-      <span class="app-icon" data-icon="phone"></span>
-      <strong>Contactos</strong>
-      <small id="contact-total">0 contactos</small>
-    </button>
-    <button class="overview-card" type="button" data-action="open-section" data-open-target="hogar-viajes">
-      <span class="app-icon" data-icon="plane"></span>
-      <strong>Vacaciones y viajes</strong>
-      <small id="travel-total">0 registros</small>
-    </button>
-  </div>
-
-  <article class="panel section-panel" id="hogar-activos">
-    <div class="section-title">
-      <h2>Activos del hogar</h2>
-      <span class="count-pill" id="asset-count">0</span>
-    </div>
-    <div id="asset-list" class="card-list"></div>
-    <details class="add-details">
-      <summary>Añadir activo</summary>
-      <form id="asset-form" class="form-grid">
-        <label class="field"><span>Activo</span><input id="asset-name" type="text" placeholder="Casa, piso, trastero..."></label>
-        <label class="field"><span>Tipo</span>
-          <select id="asset-type">
-            <option value="home">Casa</option>
-            <option value="flat">Piso</option>
-            <option value="storage">Trastero</option>
-            <option value="other">Otro</option>
-          </select>
-        </label>
-        <label class="field"><span>Dirección o referencia</span><input id="asset-address" type="text"></label>
-        <label class="field"><span>Notas</span><textarea id="asset-notes" rows="2"></textarea></label>
-        <button class="form-submit" type="submit">Guardar activo</button>
-      </form>
-    </details>
-  </article>
-
-  <article class="panel section-panel" id="hogar-vehiculos">
-    <div class="section-title">
-      <h2>Vehículos</h2>
-      <span class="count-pill" id="vehicle-count">0</span>
-    </div>
-    <div id="vehicle-list" class="card-list"></div>
-    <details class="add-details">
-      <summary>Añadir vehículo</summary>
-      <form id="vehicle-form" class="form-grid">
-        <label class="field"><span>Nombre</span><input id="vehicle-name" type="text" placeholder="Ej. Coche Patricia"></label>
-        <div class="form-two">
-          <label class="field"><span>Matrícula</span><input id="vehicle-plate" type="text"></label>
-          <label class="field"><span>Modelo</span><input id="vehicle-model" type="text"></label>
-        </div>
-        <label class="field"><span>Notas</span><textarea id="vehicle-notes" rows="2"></textarea></label>
-        <button class="form-submit" type="submit">Guardar vehículo</button>
-      </form>
-    </details>
-  </article>
-
-  <article class="panel section-panel" id="hogar-facturas">
-    <div class="section-title">
-      <h2>Facturas y avisos</h2>
-      <span class="count-pill" id="bill-count">0</span>
-    </div>
-    <div id="bill-list" class="card-list"></div>
-    <details class="add-details">
-      <summary>Añadir factura o aviso</summary>
-      <form id="bill-form" class="form-grid">
-        <label class="field"><span>Concepto</span><input id="bill-title" type="text" placeholder="Ej. Renta, luz, internet..."></label>
-        <div class="form-two">
-          <label class="field"><span>Importe</span><input id="bill-amount" type="number" step="0.01" placeholder="0,00"></label>
-          <label class="field"><span>Fecha</span><input id="bill-date" type="date"></label>
-        </div>
-        <label class="field"><span>Entidad / proveedor</span><input id="bill-provider" type="text"></label>
-        <label class="field"><span>Notas</span><textarea id="bill-notes" rows="2"></textarea></label>
-        <button class="form-submit" type="submit">Guardar factura / aviso</button>
-      </form>
-    </details>
-  </article>
-
-  <article class="panel section-panel" id="hogar-wallet">
-    <div class="section-title">
-      <h2>Wallet</h2>
-      <span class="count-pill" id="wallet-count">0</span>
-    </div>
-    <p class="soft-text">Tarjetas de fidelización, supermercado y socios. No guardes tarjetas bancarias completas.</p>
-    <div id="wallet-list" class="card-list"></div>
-    <details class="add-details">
-      <summary>Añadir tarjeta</summary>
-      <form id="wallet-form" class="form-grid">
-        <label class="field"><span>Tarjeta</span><input id="wallet-name" type="text" placeholder="Ej. Eroski Club, IKEA Family"></label>
-        <div class="form-two">
-          <label class="field"><span>Entidad</span><input id="wallet-provider" type="text" placeholder="Eroski, IKEA..."></label>
-          <label class="field"><span>Número o código</span><input id="wallet-number" type="text"></label>
-        </div>
-        <label class="field"><span>Tipo</span>
-          <select id="wallet-type">
-            <option value="loyalty">Fidelización / súper</option>
-            <option value="membership">Socio/a</option>
-            <option value="health">Salud</option>
-            <option value="other">Otra</option>
-          </select>
-        </label>
-        <label class="field"><span>Foto o archivo de la tarjeta</span><input id="wallet-file" type="file" accept="image/*,.pdf"></label>
-        <label class="check-inline"><input id="wallet-shopping" type="checkbox" checked> Mostrar junto a la lista de la compra</label>
-        <label class="field"><span>Notas</span><textarea id="wallet-notes" rows="2"></textarea></label>
-        <button class="form-submit" type="submit">Guardar tarjeta</button>
-      </form>
-    </details>
-  </article>
-
-  <article class="panel section-panel" id="hogar-contactos">
-    <div class="section-title">
-      <h2>Contactos útiles</h2>
-      <span class="count-pill" id="contact-count">0</span>
-    </div>
-    <div id="contact-list" class="card-list"></div>
-    <details class="add-details">
-      <summary>Añadir contacto</summary>
-      <form id="contact-form" class="form-grid">
-        <label class="field"><span>Nombre</span><input id="contact-name" type="text" placeholder="Proveedor internet, seguro, gestoría..."></label>
-        <div class="form-two">
-          <label class="field"><span>Teléfono</span><input id="contact-phone" type="tel"></label>
-          <label class="field"><span>Categoría</span>
-            <select id="contact-category">
-              <option value="internet">Internet / telefonía</option>
-              <option value="insurance">Seguro</option>
-              <option value="bank">Banco</option>
-              <option value="health">Salud</option>
-              <option value="work">Trabajo</option>
-              <option value="other">Otro</option>
-            </select>
-          </label>
-        </div>
-        <label class="field"><span>Email / web</span><input id="contact-extra" type="text"></label>
-        <label class="field"><span>Notas</span><textarea id="contact-notes" rows="2"></textarea></label>
-        <button class="form-submit" type="submit">Guardar contacto</button>
-      </form>
-    </details>
-  </article>
-
-  <article class="panel section-panel" id="hogar-viajes">
-    <div class="section-title">
-      <h2>Vacaciones y viajes</h2>
-      <span class="count-pill" id="travel-count">0</span>
-    </div>
-    <div id="travel-list" class="card-list"></div>
-  </article>
-</section>
-
-    <section class="screen" data-screen="cuenta">
-      <header class="topbar compact">
-        <div>
-          <h1>Cuenta</h1>
-          <p>Instalación y avisos</p>
-        </div>
-      </header>
-
-      <article class="panel">
-        <div class="session-box">
-          <span class="app-icon" data-icon="user"></span>
-          <div>
-            <strong id="session-email">Usuario</strong>
-            <small id="session-mode">Sesión privada</small>
-          </div>
-        </div>
-        <button id="logout-button" class="danger-button" type="button">Cerrar sesión</button>
-      </article>
-
-      <article class="panel">
-        <div class="section-title"><h2>App móvil y avisos</h2></div>
-        <p id="pwa-status" class="soft-text">Comprueba si VITA está instalada.</p>
-        <p id="notification-status" class="soft-text">Avisos no activados.</p>
+    <section id="screen-notifications" class="screen">
+      <article class="push-center">
+        <span class="badge">Centro de avisos</span>
+        <h2>Activar y probar push</h2>
+        <p>VITA comprobará paso a paso instalación, permiso, service worker, suscripción, guardado en Supabase y envío desde Edge Function.</p>
         <div class="button-row">
-          <button id="install-pwa" type="button">Instalar app</button>
-          <button id="enable-notifications" type="button">Activar avisos</button>
-          <button id="test-notification" type="button">Probar aviso</button>
+          <button id="enable-push" class="primary-button" type="button">Activar avisos</button>
+          <button id="test-local" class="secondary-button" type="button">Prueba local</button>
+          <button id="test-push" class="secondary-button" type="button">Prueba push real</button>
         </div>
+      </article>
+
+      <article class="section-block">
+        <div class="section-title"><h2>Diagnóstico</h2></div>
+        <div id="push-diagnostics" class="diagnostic-list"></div>
+      </article>
+
+      <article class="section-block">
+        <div class="section-title"><h2>Avisos programados</h2></div>
+        <div id="notification-cards" class="stack-list"></div>
       </article>
     </section>
 
-    <nav class="bottom-nav" aria-label="Navegación principal">
-      <button class="nav-item active" type="button" data-target="hoy"><span class="app-icon" data-icon="home"></span><span>Hoy</span></button>
-      <button class="nav-item" type="button" data-target="calendario"><span class="app-icon" data-icon="calendar"></span><span>Calendario</span></button>
-      <button class="nav-item" type="button" data-target="citas"><span class="app-icon" data-icon="heart"></span><span>Citas</span></button>
-      <button class="nav-item" type="button" data-target="medicacion"><span class="app-icon" data-icon="pill"></span><span>Medicación</span></button>
-      <button class="nav-item" type="button" data-target="listas"><span class="app-icon" data-icon="list"></span><span>Listas</span></button>
-      <button class="nav-item" type="button" data-target="hogar"><span class="app-icon" data-icon="car"></span><span>Hogar</span></button>
+    <section id="screen-account" class="screen">
+      <article class="section-block">
+        <div class="account-card">
+          <img src="./assets/vita-icon.svg" alt="">
+          <div>
+            <h2 id="account-name">Cuenta</h2>
+            <p id="account-email">Sesión privada</p>
+          </div>
+        </div>
+        <button id="install-app" class="primary-button" type="button">Instalar / reinstalar app</button>
+        <button id="logout" class="danger-button" type="button">Cerrar sesión</button>
+      </article>
+    </section>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-nav="home" type="button">🏠<span>Hoy</span></button>
+      <button class="nav-item" data-nav="modules" type="button">▦<span>Módulos</span></button>
+      <button class="nav-item" data-nav="calendar" type="button">📅<span>Calendario</span></button>
+      <button class="nav-item" data-nav="notifications" type="button">🔔<span>Avisos</span></button>
+      <button class="nav-item" data-nav="account" type="button">👤<span>Cuenta</span></button>
     </nav>
   </main>
 
-  <script src="./config.js?v=4.2.0"></script>
-  <script src="./app.js?v=4.2.0"></script>
+  <dialog id="card-dialog" class="modal">
+    <form method="dialog">
+      <button class="modal-close" value="cancel">×</button>
+    </form>
+    <div id="card-dialog-body"></div>
+  </dialog>
+
+  <dialog id="form-dialog" class="modal">
+    <form method="dialog">
+      <button class="modal-close" value="cancel">×</button>
+    </form>
+    <div id="form-dialog-body"></div>
+  </dialog>
+
+  <script src="./config.js?v=5.0.0"></script>
+  <script src="./app.js?v=5.0.0"></script>
 </body>
 </html>

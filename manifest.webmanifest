@@ -1,19 +1,20 @@
 {
   "name": "VITA",
   "short_name": "VITA",
-  "description": "VITA, planificador visual con paneles clicables, salud, hogar, calendario y listas.",
+  "description": "VITA, organizador visual con avisos, calendario, salud, hogar y listas.",
   "id": "/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#fbf8ff",
-  "theme_color": "#7154c8",
+  "background_color": "#f9f6ff",
+  "theme_color": "#6E56CF",
   "categories": [
     "productivity",
     "health",
     "utilities"
   ],
+  "version": "5.0.0",
   "icons": [
     {
       "src": "./assets/vita-icon-192.png",
@@ -27,6 +28,5 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "version": "4.2.0"
+  ]
 }
