@@ -1,56 +1,50 @@
-# VITA v5.1 definitiva
+# VITA v5.2, instalación completa
 
-Proyecto completo listo para copiar a GitHub.
+Proyecto completo listo para instalar.
 
-## Qué incluye
-
-- App PWA completa.
-- Logo vegetal original del mockup, con hojas en verde agua y morado.
-- Service Worker.
-- Manifest PWA.
-- Edge Function `send-vita-push`.
-- SQL principal.
-- SQL de cron sin `vault`.
-
-## Estructura funcional
-
-VITA ya no está organizada como una sucesión de formularios. La app se estructura así:
+## Navegación oficial
 
 - Hoy
-- Módulos
 - Calendario
-- Avisos
-- Cuenta
-
-Cada módulo es una tarjeta clicable. Al entrar en un módulo se ve lo que hay y desde ahí se puede añadir, editar, borrar o marcar como hecho.
-
-## Módulos
-
-- Tareas
 - Salud
-- Citas médicas
-- Medicación
 - Hogar
-- Compra
-- Lista privada
-- Deseos
-- Wallet
-- Contactos
-- Viajes
+- Más
+
+## Estructura
+
+Cada apartado se organiza con tarjetas clicables. Al tocar una tarjeta se entra en su módulo y desde ahí se puede:
+
+- ver lo existente;
+- añadir;
+- editar;
+- borrar;
+- marcar como hecho;
+- programar avisos.
+
+## Logo
+
+Incluye el logo vegetal oficial de VITA en:
+
+- `assets/vita-icon.svg`
+- `assets/vita-logo.svg`
+- `assets/vita-icon-192.png`
+- `assets/vita-icon-512.png`
 
 ## SQL obligatorio
 
-Ejecutar:
+Ejecuta:
 
-`docs/supabase_v5_1_core.sql`
+`docs/supabase_v5_2_core.sql`
+
+Si ya habías ejecutado v5.1, también puedes ejecutar v5.2: es compatible y no borra datos.
 
 ## Edge Function
 
-Desplegar:
+Despliega o sustituye:
 
 `supabase/functions/send-vita-push/index.ts`
 
-La función acepta estos nombres de secrets:
+La función acepta:
 
 - `SUPABASE_URL` o `URL`
 - `SUPABASE_SERVICE_ROLE_KEY` o `SERVICE_ROLE_KEY`
@@ -58,14 +52,10 @@ La función acepta estos nombres de secrets:
 
 ## Cron
 
-Ejecutar solo cuando funcione la prueba push real:
+Ejecuta solo cuando la prueba push real funcione:
 
-`docs/supabase_v5_1_cron_definitivo_sin_vault.sql`
-
-El cron usa directamente:
-
-`Authorization: Bearer vita_cron_2026_pat_roman_9mK4vR8sQ2zL7xB5nF3pA6tY1cD0hW`
+`docs/supabase_v5_2_cron_definitivo_sin_vault.sql`
 
 ## Commit sugerido
 
-`VITA v5.1 definitiva`
+`VITA v5.2 instalacion completa`

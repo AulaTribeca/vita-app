@@ -9,18 +9,18 @@
   <meta name="apple-mobile-web-app-title" content="VITA">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=5.1.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=5.1.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=5.1.0">
-  <link rel="stylesheet" href="./styles.css?v=5.1.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=5.2.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=5.2.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=5.2.0">
+  <link rel="stylesheet" href="./styles.css?v=5.2.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
     <div class="login-card">
       <img src="./assets/vita-icon.svg" class="login-logo" alt="">
-      <p class="eyebrow">VITA v5</p>
+      <p class="eyebrow">VITA v5.2</p>
       <h1>Tu vida, en orden</h1>
-      <p>Entra para ver qué tienes que hacer hoy, qué viene esta semana y qué necesita tu atención.</p>
+      <p>Una app para recordar, avisar y organizar, sin tener que buscarlo todo.</p>
       <form id="login-form" class="form-stack" novalidate>
         <label class="field"><span>Usuario</span><input id="login-user" type="text" placeholder="Patricia o Román" autocomplete="username"></label>
         <label class="field"><span>Contraseña</span><input id="login-pass" type="password" placeholder="Contraseña" autocomplete="current-password"></label>
@@ -46,10 +46,10 @@
       <article id="push-warning" class="push-card">
         <div>
           <span class="badge">Avisos</span>
-          <h2>Las notificaciones mandan</h2>
+          <h2>Notificaciones push</h2>
           <p id="push-summary">Comprueba permisos, suscripción y envío real.</p>
         </div>
-        <button class="secondary-button" data-nav="notifications" type="button">Revisar</button>
+        <button class="secondary-button" data-nav="more" data-open-more="notifications" type="button">Revisar</button>
       </article>
 
       <article class="focus-panel">
@@ -71,7 +71,7 @@
 
       <section class="section-block">
         <div class="section-title">
-          <h2>Próximos 7 días</h2>
+          <h2>Esta semana</h2>
           <span id="week-count" class="count-pill">0</span>
         </div>
         <div id="week-list" class="stack-list"></div>
@@ -79,28 +79,11 @@
 
       <section class="section-block">
         <div class="section-title">
-          <h2>Módulos</h2>
-          <span class="count-pill">tocar para entrar</span>
+          <h2>Accesos principales</h2>
+          <span class="count-pill">tocar</span>
         </div>
-        <div id="module-grid-home" class="module-grid"></div>
+        <div id="home-shortcuts" class="module-grid"></div>
       </section>
-    </section>
-
-    <section id="screen-modules" class="screen">
-      <div id="module-grid" class="module-grid"></div>
-    </section>
-
-    <section id="screen-module-detail" class="screen">
-      <button class="back-button" type="button" data-nav="modules">← Volver a módulos</button>
-      <article class="module-hero">
-        <div>
-          <span id="module-detail-badge" class="badge"></span>
-          <h2 id="module-detail-title"></h2>
-          <p id="module-detail-subtitle"></p>
-        </div>
-        <button id="module-add-button" class="primary-button" type="button">Añadir</button>
-      </article>
-      <div id="module-items" class="stack-list"></div>
     </section>
 
     <section id="screen-calendar" class="screen">
@@ -115,6 +98,7 @@
           <button data-view="week" type="button">Semana</button>
           <button data-view="day" type="button">Día</button>
         </div>
+        <div class="filter-row" id="calendar-filters"></div>
         <div id="calendar-grid" class="calendar-grid"></div>
       </article>
 
@@ -127,27 +111,78 @@
       </article>
     </section>
 
-    <section id="screen-notifications" class="screen">
-      <article class="push-center">
-        <span class="badge">Centro de avisos</span>
-        <h2>Activar y probar push</h2>
-        <p>VITA comprobará paso a paso instalación, permiso, service worker, suscripción, guardado en Supabase y envío desde Edge Function.</p>
-        <div class="button-row">
-          <button id="enable-push" class="primary-button" type="button">Activar avisos</button>
-          <button id="test-local" class="secondary-button" type="button">Prueba local</button>
-          <button id="test-push" class="secondary-button" type="button">Prueba push real</button>
+    <section id="screen-health" class="screen">
+      <article class="section-block">
+        <div class="section-title">
+          <h2>Salud</h2>
+          <span class="count-pill">clicable</span>
         </div>
+        <div id="health-grid" class="module-grid"></div>
+      </article>
+      <article class="section-block">
+        <div class="section-title">
+          <h2>Próximo en salud</h2>
+          <span id="health-count" class="count-pill">0</span>
+        </div>
+        <div id="health-list" class="stack-list"></div>
+      </article>
+    </section>
+
+    <section id="screen-homehub" class="screen">
+      <article class="section-block">
+        <div class="section-title">
+          <h2>Hogar</h2>
+          <span class="count-pill">activos</span>
+        </div>
+        <div id="homehub-grid" class="module-grid"></div>
+      </article>
+      <article class="section-block">
+        <div class="section-title">
+          <h2>Próximo en hogar</h2>
+          <span id="homehub-count" class="count-pill">0</span>
+        </div>
+        <div id="homehub-list" class="stack-list"></div>
+      </article>
+    </section>
+
+    <section id="screen-more" class="screen">
+      <article class="section-block">
+        <div class="section-title">
+          <h2>Más</h2>
+          <span class="count-pill">módulos</span>
+        </div>
+        <div id="more-grid" class="module-grid"></div>
       </article>
 
-      <article class="section-block">
+      <article class="section-block hidden" id="notifications-panel">
+        <div class="push-center">
+          <span class="badge">Centro de avisos</span>
+          <h2>Activar y probar push</h2>
+          <p>VITA comprobará instalación, permiso, service worker, suscripción, guardado en Supabase y envío desde Edge Function.</p>
+          <div class="button-row">
+            <button id="enable-push" class="primary-button" type="button">Activar avisos</button>
+            <button id="test-local" class="secondary-button" type="button">Prueba local</button>
+            <button id="test-push" class="secondary-button" type="button">Prueba push real</button>
+          </div>
+        </div>
         <div class="section-title"><h2>Diagnóstico</h2></div>
         <div id="push-diagnostics" class="diagnostic-list"></div>
-      </article>
-
-      <article class="section-block">
-        <div class="section-title"><h2>Avisos programados</h2></div>
+        <div class="section-title extra-title"><h2>Avisos programados</h2></div>
         <div id="notification-cards" class="stack-list"></div>
       </article>
+    </section>
+
+    <section id="screen-module-detail" class="screen">
+      <button class="back-button" type="button" id="module-back-button">← Volver</button>
+      <article class="module-hero">
+        <div>
+          <span id="module-detail-badge" class="badge"></span>
+          <h2 id="module-detail-title"></h2>
+          <p id="module-detail-subtitle"></p>
+        </div>
+        <button id="module-add-button" class="primary-button" type="button">Añadir</button>
+      </article>
+      <div id="module-items" class="stack-list"></div>
     </section>
 
     <section id="screen-account" class="screen">
@@ -166,10 +201,10 @@
 
     <nav class="bottom-nav">
       <button class="nav-item active" data-nav="home" type="button">🏠<span>Hoy</span></button>
-      <button class="nav-item" data-nav="modules" type="button">▦<span>Módulos</span></button>
       <button class="nav-item" data-nav="calendar" type="button">📅<span>Calendario</span></button>
-      <button class="nav-item" data-nav="notifications" type="button">🔔<span>Avisos</span></button>
-      <button class="nav-item" data-nav="account" type="button">👤<span>Cuenta</span></button>
+      <button class="nav-item" data-nav="health" type="button">♡<span>Salud</span></button>
+      <button class="nav-item" data-nav="homehub" type="button">⌂<span>Hogar</span></button>
+      <button class="nav-item" data-nav="more" type="button">⚙<span>Más</span></button>
     </nav>
   </main>
 
@@ -187,7 +222,7 @@
     <div id="form-dialog-body"></div>
   </dialog>
 
-  <script src="./config.js?v=5.1.0"></script>
-  <script src="./app.js?v=5.1.0"></script>
+  <script src="./config.js?v=5.2.0"></script>
+  <script src="./app.js?v=5.2.0"></script>
 </body>
 </html>

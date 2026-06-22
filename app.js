@@ -1,33 +1,57 @@
 const CONFIG = window.VITA_CONFIG;
 const SESSION_KEY = "vita-session-v5";
+
 const MODULES = [
-  { id: "tasks", label: "Tareas", emoji: "✅", subtitle: "Pendientes, recados y acciones", visibility: "private" },
-  { id: "health", label: "Salud", emoji: "💗", subtitle: "Registros rápidos y síntomas", visibility: "private" },
-  { id: "medical", label: "Citas médicas", emoji: "🏥", subtitle: "Citas, resumen y volantes", visibility: "private" },
-  { id: "medication", label: "Medicación", emoji: "💊", subtitle: "Stock y avisos de compra", visibility: "private" },
-  { id: "home", label: "Hogar", emoji: "🏡", subtitle: "Casa, piso, coche y facturas", visibility: "household" },
-  { id: "shopping", label: "Compra", emoji: "🛒", subtitle: "Lista compartida", visibility: "household" },
-  { id: "private_list", label: "Lista privada", emoji: "📝", subtitle: "Cosas solo tuyas", visibility: "private" },
-  { id: "wishlist", label: "Deseos", emoji: "🎁", subtitle: "Regalos y enlaces", visibility: "private" },
-  { id: "wallet", label: "Wallet", emoji: "💳", subtitle: "Tarjetas de súper y socios", visibility: "private" },
-  { id: "contacts", label: "Contactos", emoji: "☎️", subtitle: "Teléfonos útiles", visibility: "household" },
-  { id: "travel", label: "Viajes", emoji: "✈️", subtitle: "Vacaciones, vuelos y estancias", visibility: "household" }
+  { id: "tasks", label: "Tareas", emoji: "✅", subtitle: "Pendientes, recados y acciones", group: "more", visibility: "private", calendar: "tasks" },
+  { id: "reminders", label: "Recordatorios", emoji: "🔔", subtitle: "Avisos sueltos y cosas que no puedes olvidar", group: "more", visibility: "private", calendar: "reminders" },
+  { id: "health_records", label: "Registros", emoji: "💗", subtitle: "Baño, síntomas, sueño, regla, dolor y ánimo", group: "health", visibility: "private", calendar: "health" },
+  { id: "medical", label: "Citas médicas", emoji: "🏥", subtitle: "Citas, resumen, alta y seguimiento", group: "health", visibility: "private", calendar: "medical" },
+  { id: "documents", label: "Volantes e informes", emoji: "📄", subtitle: "Documentos médicos y adjuntos pendientes", group: "health", visibility: "private", calendar: "medical" },
+  { id: "medication", label: "Medicación", emoji: "💊", subtitle: "Stock, pauta y aviso de compra", group: "health", visibility: "private", calendar: "medication" },
+  { id: "pharmacy", label: "Farmacia", emoji: "✚", subtitle: "Compras de medicación y farmacia", group: "health", visibility: "private", calendar: "medication" },
+  { id: "home_assets", label: "Casa y piso", emoji: "🏡", subtitle: "Activos importantes del hogar", group: "homehub", visibility: "household", calendar: "home" },
+  { id: "vehicles", label: "Coche", emoji: "🚗", subtitle: "Coche, seguro, ITV y gasolina", group: "homehub", visibility: "household", calendar: "home" },
+  { id: "bills", label: "Facturas", emoji: "💶", subtitle: "Cargos, suministros e impuestos", group: "homehub", visibility: "household", calendar: "bills" },
+  { id: "supplies", label: "Suministros", emoji: "💡", subtitle: "Luz, agua, telefonía e internet", group: "homehub", visibility: "household", calendar: "bills" },
+  { id: "works", label: "Obras", emoji: "🧰", subtitle: "Obras, presupuestos y mantenimiento", group: "homehub", visibility: "household", calendar: "home" },
+  { id: "mortgage", label: "Hipoteca", emoji: "🏠", subtitle: "Hipoteca y vivienda", group: "homehub", visibility: "household", calendar: "bills" },
+  { id: "shopping", label: "Compra compartida", emoji: "🛒", subtitle: "Lista de la compra común", group: "homehub", visibility: "household", calendar: "shopping" },
+  { id: "wallet", label: "Wallet", emoji: "💳", subtitle: "Eroski, IKEA y tarjetas útiles", group: "homehub", visibility: "private", calendar: "home" },
+  { id: "contacts", label: "Contactos útiles", emoji: "☎️", subtitle: "Teléfonos, proveedores y emergencias", group: "homehub", visibility: "household", calendar: "home" },
+  { id: "university", label: "Universidad", emoji: "🎓", subtitle: "UNED, exámenes, cursos y entregas", group: "more", visibility: "private", calendar: "university" },
+  { id: "bureaucracy", label: "Burocracia", emoji: "📁", subtitle: "Trámites, documentos y gestiones", group: "more", visibility: "private", calendar: "tasks" },
+  { id: "travel", label: "Viajes y vacaciones", emoji: "✈️", subtitle: "Vacaciones, vuelos, estancias y desplazamientos", group: "more", visibility: "household", calendar: "travel" },
+  { id: "private_list", label: "Lista privada", emoji: "🔒", subtitle: "Cosas solo tuyas", group: "more", visibility: "private", calendar: "tasks" },
+  { id: "wishlist", label: "Deseos", emoji: "🎁", subtitle: "Regalos y enlaces visibles para quien elijas", group: "more", visibility: "private", calendar: "tasks" },
+  { id: "search", label: "Búsqueda", emoji: "🔎", subtitle: "Localizar información guardada", group: "more", visibility: "private", calendar: "tasks" },
+  { id: "privacy", label: "Privacidad", emoji: "🔐", subtitle: "Privado y compartido", group: "more", visibility: "private", calendar: "tasks" },
+  { id: "settings", label: "Ajustes", emoji: "⚙️", subtitle: "Cuenta, instalación y preferencias", group: "more", visibility: "private", calendar: "tasks" }
 ];
 
 const MODULE_BY_ID = Object.fromEntries(MODULES.map((m) => [m.id, m]));
+const GROUP_TITLES = {
+  home: ["Hoy", "Lo urgente, lo próximo y lo que necesita acción."],
+  calendar: ["Calendario", "Día, semana, mes y filtros."],
+  health: ["Salud", "Registros, citas, volantes y medicación."],
+  homehub: ["Hogar", "Casa, piso, coche, facturas, listas y contactos."],
+  more: ["Más", "Tareas, universidad, viajes, documentos y ajustes."],
+  account: ["Cuenta", "Instalación, sesión y ajustes."],
+  "module-detail": ["Módulo", "Ver, añadir, editar y borrar."]
+};
 
 let currentUser = null;
 let currentHousehold = null;
 let currentModuleId = null;
+let previousScreen = "home";
 let deferredPrompt = null;
 let calendarCursor = new Date();
 let calendarView = "month";
+let calendarFilter = "all";
 let cards = [];
 let pushSubscription = null;
 
 function $(id) { return document.getElementById(id); }
 function cfg() { return CONFIG; }
-function nowIso() { return new Date().toISOString(); }
 function todayStart() { const d = new Date(); d.setHours(0,0,0,0); return d; }
 function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() + days); return d; }
 function escapeHtml(value) {
@@ -62,12 +86,9 @@ function dateLabel(value, mode = "long") {
 function isSameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
-function moduleLabel(moduleId) {
-  return MODULE_BY_ID[moduleId]?.label || moduleId || "VITA";
-}
-function moduleEmoji(moduleId) {
-  return MODULE_BY_ID[moduleId]?.emoji || "●";
-}
+function moduleLabel(moduleId) { return MODULE_BY_ID[moduleId]?.label || moduleId || "VITA"; }
+function moduleEmoji(moduleId) { return MODULE_BY_ID[moduleId]?.emoji || "●"; }
+function moduleCalendar(moduleId) { return MODULE_BY_ID[moduleId]?.calendar || moduleId || "tasks"; }
 function saveSession(session) { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }
 function getSession() {
   try {
@@ -138,12 +159,6 @@ async function updateCard(id, payload) {
     body: JSON.stringify(payload)
   });
 }
-async function deleteCard(id) {
-  return rest(`vita_cards?id=eq.${encodeURIComponent(id)}`, {
-    method: "DELETE",
-    headers: { Prefer: "return=minimal" }
-  });
-}
 
 async function loadHousehold() {
   currentHousehold = null;
@@ -175,27 +190,28 @@ function renderAccess() {
 }
 
 function renderAll() {
-  renderModuleGrids();
+  renderShortcuts();
+  renderGroupedModules("health", "health-grid");
+  renderGroupedModules("homehub", "homehub-grid");
+  renderGroupedModules("more", "more-grid");
   renderHome();
+  renderGroupPreview("health", "health-list", "health-count");
+  renderGroupPreview("homehub", "homehub-list", "homehub-count");
   renderCalendar();
   renderNotifications();
   updatePushSummary();
 }
 
-function setScreen(name) {
+function setScreen(name, options = {}) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   $(`screen-${name}`).classList.add("active");
   document.querySelectorAll(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.nav === name));
-  const titles = {
-    home: ["Hoy", "Lo urgente, lo próximo y lo que necesita acción."],
-    modules: ["Módulos", "Cada tarjeta abre su espacio, sin mezclarlo todo."],
-    calendar: ["Calendario", "Toca un día para ver o añadir eventos."],
-    notifications: ["Avisos", "Permisos, push real y recordatorios programados."],
-    account: ["Cuenta", "Instalación, sesión y ajustes."]
-  };
-  const t = titles[name] || ["VITA", ""];
+  const t = GROUP_TITLES[name] || ["VITA", ""];
   $("screen-title").textContent = t[0];
   $("screen-subtitle").textContent = t[1];
+  if (name !== "module-detail") previousScreen = name;
+  if (name === "more" && options.openNotifications) $("notifications-panel").classList.remove("hidden");
+  else if (name === "more" && !options.keepNotifications) $("notifications-panel").classList.add("hidden");
   location.hash = name;
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -221,9 +237,27 @@ function cardsForModule(moduleId) {
       return ad - bd;
     });
 }
+function cardsForGroup(group) {
+  const ids = MODULES.filter((m) => m.group === group).map((m) => m.id);
+  return cards.filter((c) => ids.includes(c.module) && c.status !== "deleted").sort(sortByDue);
+}
 
-function renderModuleGrids() {
-  const render = () => MODULES.map((m) => {
+function renderShortcuts() {
+  const shortcuts = [
+    { id: "health", label: "Salud", emoji: "♡", screen: "health", subtitle: "Citas, registros y medicación" },
+    { id: "homehub", label: "Hogar", emoji: "⌂", screen: "homehub", subtitle: "Casa, coche, facturas y listas" },
+    { id: "calendar", label: "Calendario", emoji: "📅", screen: "calendar", subtitle: "Día, semana y mes" },
+    { id: "more", label: "Más", emoji: "⚙", screen: "more", subtitle: "Tareas, viajes, UNED y avisos" }
+  ];
+  $("home-shortcuts").innerHTML = shortcuts.map((m) => `<button class="module-card" type="button" data-nav="${m.screen}">
+    <span class="module-emoji">${m.emoji}</span>
+    <span><strong>${escapeHtml(m.label)}</strong><br><small>${escapeHtml(m.subtitle)}</small></span>
+  </button>`).join("");
+}
+
+function renderGroupedModules(group, containerId) {
+  const mods = MODULES.filter((m) => m.group === group);
+  $(containerId).innerHTML = mods.map((m) => {
     const count = cardsForModule(m.id).filter((c) => c.status !== "done").length;
     return `<button class="module-card" type="button" data-module="${m.id}">
       <span class="module-emoji">${m.emoji}</span>
@@ -231,13 +265,9 @@ function renderModuleGrids() {
       <span class="count-pill">${count}</span>
     </button>`;
   }).join("");
-  $("module-grid").innerHTML = render();
-  $("module-grid-home").innerHTML = render();
 }
 
-function activeCards() {
-  return cards.filter((c) => c.status !== "done" && c.status !== "deleted");
-}
+function activeCards() { return cards.filter((c) => c.status !== "done" && c.status !== "deleted"); }
 function dueCards() {
   const start = todayStart();
   const tomorrow = addDays(start, 1);
@@ -247,7 +277,9 @@ function dueCards() {
   return { today, next };
 }
 function sortByDue(a,b) {
-  return new Date(a.due_at || 0) - new Date(b.due_at || 0);
+  const ad = a.due_at ? new Date(a.due_at).getTime() : 9999999999999;
+  const bd = b.due_at ? new Date(b.due_at).getTime() : 9999999999999;
+  return ad - bd;
 }
 
 function renderHome() {
@@ -258,6 +290,12 @@ function renderHome() {
   $("today-focus-sub").textContent = next.length ? `${next.length} cosa(s) más en los próximos 7 días.` : "La semana está despejada.";
   $("today-list").innerHTML = today.length ? today.map(renderItemCard).join("") : `<p class="empty">No hay nada pendiente para hoy.</p>`;
   $("week-list").innerHTML = next.length ? next.map(renderItemCard).join("") : `<p class="empty">No hay pendientes fechados para los próximos días.</p>`;
+}
+
+function renderGroupPreview(group, containerId, countId) {
+  const items = cardsForGroup(group).filter((c) => c.status !== "done").slice(0, 8);
+  $(countId).textContent = items.length;
+  $(containerId).innerHTML = items.length ? items.map(renderItemCard).join("") : `<p class="empty">No hay nada pendiente en este apartado.</p>`;
 }
 
 function renderModuleItems() {
@@ -322,15 +360,16 @@ function openCard(id) {
 
 function renderPayload(card) {
   const payload = card.payload || {};
-  const entries = Object.entries(payload).filter(([k,v]) => v && !["subtitle"].includes(k));
+  const entries = Object.entries(payload).filter(([k,v]) => v !== null && v !== undefined && v !== "" && !["subtitle"].includes(k));
   if (!entries.length) return "";
-  return `<div class="section-block" style="margin-top:12px;box-shadow:none;"><h3>Información</h3>${entries.map(([k,v]) => `<p><strong>${escapeHtml(labelField(k))}:</strong> ${escapeHtml(Array.isArray(v) ? v.join(", ") : v)}</p>`).join("")}</div>`;
+  return `<div class="section-block inline-info"><h3>Información</h3>${entries.map(([k,v]) => `<p><strong>${escapeHtml(labelField(k))}:</strong> ${escapeHtml(Array.isArray(v) ? v.join(", ") : v)}</p>`).join("")}</div>`;
 }
 
 function labelField(key) {
   const labels = {
     stock: "Stock", warning: "Avisar con", dose: "Dosis", phone: "Teléfono", provider: "Proveedor",
-    address: "Dirección", url: "Enlace", specialty: "Especialidad", result: "Resultado", card_number: "Número"
+    address: "Dirección", url: "Enlace", specialty: "Especialidad", result: "Resultado", card_number: "Número",
+    flight: "Vuelo", hotel: "Alojamiento", plate: "Matrícula", policy: "Póliza"
   };
   return labels[key] || key;
 }
@@ -368,8 +407,7 @@ function openForm(moduleId, card = null, preferredDue = null) {
     </form>`;
   $("form-visibility").value = card?.visibility || m.visibility || "private";
   $("form-notify").value = card?.notify_at ? "at" : "none";
-  const form = $("card-form");
-  form.addEventListener("submit", async (event) => {
+  $("card-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     await saveForm(moduleId, card?.id || null);
   });
@@ -379,21 +417,31 @@ function openForm(moduleId, card = null, preferredDue = null) {
 function placeholderFor(moduleId) {
   return {
     tasks: "Ej. Pedir cita, llamar, comprar...",
-    health: "Ej. Dolor, regla, sueño, síntoma...",
+    reminders: "Ej. Acordarme de...",
+    health_records: "Ej. Dolor, regla, sueño, síntoma...",
     medical: "Ej. Endocrino, dermatología...",
+    documents: "Ej. Volante para endocrino",
     medication: "Ej. Eutirox 112 microgramos",
-    home: "Ej. Casa, piso, seguro, obra...",
+    pharmacy: "Ej. Comprar Bilasten",
+    home_assets: "Ej. Casa, piso, trastero...",
+    vehicles: "Ej. Coche Patricia",
+    bills: "Ej. Renta, luz, internet...",
+    supplies: "Ej. Luz, agua, internet...",
+    works: "Ej. Pintar habitación, presupuesto...",
+    mortgage: "Ej. Hipoteca junio",
     shopping: "Ej. Leche, detergente...",
-    private_list: "Ej. Mirar papeles...",
-    wishlist: "Ej. Libro, bolso, enlace...",
     wallet: "Ej. Eroski Club, IKEA Family",
     contacts: "Ej. Proveedor internet",
-    travel: "Ej. Vuelo, hotel, vacaciones..."
+    university: "Ej. Examen UNED, entrega TFG...",
+    bureaucracy: "Ej. Renta, cita administrativa...",
+    travel: "Ej. Vuelo, hotel, vacaciones...",
+    private_list: "Ej. Mirar papeles...",
+    wishlist: "Ej. Libro, bolso, enlace..."
   }[moduleId] || "Título";
 }
 
 function extraFields(moduleId, payload = {}) {
-  if (moduleId === "medication") {
+  if (moduleId === "medication" || moduleId === "pharmacy") {
     return `<div class="form-grid two">
       <label class="field"><span>Dosis</span><input id="extra-dose" type="text" value="${escapeHtml(payload.dose || "")}" placeholder="1 comprimido/día"></label>
       <label class="field"><span>Stock</span><input id="extra-stock" type="number" min="0" value="${escapeHtml(payload.stock ?? "")}" placeholder="37"></label>
@@ -412,10 +460,10 @@ function extraFields(moduleId, payload = {}) {
       <label class="field"><span>Número o código</span><input id="extra-card-number" type="text" value="${escapeHtml(payload.card_number || "")}"></label>
     </div>`;
   }
-  if (moduleId === "medical") {
+  if (moduleId === "medical" || moduleId === "documents") {
     return `<label class="field"><span>Especialidad</span><input id="extra-specialty" type="text" value="${escapeHtml(payload.specialty || "")}" placeholder="Endocrino, alergología..."></label>`;
   }
-  if (moduleId === "home" || moduleId === "travel") {
+  if (["home_assets","vehicles","works","mortgage","travel","supplies"].includes(moduleId)) {
     return `<label class="field"><span>Dirección / lugar / referencia</span><input id="extra-address" type="text" value="${escapeHtml(payload.address || "")}"></label>`;
   }
   if (moduleId === "wishlist") {
@@ -431,7 +479,6 @@ function toDateTimeLocal(value) {
   const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0,16);
 }
-
 function notifyAtFrom(dueAt, mode) {
   if (!dueAt || mode === "none") return null;
   const d = new Date(dueAt);
@@ -440,7 +487,6 @@ function notifyAtFrom(dueAt, mode) {
   if (mode === "week") d.setDate(d.getDate() - 7);
   return d.toISOString();
 }
-
 function payloadFromForm(moduleId) {
   const payload = {};
   if ($("extra-dose")) payload.dose = $("extra-dose").value.trim();
@@ -464,7 +510,7 @@ async function saveForm(moduleId, id = null) {
     household_id: visibility === "household" ? currentHousehold : null,
     visibility,
     module: moduleId,
-    category: moduleId,
+    category: moduleCalendar(moduleId),
     title: $("form-title").value.trim(),
     details: $("form-details").value.trim() || null,
     due_at: dueAt,
@@ -480,7 +526,32 @@ async function saveForm(moduleId, id = null) {
   await loadCards();
 }
 
+function availableCalendarTypes() {
+  return [
+    ["all", "Todo"],
+    ["health", "Salud"],
+    ["medical", "Citas"],
+    ["medication", "Medicación"],
+    ["home", "Hogar"],
+    ["bills", "Facturas"],
+    ["shopping", "Compra"],
+    ["university", "UNED"],
+    ["travel", "Viajes"],
+    ["tasks", "Tareas"]
+  ];
+}
+function renderCalendarFilters() {
+  $("calendar-filters").innerHTML = availableCalendarTypes().map(([id,label]) => `<button class="${calendarFilter === id ? "active" : ""}" type="button" data-calendar-filter="${id}">${escapeHtml(label)}</button>`).join("");
+}
+function calendarCards() {
+  return cards.filter((c) => {
+    if (!c.due_at || c.status === "deleted") return false;
+    if (calendarFilter === "all") return true;
+    return (c.category || moduleCalendar(c.module)) === calendarFilter || c.module === calendarFilter;
+  });
+}
 function renderCalendar() {
+  renderCalendarFilters();
   const date = new Date(calendarCursor);
   const grid = $("calendar-grid");
   document.querySelectorAll(".view-switch button").forEach((b) => b.classList.toggle("active", b.dataset.view === calendarView));
@@ -490,11 +561,9 @@ function renderCalendar() {
   renderCalendarMonth(date, grid);
   renderSelectedDayList(date);
 }
-
 function cardsOnDay(day) {
-  return cards.filter((c) => c.due_at && isSameDay(new Date(c.due_at), day) && c.status !== "deleted").sort(sortByDue);
+  return calendarCards().filter((c) => isSameDay(new Date(c.due_at), day)).sort(sortByDue);
 }
-
 function renderCalendarMonth(date, grid) {
   const first = new Date(date.getFullYear(), date.getMonth(), 1);
   const start = new Date(first);
@@ -503,7 +572,6 @@ function renderCalendarMonth(date, grid) {
   const head = ["L","M","X","J","V","S","D"].map((d) => `<span>${d}</span>`).join("");
   grid.innerHTML = `<h2>${date.toLocaleDateString("es-ES", { month:"long", year:"numeric" })}</h2><div class="cal-weekdays">${head}</div><div class="cal-days">${days.map((d) => renderDayCell(d, date)).join("")}</div>`;
 }
-
 function renderCalendarWeek(date, grid) {
   const start = new Date(date);
   start.setDate(date.getDate() - ((date.getDay() + 6) % 7));
@@ -511,12 +579,10 @@ function renderCalendarWeek(date, grid) {
   grid.innerHTML = `<h2>Semana de ${dateLabel(start, "short")}</h2><div class="cal-days">${days.map((d) => renderDayCell(d, date)).join("")}</div>`;
   renderSelectedDayList(date);
 }
-
 function renderCalendarDay(date, grid) {
   grid.innerHTML = `<h2>${date.toLocaleDateString("es-ES", { weekday:"long", day:"2-digit", month:"long" })}</h2>`;
   renderSelectedDayList(date);
 }
-
 function renderDayCell(day, current) {
   const dayCards = cardsOnDay(day);
   const classes = ["day-cell"];
@@ -526,10 +592,9 @@ function renderDayCell(day, current) {
   return `<button class="${classes.join(" ")}" data-calendar-day="${day.toISOString().slice(0,10)}" type="button">
     <strong>${day.getDate()}</strong>
     <small>${day.toLocaleDateString("es-ES", { weekday:"short" })}</small>
-    <span class="dot-row">${dayCards.slice(0,6).map((c) => `<span class="dot ${escapeHtml(c.module)}"></span>`).join("")}</span>
+    <span class="dot-row">${dayCards.slice(0,6).map((c) => `<span class="dot ${escapeHtml(moduleCalendar(c.module))}"></span>`).join("")}</span>
   </button>`;
 }
-
 function renderSelectedDayList(date) {
   $("selected-day-title").textContent = date.toLocaleDateString("es-ES", { weekday:"long", day:"2-digit", month:"long" });
   const list = cardsOnDay(date);
@@ -541,11 +606,9 @@ function renderNotifications() {
   $("notification-cards").innerHTML = notifyCards.length ? notifyCards.map(renderItemCard).join("") : `<p class="empty">No hay avisos programados. Añade fecha y aviso en cualquier tarjeta.</p>`;
   renderDiagnostics();
 }
-
 function diagnosticItem(label, ok, detail = "") {
   return `<div class="diagnostic-item ${ok ? "ok" : "bad"}"><span>${escapeHtml(label)}</span><strong>${ok ? "OK" : "Falta"}</strong>${detail ? `<small>${escapeHtml(detail)}</small>` : ""}</div>`;
 }
-
 async function collectDiagnostics() {
   const isHttps = location.protocol === "https:" || location.hostname === "localhost";
   const hasSW = "serviceWorker" in navigator;
@@ -570,23 +633,20 @@ async function collectDiagnostics() {
     ["Suscripción push", Boolean(subscription), ""]
   ];
 }
-
 async function renderDiagnostics() {
   const rows = await collectDiagnostics();
   $("push-diagnostics").innerHTML = rows.map(([l,ok,d]) => diagnosticItem(l, ok, d)).join("");
 }
-
 function updatePushSummary() {
   const warning = $("push-warning");
   if (!("Notification" in window) || Notification.permission !== "granted" || !pushSubscription) {
     warning.classList.add("needs-action");
-    $("push-summary").textContent = "Los avisos no están completamente activados. Entra en Avisos y pulsa Activar.";
+    $("push-summary").textContent = "Los avisos no están completamente activados. Entra en Más y pulsa Revisar.";
   } else {
     warning.classList.remove("needs-action");
     $("push-summary").textContent = "Permisos y suscripción activos. Haz una prueba push real cuando quieras.";
   }
 }
-
 async function registerSW() {
   if (!("serviceWorker" in navigator)) throw new Error("Este navegador no soporta Service Worker.");
   const reg = await navigator.serviceWorker.register("./service-worker.js");
@@ -594,14 +654,12 @@ async function registerSW() {
   await reg.update().catch(() => null);
   return reg;
 }
-
 function vapidToUint8Array(base64String) {
   const padding = "=".repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replaceAll("-", "+").replaceAll("_", "/");
   const raw = atob(base64);
   return Uint8Array.from([...raw].map((char) => char.charCodeAt(0)));
 }
-
 async function subscribePush() {
   if (location.protocol !== "https:" && location.hostname !== "localhost") throw new Error("Las push requieren HTTPS.");
   const reg = await registerSW();
@@ -634,7 +692,6 @@ async function subscribePush() {
   updatePushSummary();
   return sub;
 }
-
 async function testLocalNotification() {
   const reg = await registerSW();
   if (Notification.permission !== "granted") {
@@ -649,7 +706,6 @@ async function testLocalNotification() {
     data: { url: "./#home" }
   });
 }
-
 async function testPushReal() {
   await subscribePush();
   const session = getSession();
@@ -673,13 +729,11 @@ async function toggleDone(id) {
   await updateCard(id, { status: card.status === "done" ? "open" : "done" });
   await loadCards();
 }
-
 async function removeCard(id) {
   if (!confirm("¿Borrar esta tarjeta?")) return;
   await updateCard(id, { status: "deleted" });
   await loadCards();
 }
-
 function editCard(id) {
   const card = cardById(id);
   if (!card) return;
@@ -703,7 +757,7 @@ function setupEvents() {
   document.addEventListener("click", async (event) => {
     const nav = event.target.closest("[data-nav]");
     if (nav) {
-      setScreen(nav.dataset.nav);
+      setScreen(nav.dataset.nav, { openNotifications: Boolean(nav.dataset.openMore) });
       return;
     }
     const moduleButton = event.target.closest("[data-module]");
@@ -738,9 +792,16 @@ function setupEvents() {
       renderCalendar();
       return;
     }
+    const calFilter = event.target.closest("[data-calendar-filter]");
+    if (calFilter) {
+      calendarFilter = calFilter.dataset.calendarFilter;
+      renderCalendar();
+      return;
+    }
   });
 
   $("module-add-button").addEventListener("click", () => openForm(currentModuleId || "tasks"));
+  $("module-back-button").addEventListener("click", () => setScreen(previousScreen || "home"));
   $("quick-add-task").addEventListener("click", () => openForm("tasks"));
   $("calendar-add-button").addEventListener("click", () => openForm("tasks", null, calendarCursor));
   $("calendar-date").addEventListener("change", () => {

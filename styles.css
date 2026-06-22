@@ -471,3 +471,60 @@ button:active, .module-card:active, .item-card:active { transform: scale(.985); 
 .account-card img {
   object-fit: contain;
 }
+
+
+/* VITA v5.2, navegación oficial */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 10px 0 12px;
+}
+
+.filter-row button {
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(110,86,207,.08);
+  color: var(--purple);
+  font-size: .78rem;
+  font-weight: 950;
+}
+
+.filter-row button.active {
+  background: var(--purple);
+  color: white;
+}
+
+.extra-title {
+  margin-top: 18px;
+}
+
+.inline-info {
+  margin-top: 12px;
+  box-shadow: none;
+}
+
+.bottom-nav {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.nav-item {
+  min-width: 0;
+}
+
+.nav-item span {
+  white-space: nowrap;
+}
+
+.module-card .count-pill {
+  justify-self: end;
+}
+
+#screen-more .hidden {
+  display: none !important;
+}
+
+#notifications-panel {
+  margin-top: 12px;
+}
