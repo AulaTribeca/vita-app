@@ -1,32 +1,28 @@
-# VITA v4.1.1, depuración final
+# VITA v4.1.2 sin errores
 
-Corrige el fallo de `shopping_lists.name` y consolida una app más funcional.
+Versión defensiva contra la estructura antigua de Supabase.
 
 ## Error corregido
 
-`null value in column "name" of relation "shopping_lists" violates not-null constraint`
+`shopping_lists_list_type_check`
 
-El problema venía de una estructura antigua de Supabase que exigía `name`, mientras que las versiones nuevas usaban `title`. Esta versión usa ambos campos y rellena valores antiguos vacíos.
+Tu tabla antigua aceptaba `list_type` como `personal`, `household` o `wishlist`, pero las versiones recientes intentaban usar otros valores. Esta versión elimina el bloqueo antiguo y acepta tanto los valores antiguos como los nuevos.
 
-## Cambios de app
+## Cambios incluidos
 
-- Volantes/documentos ya permiten adjuntar archivo o foto.
-- Wallet permite adjuntar archivo o foto de la tarjeta.
-- Las tarjetas con archivo muestran botón para abrirlo.
-- Los errores internos se muestran con el sistema visual de VITA.
-- Se mantiene la pantalla Hoy como planificador de pendientes.
-- Se mantienen calendario, citas, medicación, listas, hogar y wallet.
+- Corrige constraints antiguas de `shopping_lists`.
+- Usa `name` y `title` para compatibilidad.
+- Usa `owner_id` y `created_by` en elementos de listas.
+- Repara lista de compra compartida, lista privada y lista de deseos.
+- La app reconoce listas antiguas y nuevas.
+- Mantiene pantalla Hoy, calendario, citas, documentos, medicación, wallet y listas.
+- Mantiene adjuntos de volantes y tarjetas.
+- Mantiene animaciones visuales de v4.1.1.
 
 ## Supabase
 
 Ejecuta:
 
-`docs/supabase_v4_1_1_depura_final.sql`
+`docs/supabase_v4_1_2_sin_errores.sql`
 
-## GitHub
-
-Commit sugerido:
-
-`VITA v4.1.1 depuracion final`
-
-Después borra la PWA del móvil y reinstala.
+Este sustituye a todos los SQL 4.x anteriores.

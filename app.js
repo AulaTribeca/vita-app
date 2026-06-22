@@ -623,10 +623,13 @@ function labelDocumentStatus(status) {
 
 function mapDefaultLists() {
   const own = state.lists.filter((list) => list.owner_id === currentUser?.id);
+  const isShared = (list) => ['shared', 'household', 'shopping'].includes(list.list_type) || ['shared', 'household'].includes(list.visibility);
+  const isPrivate = (list) => ['private', 'personal'].includes(list.list_type) && !isShared(list);
+  const isWishlist = (list) => list.list_type === 'wishlist';
   return {
-    shared: state.lists.find((list) => list.list_type === 'shared' && list.visibility === 'household') || own.find((list) => list.list_type === 'shared'),
-    private: own.find((list) => list.list_type === 'private'),
-    wishlist: own.find((list) => list.list_type === 'wishlist')
+    shared: state.lists.find((list) => isShared(list)) || own.find((list) => isShared(list)),
+    private: own.find((list) => isPrivate(list)),
+    wishlist: own.find((list) => isWishlist(list))
   };
 }
 
@@ -967,12 +970,16 @@ function setupForms() {
     const list = mapDefaultLists().wishlist;
     await saveWithStatus(async () => {
       if (!list) throw new Error('Lista de deseos no disponible. Ejecuta el SQL v4.0.');
+      const text = document.getElementById('wishlist-title').value.trim();
       await upsert('shopping_list_items', {
         list_id: list.id,
+        owner_id: currentUser.id,
         created_by: currentUser.id,
-        title: document.getElementById('wishlist-title').value.trim(),
+        title: text,
+        name: text,
         url: document.getElementById('wishlist-url').value.trim() || null,
-        checked: false
+        checked: false,
+        status: 'pending'
       });
       const viewer = document.getElementById('wishlist-viewer').value;
       if (viewer) {
@@ -988,12 +995,16 @@ function setupForms() {
 
 async function saveListItem(event, list, inputId) {
   await saveWithStatus(async () => {
-    if (!list) throw new Error('Lista no disponible. Ejecuta el SQL v4.0.');
+    if (!list) throw new Error('Lista no disponible. Ejecuta el SQL v4.1.2.');
+    const text = document.getElementById(inputId).value.trim();
     await upsert('shopping_list_items', {
       list_id: list.id,
+      owner_id: currentUser.id,
       created_by: currentUser.id,
-      title: document.getElementById(inputId).value.trim(),
-      checked: false
+      title: text,
+      name: text,
+      checked: false,
+      status: 'pending'
     });
     event.target.reset();
   }, 'Elemento añadido.');
