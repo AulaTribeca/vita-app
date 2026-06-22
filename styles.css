@@ -451,3 +451,23 @@ button:active, .module-card:active, .item-card:active { transform: scale(.985); 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+
+.plain-card-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+}
+
+.plain-card-button h3,
+.plain-card-button p {
+  margin-bottom: 0;
+}
+
+.brand img,
+.login-logo,
+.account-card img {
+  object-fit: contain;
+}

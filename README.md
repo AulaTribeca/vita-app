@@ -1,43 +1,28 @@
-# VITA v5.0, reconstrucción limpia
+# VITA v5.1 definitiva
 
-Esta versión deja de parchear las tablas antiguas y usa una base nueva y limpia:
+Proyecto completo listo para copiar a GitHub.
 
-- `vita_cards`: todo lo organizable de la vida diaria.
-- `vita_push_subscriptions`: suscripciones push reales.
+## Qué incluye
 
-Las tablas antiguas no se borran. El SQL migra datos conocidos a `vita_cards` si existen.
+- App PWA completa.
+- Logo vegetal original del mockup, con hojas en verde agua y morado.
+- Service Worker.
+- Manifest PWA.
+- Edge Function `send-vita-push`.
+- SQL principal.
+- SQL de cron sin `vault`.
 
-## Orden obligatorio
+## Estructura funcional
 
-1. Ejecuta `docs/supabase_v5_0_core.sql`.
-2. Copia todos los archivos de esta carpeta en GitHub.
-3. Despliega la Edge Function incluida en `supabase/functions/send-vita-push/index.ts`.
-4. En Supabase Edge Function Secrets configura:
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `SUPABASE_ANON_KEY`
-   - `VAPID_PUBLIC_KEY`
-   - `VAPID_PRIVATE_KEY`
-   - `VAPID_SUBJECT`
-   - `CRON_SECRET`, inventa una cadena larga
-5. Haz commit: `VITA v5.0 reconstruccion limpia`.
-6. Borra la PWA anterior del móvil y reinstala.
-7. En la app, entra en Avisos y pulsa:
-   - Activar avisos
-   - Prueba local
-   - Prueba push real
-8. Cuando la prueba push real funcione, ejecuta `docs/supabase_v5_0_cron_opcional.sql` cambiando `REEMPLAZA_CRON_SECRET`.
-
-## Qué cambia
-
-La app ya no muestra todo mezclado. Hay cuatro espacios principales:
+VITA ya no está organizada como una sucesión de formularios. La app se estructura así:
 
 - Hoy
 - Módulos
 - Calendario
 - Avisos
+- Cuenta
 
-Los módulos son tarjetas clicables. Al tocar una tarjeta se entra en su pantalla. Allí se ve lo que existe y se puede añadir, editar, borrar o marcar como hecho.
+Cada módulo es una tarjeta clicable. Al entrar en un módulo se ve lo que hay y desde ahí se puede añadir, editar, borrar o marcar como hecho.
 
 ## Módulos
 
@@ -53,14 +38,34 @@ Los módulos son tarjetas clicables. Al tocar una tarjeta se entra en su pantall
 - Contactos
 - Viajes
 
-## Push
+## SQL obligatorio
 
-Las push no pueden funcionar solo desde el frontend si la app está cerrada. Para avisos reales hace falta:
+Ejecutar:
 
-- Service Worker
-- permiso de notificación
-- suscripción Push
-- Edge Function
-- cron o llamada programada a la Edge Function
+`docs/supabase_v5_1_core.sql`
 
-La pantalla Avisos diagnostica cada paso.
+## Edge Function
+
+Desplegar:
+
+`supabase/functions/send-vita-push/index.ts`
+
+La función acepta estos nombres de secrets:
+
+- `SUPABASE_URL` o `URL`
+- `SUPABASE_SERVICE_ROLE_KEY` o `SERVICE_ROLE_KEY`
+- `SUPABASE_ANON_KEY` o `ANON_KEY`
+
+## Cron
+
+Ejecutar solo cuando funcione la prueba push real:
+
+`docs/supabase_v5_1_cron_definitivo_sin_vault.sql`
+
+El cron usa directamente:
+
+`Authorization: Bearer vita_cron_2026_pat_roman_9mK4vR8sQ2zL7xB5nF3pA6tY1cD0hW`
+
+## Commit sugerido
+
+`VITA v5.1 definitiva`
