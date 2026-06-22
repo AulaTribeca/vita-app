@@ -1,5 +1,5 @@
 /*
-  VITA v0.4.3
+  VITA v0.4.4
 
   Configuración pública de Supabase para el frontend.
 
@@ -14,7 +14,7 @@ window.VITA_CONFIG = {
   SUPABASE_URL: "https://vbcqiggxpzlecilbukvn.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_MdUXjMd7qYe_he2OZoRXZQ_PJayheBR",
   APP_ENV: "production",
-  APP_VERSION: "0.4.3",
+  APP_VERSION: "0.4.4",
   USER_ALIASES: {
     "patricia": "patricia@vitaapp.com",
     "patri": "patricia@vitaapp.com",

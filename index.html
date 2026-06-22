@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./assets/vita-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./assets/vita-icon.svg">
-  <link rel="stylesheet" href="./styles.css?v=0.4.3">
+  <link rel="stylesheet" href="./styles.css?v=0.4.4">
 </head>
 <body>
 
@@ -49,14 +49,10 @@
       <button id="forgot-password" class="link-button" type="button">He olvidado mi contraseña</button>
 
       <div class="login-message" id="login-message">
-        Entra con Patricia o Román y tu contraseña.
+        Introduce tu usuario y contraseña.
       </div>
 
-      <button id="demo-access" class="demo-button" type="button">
-        Ver demo local sin datos reales
-      </button>
-
-      <p class="login-footnote">Los usuarios se crean en Supabase. Aquí se accede con nombre de usuario, no con el email ficticio.</p>
+      <p class="login-footnote">Acceso reservado a usuarios autorizados.</p>
     </div>
   </section>
 
@@ -79,7 +75,7 @@
         </header>
 
         <div class="notice">
-          VITA v0.4.3 · Acceso por usuario, sin email visible.
+          Sesión privada protegida.
         </div>
 
         <article class="account-mini-card" id="account-mini-card">
@@ -571,8 +567,8 @@
         <article class="auth-panel" id="auth-panel">
           <span class="app-icon panel-icon" data-icon="lock"></span>
           <span class="eyebrow">Estado de conexión</span>
-          <h2 id="auth-title">Supabase sin configurar</h2>
-          <p id="auth-message">La app funciona en modo local. Cuando peguemos la URL y la clave pública en config.js, podrás iniciar sesión.</p>
+          <h2 id="auth-title">Sesión protegida</h2>
+          <p id="auth-message">Acceso privado con usuario y contraseña.</p>
 
           <div class="session-box">
             <span class="app-icon" data-icon="user"></span>
@@ -592,7 +588,7 @@
             </button>
           </div>
 
-          <p class="fine-print" id="auth-helper">No introduzcas datos médicos reales hasta que Supabase, login y políticas de seguridad estén configuradas.</p>
+          <p class="fine-print" id="auth-helper">Tus datos se protegen con sesión privada.</p>
         </article>
 
         <article class="privacy-grid">
@@ -625,7 +621,7 @@
         </article>
 
         <article class="setup-steps">
-          <h2>Qué haremos en Supabase</h2>
+          <h2>Seguridad y privacidad</h2>
           <ol>
             <li>Crear el proyecto de Supabase.</li>
             <li>Ejecutar el SQL de VITA v0.2.</li>
@@ -662,7 +658,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./config.js?v=0.4.3"></script>
-  <script src="./app.js?v=0.4.3"></script>
+  <script src="./config.js?v=0.4.4"></script>
+  <script src="./app.js?v=0.4.4"></script>
 </body>
 </html>

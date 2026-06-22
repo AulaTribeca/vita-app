@@ -153,37 +153,47 @@ function isSupabaseReady() {
   );
 }
 
-async function initSupabase() {
-  const title = document.getElementById('auth-title');
-  const message = document.getElementById('auth-message');
-  const helper = document.getElementById('auth-helper');
-  const miniTitle = document.getElementById('account-mini-title');
-  const miniText = document.getElementById('account-mini-text');
 
+async function initSupabase() {
   if (!isSupabaseReady()) {
-    setText(title, 'Supabase sin configurar');
-    setText(message, 'La app funciona en modo demo local. El acceso real se activará cuando peguemos la URL y la anon key en config.js.');
-    setText(helper, 'Siguiente paso: crear los usuarios en Supabase y activar email/contraseña.');
-    setText(miniTitle, 'Modo local');
-    setText(miniText, 'Para ver la app pulsa “Ver demo local sin datos reales” en la pantalla de acceso.');
+    renderAuthState();
     renderAppAccess();
     return;
   }
 
-  const config = getConfig();
-  supabaseClient = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+  try {
+    const config = getConfig();
+    supabaseClient = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
 
-  const { data } = await supabaseClient.auth.getSession();
-  currentUser = data && data.session ? data.session.user : null;
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) {
+      currentUser = null;
+    } else {
+      currentUser = data && data.session ? data.session.user : null;
+    }
 
-  supabaseClient.auth.onAuthStateChange((_event, session) => {
-    currentUser = session ? session.user : null;
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      currentUser = session ? session.user : null;
+      renderAuthState();
+      renderAppAccess();
+    });
+
     renderAuthState();
-  });
-
-  renderAuthState();
-  renderAppAccess();
+    renderAppAccess();
+  } catch (_error) {
+    currentUser = null;
+    supabaseClient = null;
+    renderAuthState();
+    renderAppAccess();
+  }
 }
+
 
 
 function renderAuthState() {
@@ -196,41 +206,42 @@ function renderAuthState() {
   const sessionMode = document.getElementById('session-mode');
 
   if (!supabaseClient && !isSupabaseReady()) {
-    setText(title, 'Supabase sin configurar');
-    setText(message, 'La app está bloqueada por defecto. Solo puede abrirse en demo local sin datos reales.');
-    setText(helper, 'No se guardarán datos sensibles hasta configurar Supabase.');
-    setText(miniTitle, 'Acceso pendiente');
-    setText(miniText, 'Configura Supabase para activar usuarios y contraseña.');
-    setText(sessionEmail, 'Sin sesión real');
-    setText(sessionMode, 'Demo local, sin datos reales');
+    setText(title, 'Acceso no disponible');
+    setText(message, 'No se pudo conectar con el acceso privado. Recarga la página e inténtalo de nuevo.');
+    setText(helper, 'La app permanecerá bloqueada hasta que el acceso esté disponible.');
+    setText(miniTitle, 'Acceso protegido');
+    setText(miniText, 'Inicia sesión para acceder a VITA.');
+    setText(sessionEmail, 'Sin sesión iniciada');
+    setText(sessionMode, 'Acceso bloqueado');
     return;
   }
 
   if (currentUser) {
+    const displayName = getDisplayNameForEmail(currentUser.email);
     setText(title, 'Sesión iniciada');
-    setText(message, getDisplayNameForEmail(currentUser.email) || 'Usuario conectado');
-    setText(helper, 'Supabase está conectado. En el siguiente nivel guardaremos registros reales en la base de datos.');
-    setText(miniTitle, getDisplayNameForEmail(currentUser.email) + ' conectado/a');
-    setText(miniText, 'Perfil privado preparado. Hogar compartido listo para vincular a Román más adelante.');
-    setText(sessionEmail, getDisplayNameForEmail(currentUser.email) || 'Usuario conectado');
-    setText(sessionMode, 'Sesión segura con Supabase');
+    setText(message, displayName);
+    setText(helper, 'Acceso privado activo.');
+    setText(miniTitle, displayName);
+    setText(miniText, 'Sesión privada activa.');
+    setText(sessionEmail, displayName);
+    setText(sessionMode, 'Sesión segura');
   } else {
     setText(title, 'Sesión no iniciada');
-    setText(message, 'Para acceder a VITA debes iniciar sesión con nombre de usuario y contraseña.');
-    setText(helper, 'Los usuarios se crean manualmente en Supabase. La app traduce Patricia/Román al email interno.');
+    setText(message, 'Para acceder a VITA debes iniciar sesión.');
+    setText(helper, 'Acceso reservado a usuarios autorizados.');
     setText(miniTitle, 'VITA protegida');
-    setText(miniText, 'Inicia sesión para ver o guardar datos reales.');
+    setText(miniText, 'Inicia sesión para acceder a la app.');
     setText(sessionEmail, 'Sin sesión iniciada');
     setText(sessionMode, 'Acceso bloqueado');
   }
 }
 
 
+
 function setupAuthButtons() {
   const loginForm = document.getElementById('password-login-form');
   const loginUsername = document.getElementById('login-username') || document.getElementById('login-email');
   const loginPassword = document.getElementById('login-password');
-  const demoAccess = document.getElementById('demo-access');
   const forgotPassword = document.getElementById('forgot-password');
   const togglePassword = document.getElementById('toggle-password');
   const goLoginButton = document.getElementById('go-login-button');
@@ -258,11 +269,6 @@ function setupAuthButtons() {
     loginForm.addEventListener('submit', async (event) => {
       event.preventDefault();
 
-      if (!isSupabaseReady() || !supabaseClient) {
-        setLoginMessage('Supabase no está disponible en esta carga. Revisa que config.js esté actualizado y recarga sin caché.', 'warning');
-        return;
-      }
-
       const username = loginUsername ? loginUsername.value.trim() : '';
       const password = loginPassword ? loginPassword.value : '';
       const email = resolveLoginEmail(username);
@@ -273,38 +279,29 @@ function setupAuthButtons() {
       }
 
       if (!email) {
-        setLoginMessage('Usuario no reconocido. Usa Patricia o Román.', 'error');
+        setLoginMessage('Usuario no reconocido.', 'error');
         return;
       }
 
-      setLoginMessage('Comprobando credenciales...', 'neutral');
+      if (!isSupabaseReady() || !supabaseClient) {
+        setLoginMessage('No se pudo conectar con VITA. Recarga la página e inténtalo de nuevo.', 'error');
+        return;
+      }
+
+      setLoginMessage('Accediendo...', 'neutral');
 
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) {
-        setLoginMessage('No se pudo iniciar sesión. Revisa usuario y contraseña.', 'error');
+      if (error || !data || !data.user) {
+        setLoginMessage('Usuario o contraseña incorrectos.', 'error');
         return;
       }
 
       currentUser = data.user;
-      sessionStorage.removeItem('vita-demo-mode');
       renderAuthState();
-      renderAppAccess();
-      showScreen('hoy');
-    });
-  }
-
-  if (demoAccess) {
-    demoAccess.addEventListener('click', () => {
-      if (isSupabaseReady()) {
-        setLoginMessage('Supabase ya está configurado. Usa Patricia o Román y tu contraseña.', 'warning');
-        return;
-      }
-
-      sessionStorage.setItem('vita-demo-mode', 'true');
       renderAppAccess();
       showScreen('hoy');
     });
@@ -313,7 +310,7 @@ function setupAuthButtons() {
   if (forgotPassword) {
     forgotPassword.addEventListener('click', async () => {
       if (!isSupabaseReady() || !supabaseClient) {
-        setLoginMessage('Primero hay que configurar Supabase.', 'warning');
+        setLoginMessage('No se pudo conectar con VITA. Recarga la página e inténtalo de nuevo.', 'error');
         return;
       }
 
@@ -321,12 +318,12 @@ function setupAuthButtons() {
       const email = resolveLoginEmail(username);
 
       if (!username) {
-        setLoginMessage('Escribe Patricia o Román para enviar la recuperación.', 'warning');
+        setLoginMessage('Escribe tu usuario para recuperar la contraseña.', 'warning');
         return;
       }
 
       if (!email) {
-        setLoginMessage('Usuario no reconocido. Usa Patricia o Román.', 'error');
+        setLoginMessage('Usuario no reconocido.', 'error');
         return;
       }
 
@@ -336,16 +333,15 @@ function setupAuthButtons() {
       });
 
       if (error) {
-        setLoginMessage('No se pudo enviar la recuperación: ' + error.message, 'error');
+        setLoginMessage('No se pudo enviar la recuperación de contraseña.', 'error');
       } else {
-        setLoginMessage('Te he enviado un email para restablecer la contraseña.', 'success');
+        setLoginMessage('Revisa el correo asociado a tu usuario.', 'success');
       }
     });
   }
 
   if (goLoginButton) {
     goLoginButton.addEventListener('click', () => {
-      sessionStorage.removeItem('vita-demo-mode');
       renderAppAccess(true);
     });
   }
@@ -356,12 +352,12 @@ function setupAuthButtons() {
         await supabaseClient.auth.signOut();
       }
       currentUser = null;
-      sessionStorage.removeItem('vita-demo-mode');
       renderAuthState();
       renderAppAccess(true);
     });
   }
 }
+
 
 function setupShoppingDemo() {
   const form = document.getElementById('shared-shopping-form');
@@ -461,18 +457,11 @@ function getDisplayNameForEmail(email) {
 }
 
 
+
 function renderAppAccess(forceLogin = false) {
   const loginScreen = document.getElementById('login-screen');
   const appShell = document.getElementById('app');
-  const demoButton = document.getElementById('demo-access');
-
-  const demoMode = sessionStorage.getItem('vita-demo-mode') === 'true';
-  const configured = isSupabaseReady();
-  const canEnter = !forceLogin && ((configured && currentUser) || (!configured && demoMode));
-
-  if (demoButton) {
-    demoButton.style.display = configured ? 'none' : 'inline-flex';
-  }
+  const canEnter = !forceLogin && Boolean(isSupabaseReady() && currentUser);
 
   if (loginScreen) {
     loginScreen.classList.toggle('is-hidden', canEnter);
@@ -482,12 +471,15 @@ function renderAppAccess(forceLogin = false) {
     appShell.classList.toggle('is-hidden', !canEnter);
   }
 
-  if (!configured && !demoMode) {
-    setLoginMessage('Supabase no está disponible en esta carga. Si acabas de actualizar, borra caché o espera al deploy.', 'warning');
-  } else if (configured && !currentUser) {
-    setLoginMessage('Introduce Patricia o Román y tu contraseña.', 'neutral');
+  if (!canEnter) {
+    if (!isSupabaseReady()) {
+      setLoginMessage('No se pudo conectar con VITA. Recarga la página e inténtalo de nuevo.', 'error');
+    } else {
+      setLoginMessage('Introduce tu usuario y contraseña.', 'neutral');
+    }
   }
 }
+
 
 function setLoginMessage(text, type = 'neutral') {
   const node = document.getElementById('login-message');
