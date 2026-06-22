@@ -10,10 +10,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="description" content="VITA, organización personal, salud, hogar, calendario y avisos.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=3.0.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=3.0.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=3.0.0">
-  <link rel="stylesheet" href="./styles.css?v=3.0.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=3.1.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=3.1.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=3.1.0">
+  <link rel="stylesheet" href="./styles.css?v=3.1.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -196,6 +196,36 @@
       </article>
     </section>
 
+
+    <section class="screen" data-screen="medicacion">
+      <header class="topbar compact">
+        <div>
+          <h1>Medicación</h1>
+          <p>Tomas, stock y avisos</p>
+        </div>
+      </header>
+
+      <article class="panel">
+        <form id="medication-form" class="form-grid">
+          <label class="field"><span>Nombre</span><input id="medication-name" type="text" placeholder="Ej. Eutirox, Bilasten..."></label>
+          <label class="field"><span>Dosis o pauta</span><input id="medication-dose" type="text" placeholder="Ej. 1 comprimido/día en ayunas"></label>
+          <label class="field"><span>Horas de toma</span><input id="medication-times" type="text" placeholder="Ej. 08:00. Si lo dejas vacío, VITA usará 08:00"></label>
+          <div class="form-two">
+            <label class="field"><span>Unidades por caja</span><input id="medication-box" type="number" min="1" step="1"></label>
+            <label class="field"><span>Stock actual</span><input id="medication-stock" type="number" min="0" step="1"></label>
+          </div>
+          <label class="field"><span>Avisar cuando queden</span><input id="medication-warning" type="number" min="1" step="1" value="7"></label>
+          <label class="field"><span>Notas</span><textarea id="medication-notes" rows="2"></textarea></label>
+          <button class="form-submit" type="submit">Guardar medicación</button>
+        </form>
+      </article>
+
+      <article class="panel">
+        <div class="section-title"><h2>Mi medicación</h2></div>
+        <div id="medication-list" class="card-list"></div>
+      </article>
+    </section>
+
     <section class="screen" data-screen="hogar">
       <header class="topbar compact">
         <div>
@@ -231,6 +261,31 @@
           <button class="form-submit" type="submit">Guardar factura / aviso</button>
         </form>
         <div id="bill-list" class="card-list"></div>
+      </article>
+
+
+      <article class="panel">
+        <div class="section-title"><h2>Wallet</h2></div>
+        <p class="soft-text">Tarjetas de fidelización y del súper. No guardes tarjetas bancarias completas.</p>
+        <form id="wallet-form" class="form-grid">
+          <label class="field"><span>Tarjeta</span><input id="wallet-name" type="text" placeholder="Ej. Eroski Club, IKEA Family"></label>
+          <div class="form-two">
+            <label class="field"><span>Entidad</span><input id="wallet-provider" type="text" placeholder="Eroski, IKEA..."></label>
+            <label class="field"><span>Número o código</span><input id="wallet-number" type="text" placeholder="Opcional"></label>
+          </div>
+          <label class="field"><span>Tipo</span>
+            <select id="wallet-type">
+              <option value="loyalty">Fidelización / súper</option>
+              <option value="membership">Socio/a</option>
+              <option value="health">Salud</option>
+              <option value="other">Otra</option>
+            </select>
+          </label>
+          <label class="check-inline"><input id="wallet-shopping" type="checkbox" checked> Mostrar junto a la lista de la compra</label>
+          <label class="field"><span>Notas</span><textarea id="wallet-notes" rows="2"></textarea></label>
+          <button class="form-submit" type="submit">Guardar tarjeta</button>
+        </form>
+        <div id="wallet-list" class="card-list"></div>
       </article>
 
       <article class="panel">
@@ -293,12 +348,12 @@
       <button class="nav-item active" type="button" data-target="hoy"><span class="app-icon" data-icon="home"></span><span>Hoy</span></button>
       <button class="nav-item" type="button" data-target="calendario"><span class="app-icon" data-icon="calendar"></span><span>Calendario</span></button>
       <button class="nav-item" type="button" data-target="salud"><span class="app-icon" data-icon="heart"></span><span>Salud</span></button>
+      <button class="nav-item" type="button" data-target="medicacion"><span class="app-icon" data-icon="pill"></span><span>Medicación</span></button>
       <button class="nav-item" type="button" data-target="hogar"><span class="app-icon" data-icon="car"></span><span>Hogar</span></button>
-      <button class="nav-item" type="button" data-target="cuenta"><span class="app-icon" data-icon="user"></span><span>Cuenta</span></button>
     </nav>
   </main>
 
-  <script src="./config.js?v=3.0.0"></script>
-  <script src="./app.js?v=3.0.0"></script>
+  <script src="./config.js?v=3.1.0"></script>
+  <script src="./app.js?v=3.1.0"></script>
 </body>
 </html>

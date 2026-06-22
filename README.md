@@ -1,33 +1,23 @@
-# VITA v3.0, versión TDAH, CRUD y push visible
+# VITA v3.1, medicación y wallet
 
-Esta versión deja de añadir parches sobre la interfaz anterior y reorganiza VITA en cinco zonas claras:
+## Qué añade
 
-- Hoy
-- Calendario
-- Salud
-- Hogar
-- Cuenta
-
-## Qué corrige
-
-- El botón de avisos ya muestra siempre un mensaje de estado.
-- El acceso a Cuenta aparece solo en la navegación y en el icono superior.
-- Se eliminan mensajes de depuración.
-- Salud, vehículos, facturas, contactos, calendario y viajes tienen editar y borrar.
-- Se añade calendario con vista de día, semana, mes y año.
-- Se añaden vacaciones del trabajo y datos de viajes.
-- Se añaden contactos útiles.
-- Se añade aviso del 30 de junio de 2026 por la domiciliación del impuesto de la renta.
-- Se incluye SQL único para reparar base de datos y no depender de versiones antiguas.
+- Recupera Medicación como apartado principal.
+- Permite añadir medicación aunque dejes la hora vacía, usando 08:00 por defecto.
+- Añade Eutirox 112 microgramos y Bilasten 20 mg al perfil de Patricia mediante SQL.
+- Añade Wallet para tarjetas de fidelización.
+- Añade Eroski Club e IKEA Family al perfil de Patricia mediante SQL.
+- Las tarjetas tienen opción de mostrarse junto a la lista de la compra.
+- Medicación y Wallet tienen editar y borrar.
 
 ## Supabase
 
 Ejecuta:
 
-`docs/supabase_v3_0_tdah_crud_push.sql`
+`docs/supabase_v3_1_medicacion_wallet.sql`
 
 ## GitHub
 
-Copia todo el paquete y haz commit:
+Commit sugerido:
 
-`VITA v3.0 TDAH CRUD push`
+`VITA v3.1 medicacion wallet`

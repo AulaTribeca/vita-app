@@ -10,6 +10,7 @@ const ICONS = {
   trash: '<svg viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>',
   plane: '<svg viewBox="0 0 24 24"><path d="M22 16.5 2 9l2-2 16 4-6-7 2-2 6 9v5.5Z"></path><path d="m8 13-2 7 2-2 3-4"></path></svg>',
+  pill: '<svg viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a5 5 0 0 0-7-7l-10 10a5 5 0 0 0 7 7Z"></path><path d="m8.5 8.5 7 7"></path></svg>',
   phone: '<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2Z"></path></svg>'
 };
 
@@ -27,6 +28,7 @@ let state = {
   events: [],
   travel: [],
   contacts: [],
+  wallet: [],
   medications: [],
   medicalDocuments: []
 };
@@ -211,7 +213,8 @@ async function loadAll() {
   const loaders = [
     rest(`health_records?select=*&owner_id=eq.${user}&order=occurred_at.desc`).then((d) => state.health = d),
     rest(`medications?select=*&owner_id=eq.${user}&active=eq.true&order=created_at.asc`).then((d) => state.medications = d).catch(() => state.medications = []),
-    rest(`medical_documents?select=*&owner_id=eq.${user}&order=created_at.desc`).then((d) => state.medicalDocuments = d).catch(() => state.medicalDocuments = [])
+    rest(`medical_documents?select=*&owner_id=eq.${user}&order=created_at.desc`).then((d) => state.medicalDocuments = d).catch(() => state.medicalDocuments = []),
+    rest(`wallet_cards?select=*&owner_id=eq.${user}&order=created_at.desc`).then((d) => state.wallet = d).catch(() => state.wallet = [])
   ];
 
   if (household) {
@@ -235,7 +238,9 @@ function renderAll() {
   renderToday();
   renderCalendar();
   renderHealth();
+  renderMedication();
   renderHome();
+  renderWallet();
   updatePwaStatus();
   updateNotificationStatus();
   injectIcons();
@@ -283,7 +288,8 @@ function renderToday() {
   const upcoming = [
     ...state.events.map((e) => ({ title: e.title, body: e.notes || e.location || '', date: e.start_at, icon: iconForType(e.event_type) })),
     ...state.bills.filter((b) => b.status !== 'paid').map((b) => ({ title: b.title, body: `${b.provider || ''} ${b.amount ? `${b.amount} €` : ''}`.trim(), date: b.due_date, icon: 'bell' })),
-    ...state.travel.map((t) => ({ title: t.title, body: `${t.trip_title || ''} ${t.provider || ''}`.trim(), date: t.start_at, icon: 'plane' }))
+    ...state.travel.map((t) => ({ title: t.title, body: `${t.trip_title || ''} ${t.provider || ''}`.trim(), date: t.start_at, icon: 'plane' })),
+    ...state.medications.filter((m) => medicationDaysLeft(m) <= Number(m.warning_threshold_days || 7)).map((m) => ({ title: `Revisar stock: ${m.name}`, body: `Quedan ${medicationDaysLeft(m)} días aprox.`, date: new Date().toISOString(), icon: 'pill' }))
   ].filter((item) => item.date).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 8);
 
   document.getElementById('today-events-count').textContent = `${upcoming.length} eventos próximos`;
@@ -384,6 +390,61 @@ function labelHealth(type) {
   return labels[type] || type || 'Salud';
 }
 
+
+function medicationDaysLeft(item) {
+  const perDay = Math.max(1, (item.schedule_times || []).length || 1);
+  return Math.floor(Number(item.current_stock || 0) / perDay);
+}
+
+function renderMedication() {
+  const node = document.getElementById('medication-list');
+  if (!node) return;
+
+  if (!state.medications.length) {
+    node.innerHTML = '<p class="empty">Sin medicación guardada.</p>';
+    return;
+  }
+
+  node.innerHTML = state.medications.map((m) => card({
+    icon: 'pill',
+    title: m.name,
+    body: m.dose_text || '',
+    tags: [
+      (m.schedule_times || ['08:00']).join(', '),
+      `${m.current_stock || 0} unidades`,
+      `${medicationDaysLeft(m)} días aprox.`
+    ],
+    table: 'medications',
+    id: m.id,
+    editField: 'name'
+  })).join('');
+}
+
+function renderWallet() {
+  const node = document.getElementById('wallet-list');
+  if (!node) return;
+
+  if (!state.wallet.length) {
+    node.innerHTML = '<p class="empty">Sin tarjetas guardadas.</p>';
+    return;
+  }
+
+  node.innerHTML = state.wallet.map((w) => card({
+    icon: 'file',
+    title: w.name,
+    body: [w.provider, w.card_number ? `N.º ${w.card_number}` : '', w.notes].filter(Boolean).join(' · '),
+    tags: [labelWallet(w.card_type), w.show_in_shopping ? 'Lista de la compra' : 'Wallet'],
+    table: 'wallet_cards',
+    id: w.id,
+    editField: 'name'
+  })).join('');
+}
+
+function labelWallet(type) {
+  const labels = { loyalty: 'Fidelización', membership: 'Socio/a', health: 'Salud', other: 'Otra' };
+  return labels[type] || 'Tarjeta';
+}
+
 function renderHome() {
   const vehicleNode = document.getElementById('vehicle-list');
   vehicleNode.innerHTML = state.vehicles.length ? state.vehicles.map((v) => card({
@@ -444,6 +505,22 @@ function getHouseholdPayload() {
   return { household_id: currentHousehold.id, created_by: currentUser.id };
 }
 
+
+function parseTimes(value) {
+  return String(value || '')
+    .split(',')
+    .map((time) => time.trim())
+    .filter(Boolean)
+    .map((time) => {
+      const match = time.match(/^(\d{1,2}):(\d{2})$/);
+      if (!match) return null;
+      const hour = String(Math.min(23, Number(match[1]))).padStart(2, '0');
+      const minute = String(Math.min(59, Number(match[2]))).padStart(2, '0');
+      return `${hour}:${minute}`;
+    })
+    .filter(Boolean);
+}
+
 function setupForms() {
   document.getElementById('health-form').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -458,6 +535,45 @@ function setupForms() {
       });
       event.target.reset();
     }, 'Registro de salud guardado.');
+  });
+
+
+  document.getElementById('medication-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    await saveWithStatus(async () => {
+      const times = parseTimes(document.getElementById('medication-times').value);
+      await upsert('medications', {
+        owner_id: currentUser.id,
+        name: document.getElementById('medication-name').value.trim(),
+        dose_text: document.getElementById('medication-dose').value.trim() || null,
+        schedule_times: times.length ? times : ['08:00'],
+        units_per_box: document.getElementById('medication-box').value ? Number(document.getElementById('medication-box').value) : null,
+        current_stock: document.getElementById('medication-stock').value ? Number(document.getElementById('medication-stock').value) : 0,
+        warning_threshold_days: document.getElementById('medication-warning').value ? Number(document.getElementById('medication-warning').value) : 7,
+        notes: document.getElementById('medication-notes').value.trim() || null,
+        active: true
+      });
+      event.target.reset();
+      document.getElementById('medication-warning').value = 7;
+    }, 'Medicación guardada.');
+  });
+
+  document.getElementById('wallet-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    await saveWithStatus(async () => {
+      await upsert('wallet_cards', {
+        owner_id: currentUser.id,
+        name: document.getElementById('wallet-name').value.trim(),
+        provider: document.getElementById('wallet-provider').value.trim() || null,
+        card_number: document.getElementById('wallet-number').value.trim() || null,
+        card_type: document.getElementById('wallet-type').value,
+        show_in_shopping: document.getElementById('wallet-shopping').checked,
+        notes: document.getElementById('wallet-notes').value.trim() || null,
+        active: true
+      });
+      event.target.reset();
+      document.getElementById('wallet-shopping').checked = true;
+    }, 'Tarjeta guardada.');
   });
 
   document.getElementById('vehicle-form').addEventListener('submit', async (event) => {
