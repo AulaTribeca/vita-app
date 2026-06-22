@@ -40,6 +40,7 @@ let currentLists = {
   personal: null,
   wishlist: null
 };
+let currentHouseholdMembers = [];
 
 function getConfig() {
   return window.VITA_CONFIG || {};
@@ -213,6 +214,7 @@ async function signOut() {
   currentProfile = null;
   currentHousehold = null;
   currentLists = { shared: null, personal: null, wishlist: null };
+  currentHouseholdMembers = [];
 }
 
 function injectIcons() {
@@ -435,13 +437,31 @@ function setupHealthRecords() {
 }
 
 
+
 function setupShoppingForms() {
-  setupListForm('shared-shopping-form', 'shared-shopping-input', 'shared');
-  setupListForm('personal-shopping-form', 'personal-shopping-input', 'personal');
-  setupListForm('wishlist-form', 'wishlist-input', 'wishlist');
+  setupListTabs();
+  setupSimpleListForm('shared-shopping-form', 'shared-shopping-input', 'shared');
+  setupSimpleListForm('personal-shopping-form', 'personal-shopping-input', 'personal');
+  setupWishlistForm();
 }
 
-function setupListForm(formId, inputId, listKey) {
+function setupListTabs() {
+  document.querySelectorAll('[data-list-tab]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const selected = button.dataset.listTab;
+
+      document.querySelectorAll('[data-list-tab]').forEach((item) => {
+        item.classList.toggle('active', item === button);
+      });
+
+      document.querySelectorAll('[data-list-section]').forEach((section) => {
+        section.classList.toggle('is-filtered-out', selected !== 'all' && section.dataset.listSection !== selected);
+      });
+    });
+  });
+}
+
+function setupSimpleListForm(formId, inputId, listKey) {
   const form = document.getElementById(formId);
   const input = document.getElementById(inputId);
 
@@ -453,11 +473,6 @@ function setupListForm(formId, inputId, listKey) {
     const title = input.value.trim();
     if (!title) return;
 
-    if (!currentUser) {
-      showSyncStatus('Inicia sesión para guardar cambios.', 'error');
-      return;
-    }
-
     const list = currentLists[listKey];
     if (!list) {
       showSyncStatus('La lista todavía no está preparada.', 'error');
@@ -467,7 +482,7 @@ function setupListForm(formId, inputId, listKey) {
     input.disabled = true;
 
     try {
-      await createListItem(list.id, title);
+      await createListItem({ listId: list.id, title });
       input.value = '';
       await loadListsAndItems();
       showSyncStatus('Lista actualizada.', 'success');
@@ -476,6 +491,66 @@ function setupListForm(formId, inputId, listKey) {
     } finally {
       input.disabled = false;
       input.focus();
+    }
+  });
+}
+
+function setupWishlistForm() {
+  const form = document.getElementById('wishlist-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const list = currentLists.wishlist;
+    const titleInput = document.getElementById('wishlist-title-input');
+    const urlInput = document.getElementById('wishlist-url-input');
+    const imageInput = document.getElementById('wishlist-image-input');
+    const priceInput = document.getElementById('wishlist-price-input');
+    const noteInput = document.getElementById('wishlist-note-input');
+
+    const title = titleInput.value.trim();
+
+    if (!title) {
+      showSyncStatus('Escribe el artículo que quieres guardar.', 'error');
+      titleInput.focus();
+      return;
+    }
+
+    if (!list) {
+      showSyncStatus('La lista de deseos todavía no está preparada.', 'error');
+      return;
+    }
+
+    const selectedViewers = Array.from(document.querySelectorAll('.js-wishlist-viewer:checked')).map((input) => input.value);
+
+    const payload = {
+      listId: list.id,
+      title,
+      url: urlInput.value.trim() || null,
+      imagePath: imageInput.value.trim() || null,
+      priceEstimate: priceInput.value ? Number(priceInput.value) : null,
+      notes: noteInput.value.trim() || null,
+      metadata: {
+        occasion: noteInput.value.trim() || null
+      }
+    };
+
+    form.querySelectorAll('input, button').forEach((field) => field.disabled = true);
+
+    try {
+      const item = await createListItem(payload, true);
+      if (selectedViewers.length) {
+        await setWishlistViewers(item.id, selectedViewers);
+      }
+
+      form.reset();
+      await loadListsAndItems();
+      showSyncStatus('Deseo guardado.', 'success');
+    } catch (error) {
+      showSyncStatus(error.message || 'No se pudo guardar el deseo.', 'error');
+    } finally {
+      form.querySelectorAll('input, button').forEach((field) => field.disabled = false);
     }
   });
 }
@@ -509,11 +584,32 @@ async function loadProfileAndHousehold() {
 
   if (!membership) {
     currentHousehold = null;
+    currentHouseholdMembers = [];
+    renderWishlistViewerOptions();
     return;
   }
 
   const households = await restRequest(`households?select=id,name&id=eq.${encodeFilter(membership.household_id)}&limit=1`);
   currentHousehold = households && households.length ? households[0] : null;
+
+  const members = await restRequest(`household_members?select=user_id,role,status&household_id=eq.${encodeFilter(membership.household_id)}&status=eq.active&order=created_at.asc`);
+  const ids = members.map((member) => member.user_id);
+
+  if (!ids.length) {
+    currentHouseholdMembers = [];
+    renderWishlistViewerOptions();
+    return;
+  }
+
+  const profilesFilter = ids.map((id) => `"${id}"`).join(',');
+  const memberProfiles = await restRequest(`profiles?select=id,email,preferred_name,avatar_initial&id=in.(${profilesFilter})`);
+
+  currentHouseholdMembers = memberProfiles.map((profile) => ({
+    ...profile,
+    display_name: profile.preferred_name || getDisplayNameForEmail(profile.email)
+  }));
+
+  renderWishlistViewerOptions();
 }
 
 async function loadListsAndItems() {
@@ -527,28 +623,76 @@ async function loadListsAndItems() {
   currentLists.personal = lists.find((list) => list.list_type === 'personal' && list.owner_id === currentUser.id) || null;
   currentLists.wishlist = lists.find((list) => list.list_type === 'wishlist' && list.owner_id === currentUser.id) || null;
 
-  renderList('shared-list-items', currentLists.shared, await getItemsForList(currentLists.shared), 'shared');
-  renderList('personal-list-items', currentLists.personal, await getItemsForList(currentLists.personal), 'personal');
-  renderList('wishlist-items', currentLists.wishlist, await getItemsForList(currentLists.wishlist), 'wishlist');
+  const sharedItems = await getItemsForList(currentLists.shared);
+  const personalItems = await getItemsForList(currentLists.personal);
+  const wishlistItems = await getItemsForList(currentLists.wishlist);
+  const sharedWishItems = await getSharedWishlistItems(sharedItems, personalItems, wishlistItems);
+
+  renderList('shared-list-items', currentLists.shared, sharedItems, 'shared');
+  renderList('personal-list-items', currentLists.personal, personalItems, 'personal');
+  renderWishlistList('wishlist-items', currentLists.wishlist, wishlistItems, 'wishlist');
+  renderWishlistList('shared-wishlist-items', { id: 'shared-wishlist' }, sharedWishItems, 'shared-wishlist');
 }
 
 async function getItemsForList(list) {
   if (!list) return [];
-  return restRequest(`shopping_list_items?select=id,title,status,notes,url,image_path,price_estimate,created_at&list_id=eq.${encodeFilter(list.id)}&order=created_at.asc`);
+
+  return restRequest(`shopping_list_items?select=id,list_id,owner_id,title,status,notes,url,image_path,price_estimate,metadata,created_at&list_id=eq.${encodeFilter(list.id)}&order=created_at.asc`);
 }
 
-async function createListItem(listId, title) {
+async function getSharedWishlistItems(sharedItems, personalItems, wishlistItems) {
+  const knownIds = new Set([
+    ...sharedItems.map((item) => item.id),
+    ...personalItems.map((item) => item.id),
+    ...wishlistItems.map((item) => item.id)
+  ]);
+
+  const allVisible = await restRequest('shopping_list_items?select=id,list_id,owner_id,title,status,notes,url,image_path,price_estimate,metadata,created_at&order=created_at.desc');
+
+  return allVisible.filter((item) => {
+    return item.owner_id !== currentUser.id && !knownIds.has(item.id);
+  });
+}
+
+async function createListItem(options, returnRepresentation = false) {
   const payload = {
-    list_id: listId,
+    list_id: options.listId,
     owner_id: currentUser.id,
-    title,
+    title: options.title,
     status: 'pending'
   };
 
-  await restRequest('shopping_list_items', {
+  if (options.notes) payload.notes = options.notes;
+  if (options.url) payload.url = options.url;
+  if (options.imagePath) payload.image_path = options.imagePath;
+  if (options.priceEstimate !== null && options.priceEstimate !== undefined && !Number.isNaN(options.priceEstimate)) {
+    payload.price_estimate = options.priceEstimate;
+  }
+  if (options.metadata) payload.metadata = options.metadata;
+
+  const result = await restRequest('shopping_list_items', {
+    method: 'POST',
+    headers: { Prefer: returnRepresentation ? 'return=representation' : 'return=minimal' },
+    body: JSON.stringify(payload)
+  });
+
+  return returnRepresentation ? result[0] : null;
+}
+
+async function setWishlistViewers(itemId, viewerIds) {
+  const rows = viewerIds
+    .filter((viewerId) => viewerId !== currentUser.id)
+    .map((viewerId) => ({
+      item_id: itemId,
+      viewer_id: viewerId
+    }));
+
+  if (!rows.length) return;
+
+  await restRequest('wishlist_viewers', {
     method: 'POST',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(rows)
   });
 }
 
@@ -557,6 +701,27 @@ async function updateListItemStatus(itemId, checked) {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
     body: JSON.stringify({ status: checked ? 'bought' : 'pending' })
+  });
+}
+
+async function updateListItemTitle(itemId, currentTitle) {
+  const nextTitle = window.prompt('Editar elemento', currentTitle);
+  if (!nextTitle || !nextTitle.trim() || nextTitle.trim() === currentTitle) return;
+
+  await restRequest(`shopping_list_items?id=eq.${encodeFilter(itemId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ title: nextTitle.trim() })
+  });
+}
+
+async function deleteListItem(itemId) {
+  const confirmed = window.confirm('¿Eliminar este elemento?');
+  if (!confirmed) return;
+
+  await restRequest(`shopping_list_items?id=eq.${encodeFilter(itemId)}`, {
+    method: 'DELETE',
+    headers: { Prefer: 'return=minimal' }
   });
 }
 
@@ -579,14 +744,70 @@ function renderList(containerId, list, items, listKey) {
     const status = item.status === 'bought' ? 'Comprado' : 'Pendiente';
 
     return `
-      <label class="check-row dynamic-row" data-list="${escapeHtml(listKey)}">
-        <input class="js-item-status" type="checkbox" data-id="${escapeHtml(item.id)}" ${checked}>
-        <span>${escapeHtml(item.title)}</span>
+      <div class="list-item-card" data-list="${escapeHtml(listKey)}">
+        <label class="list-item-main">
+          <input class="js-item-status" type="checkbox" data-id="${escapeHtml(item.id)}" ${checked}>
+          <span>${escapeHtml(item.title)}</span>
+        </label>
         <em>${status}</em>
-      </label>
+        <div class="item-actions">
+          <button class="js-edit-item" type="button" data-id="${escapeHtml(item.id)}" data-title="${escapeHtml(item.title)}">Editar</button>
+          <button class="js-delete-item danger-text" type="button" data-id="${escapeHtml(item.id)}">Borrar</button>
+        </div>
+      </div>
     `;
   }).join('');
 
+  bindListItemEvents(container);
+}
+
+function renderWishlistList(containerId, list, items, listKey) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!list) {
+    container.innerHTML = '<p class="empty">Lista no encontrada. Revisa que el SQL de VITA esté ejecutado.</p>';
+    return;
+  }
+
+  if (!items || !items.length) {
+    container.innerHTML = '<p class="empty">Todavía no hay deseos guardados.</p>';
+    return;
+  }
+
+  container.innerHTML = items.map((item) => {
+    const image = item.image_path ? `<img src="${escapeHtml(item.image_path)}" alt="">` : `<span class="app-icon" data-icon="gift"></span>`;
+    const price = item.price_estimate ? `<strong>${Number(item.price_estimate).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</strong>` : '';
+    const notes = item.notes ? `<small>${escapeHtml(item.notes)}</small>` : '';
+    const link = item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">Ver enlace</a>` : '';
+    const isOwner = item.owner_id === currentUser.id;
+
+    return `
+      <article class="wish-real-card" data-list="${escapeHtml(listKey)}">
+        <div class="wish-real-thumb">${image}</div>
+        <div class="wish-real-body">
+          <h3>${escapeHtml(item.title)}</h3>
+          ${notes}
+          <div class="wish-meta">
+            ${price}
+            ${link}
+          </div>
+          ${isOwner ? `
+            <div class="item-actions">
+              <button class="js-edit-item" type="button" data-id="${escapeHtml(item.id)}" data-title="${escapeHtml(item.title)}">Editar</button>
+              <button class="js-delete-item danger-text" type="button" data-id="${escapeHtml(item.id)}">Borrar</button>
+            </div>
+          ` : ''}
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  injectIcons();
+  bindListItemEvents(container);
+}
+
+function bindListItemEvents(container) {
   container.querySelectorAll('.js-item-status').forEach((checkbox) => {
     checkbox.addEventListener('change', async () => {
       checkbox.disabled = true;
@@ -602,10 +823,56 @@ function renderList(containerId, list, items, listKey) {
       }
     });
   });
+
+  container.querySelectorAll('.js-edit-item').forEach((button) => {
+    button.addEventListener('click', async () => {
+      try {
+        await updateListItemTitle(button.dataset.id, button.dataset.title);
+        await loadListsAndItems();
+        showSyncStatus('Elemento actualizado.', 'success');
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo editar.', 'error');
+      }
+    });
+  });
+
+  container.querySelectorAll('.js-delete-item').forEach((button) => {
+    button.addEventListener('click', async () => {
+      try {
+        await deleteListItem(button.dataset.id);
+        await loadListsAndItems();
+        showSyncStatus('Elemento eliminado.', 'success');
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo borrar.', 'error');
+      }
+    });
+  });
+}
+
+function renderWishlistViewerOptions() {
+  const container = document.getElementById('wishlist-viewers');
+  if (!container) return;
+
+  const viewers = (currentHouseholdMembers || []).filter((member) => member.id !== currentUser?.id);
+
+  if (!viewers.length) {
+    container.innerHTML = '<p class="empty">No hay otros usuarios disponibles.</p>';
+    return;
+  }
+
+  container.innerHTML = viewers.map((member) => {
+    const name = member.preferred_name || getDisplayNameForEmail(member.email);
+    return `
+      <label class="viewer-option">
+        <input class="js-wishlist-viewer" type="checkbox" value="${escapeHtml(member.id)}">
+        <span>${escapeHtml(name)}</span>
+      </label>
+    `;
+  }).join('');
 }
 
 function renderListError() {
-  ['shared-list-items', 'personal-list-items', 'wishlist-items'].forEach((id) => {
+  ['shared-list-items', 'personal-list-items', 'wishlist-items', 'shared-wishlist-items'].forEach((id) => {
     const container = document.getElementById(id);
     if (container) {
       container.innerHTML = '<p class="empty error-text">No se pudieron cargar los datos.</p>';

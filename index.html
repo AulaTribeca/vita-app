@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#7154c8">
   <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.6.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=0.6.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=0.6.0">
-  <link rel="stylesheet" href="./styles.css?v=0.6.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.7.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=0.7.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=0.7.0">
+  <link rel="stylesheet" href="./styles.css?v=0.7.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -278,6 +278,7 @@
       </section>
 
 
+
       <section class="screen" id="screen-listas" data-screen="listas">
         <header class="topbar compact">
           <div>
@@ -287,12 +288,12 @@
         </header>
 
         <div class="tabs compact-tabs">
-          <button class="active" type="button">Compartidas</button>
-          <button type="button">Personales</button>
-          <button type="button">Deseos</button>
+          <button class="active" type="button" data-list-tab="all">Todo</button>
+          <button type="button" data-list-tab="shopping">Compra</button>
+          <button type="button" data-list-tab="wishlist">Deseos</button>
         </div>
 
-        <article class="list-panel shared-list">
+        <article class="list-panel shared-list" data-list-section="shopping">
           <div class="list-header">
             <span class="app-icon" data-icon="cart"></span>
             <div>
@@ -312,7 +313,7 @@
           </form>
         </article>
 
-        <article class="list-panel private-list">
+        <article class="list-panel private-list" data-list-section="shopping">
           <div class="list-header">
             <span class="app-icon" data-icon="lock"></span>
             <div>
@@ -332,25 +333,94 @@
           </form>
         </article>
 
-        <article class="wishlist-card">
+        <article class="wishlist-card" data-list-section="wishlist">
           <div class="wishlist-image" aria-hidden="true">
             <span class="app-icon" data-icon="gift"></span>
           </div>
           <div class="wishlist-content">
             <span class="eyebrow">Lista de deseos</span>
             <h2>Regalos que me gustaría recibir</h2>
-            <p>En esta versión se muestra tu lista de deseos. En la siguiente añadiremos enlaces, imágenes y visibilidad selectiva.</p>
+            <p>Añade enlaces, imagen, precio orientativo y quién puede verlo.</p>
           </div>
         </article>
 
-        <div id="wishlist-items" class="dynamic-list wishlist-dynamic">
-          <p class="empty">Cargando deseos...</p>
-        </div>
+        <article class="list-panel wishlist-editor" data-list-section="wishlist">
+          <div class="list-header">
+            <span class="app-icon" data-icon="gift"></span>
+            <div>
+              <span class="eyebrow">Nuevo deseo</span>
+              <h2>Añadir regalo o deseo</h2>
+              <p>Será privado salvo que marques quién puede verlo.</p>
+            </div>
+          </div>
 
-        <form class="mini-form wishlist-form" id="wishlist-form">
-          <input id="wishlist-input" type="text" placeholder="Añadir deseo o regalo">
-          <button type="submit">Añadir</button>
-        </form>
+          <form id="wishlist-form" class="wishlist-form-v07">
+            <label class="field">
+              <span>Artículo</span>
+              <input id="wishlist-title-input" type="text" placeholder="Ej. Libro, abrigo, accesorio...">
+            </label>
+
+            <label class="field">
+              <span>Enlace</span>
+              <input id="wishlist-url-input" type="url" placeholder="https://...">
+            </label>
+
+            <label class="field">
+              <span>Imagen</span>
+              <input id="wishlist-image-input" type="url" placeholder="URL de imagen, opcional">
+            </label>
+
+            <label class="field">
+              <span>Precio orientativo</span>
+              <input id="wishlist-price-input" type="number" min="0" step="0.01" placeholder="0,00">
+            </label>
+
+            <label class="field">
+              <span>Ocasión o notas</span>
+              <input id="wishlist-note-input" type="text" placeholder="Cumpleaños, Navidad, talla, color...">
+            </label>
+
+            <fieldset class="viewer-box">
+              <legend>Visible para</legend>
+              <div id="wishlist-viewers" class="viewer-options">
+                <p class="empty">Cargando usuarios...</p>
+              </div>
+            </fieldset>
+
+            <button class="form-submit" type="submit">
+              <span class="app-icon" data-icon="gift"></span>
+              Guardar deseo
+            </button>
+          </form>
+        </article>
+
+        <article class="list-panel" data-list-section="wishlist">
+          <div class="list-header">
+            <span class="app-icon" data-icon="gift"></span>
+            <div>
+              <span class="eyebrow">Mis deseos</span>
+              <h2>Mi lista de regalos</h2>
+              <p>Elementos que has guardado en tu perfil.</p>
+            </div>
+          </div>
+          <div id="wishlist-items" class="dynamic-list wishlist-dynamic">
+            <p class="empty">Cargando deseos...</p>
+          </div>
+        </article>
+
+        <article class="list-panel shared-wishes" data-list-section="wishlist">
+          <div class="list-header">
+            <span class="app-icon" data-icon="users"></span>
+            <div>
+              <span class="eyebrow">Compartidos conmigo</span>
+              <h2>Deseos visibles de otros usuarios</h2>
+              <p>Para cumpleaños, Navidad u otras ocasiones.</p>
+            </div>
+          </div>
+          <div id="shared-wishlist-items" class="dynamic-list wishlist-dynamic">
+            <p class="empty">Cargando deseos compartidos...</p>
+          </div>
+        </article>
       </section>
 
       <section class="screen" id="screen-documentos" data-screen="documentos">
@@ -432,7 +502,7 @@
     </main>
   </div>
 
-  <script src="./config.js?v=0.6.0"></script>
-  <script src="./app.js?v=0.6.0"></script>
+  <script src="./config.js?v=0.7.0"></script>
+  <script src="./app.js?v=0.7.0"></script>
 </body>
 </html>

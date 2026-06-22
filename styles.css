@@ -1009,3 +1009,185 @@ button { cursor: pointer; }
 .wishlist-dynamic {
   margin-top: 10px;
 }
+
+
+.is-filtered-out {
+  display: none !important;
+}
+
+.viewer-box {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.viewer-box legend {
+  color: var(--purple-dark);
+  font-weight: 900;
+  font-size: 0.84rem;
+  padding: 0 6px;
+}
+
+.viewer-options {
+  display: grid;
+  gap: 8px;
+}
+
+.viewer-option {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 9px;
+  align-items: center;
+  color: var(--ink);
+  font-weight: 750;
+}
+
+.viewer-option input {
+  width: 17px;
+  height: 17px;
+}
+
+.wishlist-form-v07 {
+  display: grid;
+  gap: 12px;
+}
+
+.form-submit {
+  border: 0;
+  min-height: 48px;
+  border-radius: 17px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #7e63d8, #674ab7);
+  color: white;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.list-item-card {
+  border-bottom: 1px solid rgba(86, 77, 128, 0.09);
+  padding: 10px 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px 10px;
+  align-items: center;
+}
+
+.list-item-card:last-child {
+  border-bottom: 0;
+}
+
+.list-item-main {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: center;
+  font-weight: 780;
+}
+
+.list-item-main input {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 99px;
+  border: 2px solid rgba(112, 116, 140, 0.35);
+}
+
+.list-item-main input:checked {
+  border-color: var(--teal);
+  background: radial-gradient(circle, white 38%, var(--teal) 40%);
+}
+
+.list-item-card em {
+  font-style: normal;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.item-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.item-actions button {
+  border: 0;
+  background: rgba(113, 84, 200, 0.08);
+  color: var(--purple);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.item-actions .danger-text {
+  color: #b8455a;
+  background: rgba(232, 96, 116, 0.1);
+}
+
+.wish-real-card {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.72);
+  padding: 10px;
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 12px;
+}
+
+.wish-real-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: rgba(251, 140, 126, 0.16);
+  color: #d5685d;
+}
+
+.wish-real-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wish-real-body h3 {
+  margin: 0 0 4px;
+  font-size: 0.96rem;
+}
+
+.wish-real-body small {
+  display: block;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.wish-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 7px;
+  flex-wrap: wrap;
+}
+
+.wish-meta strong {
+  color: var(--purple-dark);
+  font-size: 0.82rem;
+}
+
+.wish-meta a {
+  color: var(--purple);
+  font-weight: 900;
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+.shared-wishes {
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.12), rgba(255,255,255,0.95));
+}
