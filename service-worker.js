@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vita-static-v1-1-0';
+const CACHE_NAME = 'vita-static-v1-2-0';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

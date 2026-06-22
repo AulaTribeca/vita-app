@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#7154c8">
   <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=1.1.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=1.1.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=1.1.0">
-  <link rel="stylesheet" href="./styles.css?v=1.1.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=1.2.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=1.2.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=1.2.0">
+  <link rel="stylesheet" href="./styles.css?v=1.2.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -604,38 +604,268 @@
         </article>
       </section>
 
+
       <section class="screen" id="screen-hogar" data-screen="hogar">
         <header class="topbar compact">
           <div>
             <h1>Hogar</h1>
-            <p>Casa, pagos, coche y gestiones compartidas</p>
+            <p>Facturas, coche y gestiones compartidas</p>
           </div>
         </header>
 
         <div class="household"><span>P</span><span>R</span></div>
 
-        <div class="home-shortcuts">
-          <button class="js-go" type="button" data-target="listas"><span class="app-icon" data-icon="cart"></span><strong>Lista de la compra</strong><small>Compartida y personal</small></button>
-          <button class="js-go" type="button" data-target="documentos"><span class="app-icon" data-icon="download"></span><strong>Documentos</strong><small>Descargar o enviar</small></button>
+        <div class="tabs compact-tabs home-tabs">
+          <button class="active" type="button" data-home-tab="summary">Resumen</button>
+          <button type="button" data-home-tab="bills">Facturas</button>
+          <button type="button" data-home-tab="car">Coche</button>
+          <button type="button" data-home-tab="tasks">Gestiones</button>
         </div>
 
-        <div class="section-title"><h2>Próximos pagos y gestiones</h2></div>
+        <article class="home-panel" data-home-section="summary">
+          <div class="list-header">
+            <span class="app-icon" data-icon="home"></span>
+            <div>
+              <span class="eyebrow">Resumen compartido</span>
+              <h2>Casa Patricia y Román</h2>
+              <p>Gastos, vencimientos, coche y burocracia importante.</p>
+            </div>
+          </div>
 
-        <article class="home-item"><span class="home-item-icon luz app-icon" data-icon="zap"></span><div><h3>Factura de luz</h3><p>Vence el 28 mayo</p></div><strong>45,80 € <em>3 días</em></strong></article>
-        <article class="home-item"><span class="home-item-icon casa app-icon" data-icon="home"></span><div><h3>Hipoteca</h3><p>Vence el 01 junio</p></div><strong>850,00 € <em>7 días</em></strong></article>
-        <article class="home-item"><span class="home-item-icon coche app-icon" data-icon="car"></span><div><h3>Seguro del coche</h3><p>Vence el 12 junio</p></div><strong>320,50 € <em>18 días</em></strong></article>
-        <article class="home-item"><span class="home-item-icon obras app-icon" data-icon="hammer"></span><div><h3>Obras</h3><p>Revisión de presupuestos</p></div><strong><em>En curso</em></strong></article>
+          <div class="home-stats-grid">
+            <article class="home-stat-card">
+              <span class="app-icon" data-icon="zap"></span>
+              <div>
+                <strong id="home-next-bills-count">0</strong>
+                <small>facturas próximas</small>
+              </div>
+            </article>
 
-        <div class="section-title"><h2>Lista compartida</h2></div>
+            <article class="home-stat-card">
+              <span class="app-icon" data-icon="car"></span>
+              <div>
+                <strong id="home-car-tasks-count">0</strong>
+                <small>avisos coche</small>
+              </div>
+            </article>
+          </div>
 
-        <article class="card checklist">
-          <label class="check-row"><input type="checkbox" checked><span>Comprar bombillas</span></label>
-          <label class="check-row"><input type="checkbox" checked><span>Pedir cita ITV</span></label>
-          <label class="check-row"><input type="checkbox"><span>Revisar presupuesto obras</span></label>
+          <div id="home-summary-list" class="home-real-list">
+            <p class="empty">Cargando resumen...</p>
+          </div>
+        </article>
+
+        <article class="home-panel" data-home-section="bills">
+          <div class="list-header">
+            <span class="app-icon" data-icon="zap"></span>
+            <div>
+              <span class="eyebrow">Facturas y suministros</span>
+              <h2>Nuevo gasto periódico</h2>
+              <p>Luz, agua, teléfono, internet, seguros, comunidad, IBI, hipoteca...</p>
+            </div>
+          </div>
+
+          <form id="bill-form" class="home-form">
+            <label class="field">
+              <span>Concepto</span>
+              <input id="bill-title-input" type="text" placeholder="Ej. Luz, agua, hipoteca, internet...">
+            </label>
+
+            <label class="field">
+              <span>Empresa o entidad</span>
+              <input id="bill-provider-input" type="text" placeholder="Ej. Naturgy, Abanca, Movistar...">
+            </label>
+
+            <div class="form-grid-2">
+              <label class="field">
+                <span>Importe</span>
+                <input id="bill-amount-input" type="number" min="0" step="0.01" placeholder="0,00">
+              </label>
+
+              <label class="field">
+                <span>Fecha de cargo</span>
+                <input id="bill-due-input" type="date">
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Periodicidad</span>
+              <select id="bill-frequency-input">
+                <option value="monthly">Mensual</option>
+                <option value="bimonthly">Bimestral</option>
+                <option value="quarterly">Trimestral</option>
+                <option value="yearly">Anual</option>
+                <option value="one_time">Puntual</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Categoría</span>
+              <select id="bill-category-input">
+                <option value="electricity">Luz</option>
+                <option value="water">Agua</option>
+                <option value="phone">Telefonía / internet</option>
+                <option value="mortgage">Hipoteca</option>
+                <option value="insurance">Seguro</option>
+                <option value="tax">Impuesto</option>
+                <option value="subscription">Suscripción</option>
+                <option value="other">Otro</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Notas</span>
+              <textarea id="bill-notes-input" rows="3" placeholder="Domiciliada, revisar importe, incidencia, documento pendiente..."></textarea>
+            </label>
+
+            <button class="form-submit" type="submit">
+              <span class="app-icon" data-icon="zap"></span>
+              Guardar factura
+            </button>
+          </form>
+
+          <div class="section-title">
+            <h2>Facturas guardadas</h2>
+          </div>
+          <div id="bills-list" class="home-real-list">
+            <p class="empty">Cargando facturas...</p>
+          </div>
+        </article>
+
+        <article class="home-panel" data-home-section="car">
+          <div class="list-header">
+            <span class="app-icon" data-icon="car"></span>
+            <div>
+              <span class="eyebrow">Vehículos</span>
+              <h2>Nuevo vehículo o aviso</h2>
+              <p>ITV, seguro, impuesto, revisión, neumáticos o taller.</p>
+            </div>
+          </div>
+
+          <form id="vehicle-form" class="home-form">
+            <label class="field">
+              <span>Nombre del coche</span>
+              <input id="vehicle-name-input" type="text" placeholder="Ej. Coche de Patricia">
+            </label>
+
+            <div class="form-grid-2">
+              <label class="field">
+                <span>Matrícula</span>
+                <input id="vehicle-plate-input" type="text" placeholder="0000 XXX">
+              </label>
+
+              <label class="field">
+                <span>Marca / modelo</span>
+                <input id="vehicle-model-input" type="text" placeholder="Ej. Toyota Yaris">
+              </label>
+            </div>
+
+            <button class="form-submit" type="submit">
+              <span class="app-icon" data-icon="car"></span>
+              Guardar vehículo
+            </button>
+          </form>
+
+          <form id="vehicle-task-form" class="home-form secondary-form">
+            <label class="field">
+              <span>Vehículo</span>
+              <select id="vehicle-task-vehicle-input">
+                <option value="">Selecciona vehículo</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Aviso</span>
+              <input id="vehicle-task-title-input" type="text" placeholder="Ej. ITV, seguro, revisión...">
+            </label>
+
+            <div class="form-grid-2">
+              <label class="field">
+                <span>Fecha límite</span>
+                <input id="vehicle-task-due-input" type="date">
+              </label>
+
+              <label class="field">
+                <span>Tipo</span>
+                <select id="vehicle-task-type-input">
+                  <option value="itv">ITV</option>
+                  <option value="insurance">Seguro</option>
+                  <option value="tax">Impuesto</option>
+                  <option value="maintenance">Revisión</option>
+                  <option value="tires">Neumáticos</option>
+                  <option value="other">Otro</option>
+                </select>
+              </label>
+            </div>
+
+            <button class="form-submit secondary-submit" type="submit">
+              <span class="app-icon" data-icon="bell"></span>
+              Guardar aviso
+            </button>
+          </form>
+
+          <div class="section-title">
+            <h2>Vehículos y avisos</h2>
+          </div>
+          <div id="vehicles-list" class="home-real-list">
+            <p class="empty">Cargando vehículos...</p>
+          </div>
+        </article>
+
+        <article class="home-panel" data-home-section="tasks">
+          <div class="list-header">
+            <span class="app-icon" data-icon="file"></span>
+            <div>
+              <span class="eyebrow">Burocracia</span>
+              <h2>Nueva gestión</h2>
+              <p>Renta, obras, hipoteca, universidad, seguros o administración.</p>
+            </div>
+          </div>
+
+          <form id="home-task-form" class="home-form">
+            <label class="field">
+              <span>Gestión</span>
+              <input id="home-task-title-input" type="text" placeholder="Ej. Revisar presupuesto obra, presentar renta...">
+            </label>
+
+            <div class="form-grid-2">
+              <label class="field">
+                <span>Fecha límite</span>
+                <input id="home-task-due-input" type="date">
+              </label>
+
+              <label class="field">
+                <span>Categoría</span>
+                <select id="home-task-category-input">
+                  <option value="house">Casa</option>
+                  <option value="bureaucracy">Burocracia</option>
+                  <option value="university">UNED</option>
+                  <option value="finance">Banco / dinero</option>
+                  <option value="works">Obras</option>
+                  <option value="other">Otra</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Notas</span>
+              <textarea id="home-task-notes-input" rows="3" placeholder="Qué falta, dónde llamar, documento pendiente..."></textarea>
+            </label>
+
+            <button class="form-submit" type="submit">
+              <span class="app-icon" data-icon="check"></span>
+              Guardar gestión
+            </button>
+          </form>
+
+          <div class="section-title">
+            <h2>Gestiones pendientes</h2>
+          </div>
+          <div id="home-tasks-list" class="home-real-list">
+            <p class="empty">Cargando gestiones...</p>
+          </div>
         </article>
       </section>
-
-
 
       <section class="screen" id="screen-listas" data-screen="listas">
         <header class="topbar compact">
@@ -840,7 +1070,7 @@
 
           <p class="fine-print" id="auth-helper">Tus datos se protegen con sesión privada.</p>
 
-          <div id="sync-status" class="sync-status">Listas, salud, citas, volantes y medicación conectados a Supabase.</div>
+          <div id="sync-status" class="sync-status">VITA conectada a Supabase.</div>
         </article>
 
         <article class="privacy-grid">
@@ -860,7 +1090,7 @@
     </main>
   </div>
 
-  <script src="./config.js?v=1.1.0"></script>
-  <script src="./app.js?v=1.1.0"></script>
+  <script src="./config.js?v=1.2.0"></script>
+  <script src="./app.js?v=1.2.0"></script>
 </body>
 </html>

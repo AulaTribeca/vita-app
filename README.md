@@ -1,21 +1,16 @@
-# VITA v1.1
+# VITA v1.2
 
-Nivel 11 de VITA: medicación real y control de stock.
+Nivel 12 de VITA: hogar compartido real.
 
 ## Qué añade
 
-- Tabla `medications`.
-- Tabla `medication_dose_logs`.
-- Alta de medicamentos.
-- Horas de toma.
-- Registro de tomas diarias.
-- Descuento automático de stock al marcar una toma.
-- Cálculo aproximado de días restantes.
-- Aviso visual de compra cuando el stock baja.
-- Reposición de stock por caja.
-- Edición rápida de stock.
-- Archivado de medicación.
-- Privacidad: cada usuario solo ve su propia medicación.
+- Facturas y suministros.
+- Vehículos del hogar.
+- Avisos de coche: ITV, seguro, impuesto, revisión, neumáticos.
+- Gestiones comunes: casa, burocracia, UNED, banco, obras.
+- Resumen del hogar.
+- Datos compartidos entre Patricia y Román mediante el hogar común.
+- Políticas RLS por pertenencia al hogar.
 
 ## Archivos modificados
 
@@ -25,9 +20,9 @@ Nivel 11 de VITA: medicación real y control de stock.
 - `config.js`
 - `service-worker.js`
 - `README.md`
-- `docs/instrucciones_v1_1.md`
-- `docs/supabase_v1_1.sql`
+- `docs/instrucciones_v1_2.md`
+- `docs/supabase_v1_2.sql`
 
 ## Importante
 
-Antes de probar Medicación, ejecuta `docs/supabase_v1_1.sql` en Supabase.
+Antes de probar Hogar, ejecuta `docs/supabase_v1_2.sql` en Supabase.

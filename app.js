@@ -46,8 +46,20 @@ let medicalAppointments = [];
 let medicalDocuments = [];
   medications = [];
   medicationDosesToday = [];
+  householdBills = [];
+  householdVehicles = [];
+  vehicleTasks = [];
+  householdTasks = [];
 let medications = [];
 let medicationDosesToday = [];
+  householdBills = [];
+  householdVehicles = [];
+  vehicleTasks = [];
+  householdTasks = [];
+let householdBills = [];
+let householdVehicles = [];
+let vehicleTasks = [];
+let householdTasks = [];
 
 const HEALTH_TYPES = {
   bathroom: { label: 'Baño', icon: 'bath' },
@@ -319,6 +331,10 @@ async function signOut() {
   medicalDocuments = [];
   medications = [];
   medicationDosesToday = [];
+  householdBills = [];
+  householdVehicles = [];
+  vehicleTasks = [];
+  householdTasks = [];
 }
 
 function injectIcons() {
@@ -849,6 +865,7 @@ async function initializePrivateData() {
   await safeDataLoad('citas', loadMedicalAppointments);
   await safeDataLoad('volantes', loadMedicalDocuments);
   await safeDataLoad('medicación', loadMedications);
+  await safeDataLoad('hogar', loadHomeData);
 
   showSyncStatus('Datos sincronizados.', 'success');
 }
@@ -877,6 +894,10 @@ async function loadProfileAndHousehold() {
   medicalDocuments = [];
   medications = [];
   medicationDosesToday = [];
+  householdBills = [];
+  householdVehicles = [];
+  vehicleTasks = [];
+  householdTasks = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -894,6 +915,10 @@ async function loadProfileAndHousehold() {
   medicalDocuments = [];
   medications = [];
   medicationDosesToday = [];
+  householdBills = [];
+  householdVehicles = [];
+  vehicleTasks = [];
+  householdTasks = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -2061,6 +2086,530 @@ function renderMedicationsError() {
 }
 
 
+
+function setupHome() {
+  setupHomeTabs();
+  setupBillForm();
+  setupVehicleForm();
+  setupVehicleTaskForm();
+  setupHomeTaskForm();
+}
+
+function setupHomeTabs() {
+  document.querySelectorAll('[data-home-tab]').forEach((button) => {
+    button.addEventListener('click', () => selectHomeTab(button.dataset.homeTab));
+  });
+
+  selectHomeTab('summary');
+}
+
+function selectHomeTab(selected) {
+  document.querySelectorAll('[data-home-tab]').forEach((button) => {
+    button.classList.toggle('active', button.dataset.homeTab === selected);
+  });
+
+  document.querySelectorAll('[data-home-section]').forEach((section) => {
+    section.classList.toggle('is-filtered-out', section.dataset.homeSection !== selected);
+  });
+}
+
+function setupBillForm() {
+  const form = document.getElementById('bill-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    if (!currentHousehold?.id) {
+      showSyncStatus('No se ha cargado el hogar compartido.', 'error');
+      return;
+    }
+
+    const title = document.getElementById('bill-title-input').value.trim();
+    if (!title) {
+      showSyncStatus('Escribe el concepto de la factura.', 'error');
+      return;
+    }
+
+    const payload = {
+      household_id: currentHousehold.id,
+      created_by: currentUser.id,
+      title,
+      provider: document.getElementById('bill-provider-input').value.trim() || null,
+      amount: document.getElementById('bill-amount-input').value ? Number(document.getElementById('bill-amount-input').value) : null,
+      due_date: document.getElementById('bill-due-input').value || null,
+      frequency: document.getElementById('bill-frequency-input').value,
+      category: document.getElementById('bill-category-input').value,
+      status: 'pending',
+      notes: document.getElementById('bill-notes-input').value.trim() || null
+    };
+
+    try {
+      await restRequest('household_bills', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(payload)
+      });
+
+      form.reset();
+      await loadHomeData();
+      showSyncStatus('Factura guardada.', 'success');
+    } catch (error) {
+      showSyncStatus(error.message || 'No se pudo guardar la factura.', 'error');
+    }
+  });
+}
+
+function setupVehicleForm() {
+  const form = document.getElementById('vehicle-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    if (!currentHousehold?.id) {
+      showSyncStatus('No se ha cargado el hogar compartido.', 'error');
+      return;
+    }
+
+    const name = document.getElementById('vehicle-name-input').value.trim();
+    if (!name) {
+      showSyncStatus('Escribe un nombre para el vehículo.', 'error');
+      return;
+    }
+
+    const payload = {
+      household_id: currentHousehold.id,
+      created_by: currentUser.id,
+      name,
+      plate: document.getElementById('vehicle-plate-input').value.trim() || null,
+      model: document.getElementById('vehicle-model-input').value.trim() || null,
+      active: true
+    };
+
+    try {
+      await restRequest('household_vehicles', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(payload)
+      });
+
+      form.reset();
+      await loadHomeData();
+      showSyncStatus('Vehículo guardado.', 'success');
+    } catch (error) {
+      showSyncStatus(error.message || 'No se pudo guardar el vehículo.', 'error');
+    }
+  });
+}
+
+function setupVehicleTaskForm() {
+  const form = document.getElementById('vehicle-task-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const vehicleId = document.getElementById('vehicle-task-vehicle-input').value;
+    const title = document.getElementById('vehicle-task-title-input').value.trim();
+
+    if (!vehicleId) {
+      showSyncStatus('Selecciona un vehículo.', 'error');
+      return;
+    }
+
+    if (!title) {
+      showSyncStatus('Escribe el aviso del vehículo.', 'error');
+      return;
+    }
+
+    const payload = {
+      household_id: currentHousehold.id,
+      vehicle_id: vehicleId,
+      created_by: currentUser.id,
+      title,
+      task_type: document.getElementById('vehicle-task-type-input').value,
+      due_date: document.getElementById('vehicle-task-due-input').value || null,
+      status: 'pending'
+    };
+
+    try {
+      await restRequest('vehicle_tasks', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(payload)
+      });
+
+      form.reset();
+      await loadHomeData();
+      showSyncStatus('Aviso de coche guardado.', 'success');
+    } catch (error) {
+      showSyncStatus(error.message || 'No se pudo guardar el aviso.', 'error');
+    }
+  });
+}
+
+function setupHomeTaskForm() {
+  const form = document.getElementById('home-task-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    if (!currentHousehold?.id) {
+      showSyncStatus('No se ha cargado el hogar compartido.', 'error');
+      return;
+    }
+
+    const title = document.getElementById('home-task-title-input').value.trim();
+    if (!title) {
+      showSyncStatus('Escribe la gestión pendiente.', 'error');
+      return;
+    }
+
+    const payload = {
+      household_id: currentHousehold.id,
+      created_by: currentUser.id,
+      title,
+      category: document.getElementById('home-task-category-input').value,
+      due_date: document.getElementById('home-task-due-input').value || null,
+      status: 'pending',
+      notes: document.getElementById('home-task-notes-input').value.trim() || null
+    };
+
+    try {
+      await restRequest('household_tasks', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(payload)
+      });
+
+      form.reset();
+      await loadHomeData();
+      showSyncStatus('Gestión guardada.', 'success');
+    } catch (error) {
+      showSyncStatus(error.message || 'No se pudo guardar la gestión.', 'error');
+    }
+  });
+}
+
+async function loadHomeData() {
+  if (!currentHousehold?.id) {
+    renderHomeUnavailable();
+    return;
+  }
+
+  const householdId = encodeFilter(currentHousehold.id);
+
+  householdBills = await restRequest(`household_bills?select=*&household_id=eq.${householdId}&order=due_date.asc`);
+  householdVehicles = await restRequest(`household_vehicles?select=*&household_id=eq.${householdId}&active=eq.true&order=created_at.asc`);
+  vehicleTasks = await restRequest(`vehicle_tasks?select=*&household_id=eq.${householdId}&order=due_date.asc`);
+  householdTasks = await restRequest(`household_tasks?select=*&household_id=eq.${householdId}&order=due_date.asc`);
+
+  renderHomeData();
+}
+
+function renderHomeData() {
+  renderHomeSummary();
+  renderBills();
+  renderVehicles();
+  renderVehicleSelector();
+  renderHouseholdTasks();
+}
+
+function renderHomeSummary() {
+  const summary = document.getElementById('home-summary-list');
+  if (!summary) return;
+
+  const nextBills = householdBills.filter((bill) => bill.status !== 'paid').slice(0, 3);
+  const nextVehicleTasks = vehicleTasks.filter((task) => task.status !== 'done').slice(0, 2);
+  const nextTasks = householdTasks.filter((task) => task.status !== 'done').slice(0, 2);
+  const items = [
+    ...nextBills.map((bill) => ({ type: 'bill', title: bill.title, subtitle: formatMoney(bill.amount), due: bill.due_date, icon: 'zap' })),
+    ...nextVehicleTasks.map((task) => ({ type: 'car', title: task.title, subtitle: getTaskTypeLabel(task.task_type), due: task.due_date, icon: 'car' })),
+    ...nextTasks.map((task) => ({ type: 'task', title: task.title, subtitle: getHomeCategoryLabel(task.category), due: task.due_date, icon: 'file' }))
+  ].sort((a, b) => compareDates(a.due, b.due));
+
+  setText(document.getElementById('home-next-bills-count'), String(nextBills.length));
+  setText(document.getElementById('home-car-tasks-count'), String(nextVehicleTasks.length));
+
+  if (!items.length) {
+    summary.innerHTML = '<p class="empty">No hay avisos próximos.</p>';
+    return;
+  }
+
+  summary.innerHTML = items.map((item) => renderHomeCard({
+    icon: item.icon,
+    title: item.title,
+    body: item.subtitle,
+    tags: [formatDueDate(item.due)]
+  })).join('');
+
+  injectIcons();
+}
+
+function renderBills() {
+  const container = document.getElementById('bills-list');
+  if (!container) return;
+
+  if (!householdBills.length) {
+    container.innerHTML = '<p class="empty">Todavía no hay facturas guardadas.</p>';
+    return;
+  }
+
+  container.innerHTML = householdBills.map((bill) => renderHomeCard({
+    icon: 'zap',
+    title: bill.title,
+    body: [bill.provider, formatMoney(bill.amount), bill.notes].filter(Boolean).join(' · '),
+    tags: [getBillCategoryLabel(bill.category), getFrequencyLabel(bill.frequency), formatDueDate(bill.due_date), getStatusLabel(bill.status)],
+    actions: [
+      { label: 'Pagada', className: '', action: 'bill-paid', id: bill.id },
+      { label: 'Borrar', className: 'danger-text', action: 'bill-delete', id: bill.id }
+    ]
+  })).join('');
+
+  injectIcons();
+  bindHomeActions(container);
+}
+
+function renderVehicles() {
+  const container = document.getElementById('vehicles-list');
+  if (!container) return;
+
+  if (!householdVehicles.length) {
+    container.innerHTML = '<p class="empty">Todavía no hay vehículos guardados.</p>';
+    return;
+  }
+
+  const tasksByVehicle = vehicleTasks.reduce((acc, task) => {
+    acc[task.vehicle_id] = acc[task.vehicle_id] || [];
+    acc[task.vehicle_id].push(task);
+    return acc;
+  }, {});
+
+  container.innerHTML = householdVehicles.map((vehicle) => {
+    const tasks = (tasksByVehicle[vehicle.id] || []).filter((task) => task.status !== 'done');
+    const taskTags = tasks.slice(0, 3).map((task) => `${task.title}: ${formatDueDate(task.due_date)}`);
+    return renderHomeCard({
+      icon: 'car',
+      title: vehicle.name,
+      body: [vehicle.plate, vehicle.model].filter(Boolean).join(' · ') || 'Vehículo',
+      tags: taskTags.length ? taskTags : ['Sin avisos pendientes'],
+      actions: tasks.slice(0, 2).map((task) => ({ label: `Completar ${task.title}`, className: '', action: 'vehicle-task-done', id: task.id }))
+    });
+  }).join('');
+
+  injectIcons();
+  bindHomeActions(container);
+}
+
+function renderVehicleSelector() {
+  const select = document.getElementById('vehicle-task-vehicle-input');
+  if (!select) return;
+
+  const options = householdVehicles.map((vehicle) => `<option value="${escapeHtml(vehicle.id)}">${escapeHtml(vehicle.name)}</option>`).join('');
+  select.innerHTML = `<option value="">Selecciona vehículo</option>${options}`;
+}
+
+function renderHouseholdTasks() {
+  const container = document.getElementById('home-tasks-list');
+  if (!container) return;
+
+  const pending = householdTasks.filter((task) => task.status !== 'done');
+
+  if (!pending.length) {
+    container.innerHTML = '<p class="empty">No hay gestiones pendientes.</p>';
+    return;
+  }
+
+  container.innerHTML = pending.map((task) => renderHomeCard({
+    icon: 'file',
+    title: task.title,
+    body: task.notes || getHomeCategoryLabel(task.category),
+    tags: [getHomeCategoryLabel(task.category), formatDueDate(task.due_date)],
+    actions: [
+      { label: 'Completar', className: '', action: 'home-task-done', id: task.id },
+      { label: 'Borrar', className: 'danger-text', action: 'home-task-delete', id: task.id }
+    ]
+  })).join('');
+
+  injectIcons();
+  bindHomeActions(container);
+}
+
+function renderHomeCard({ icon, title, body, tags = [], actions = [] }) {
+  return `
+    <article class="home-real-card">
+      <span class="home-real-icon app-icon" data-icon="${escapeHtml(icon)}"></span>
+      <div class="home-real-body">
+        <h3>${escapeHtml(title)}</h3>
+        ${body ? `<p>${escapeHtml(body)}</p>` : ''}
+        <div class="home-real-tags">
+          ${tags.filter(Boolean).map((tag) => `<span class="${isOverdueTag(tag) ? 'warning' : ''}">${escapeHtml(tag)}</span>`).join('')}
+        </div>
+        ${actions.length ? `
+          <div class="home-card-actions">
+            ${actions.map((action) => `<button class="${escapeHtml(action.className)}" type="button" data-home-action="${escapeHtml(action.action)}" data-id="${escapeHtml(action.id)}">${escapeHtml(action.label)}</button>`).join('')}
+          </div>
+        ` : ''}
+      </div>
+    </article>
+  `;
+}
+
+function bindHomeActions(container) {
+  container.querySelectorAll('[data-home-action]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const action = button.dataset.homeAction;
+      const id = button.dataset.id;
+
+      try {
+        if (action === 'bill-paid') {
+          await restRequest(`household_bills?id=eq.${encodeFilter(id)}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({ status: 'paid', paid_at: new Date().toISOString() })
+          });
+        }
+
+        if (action === 'bill-delete') {
+          if (!window.confirm('¿Borrar esta factura?')) return;
+          await restRequest(`household_bills?id=eq.${encodeFilter(id)}`, {
+            method: 'DELETE',
+            headers: { Prefer: 'return=minimal' }
+          });
+        }
+
+        if (action === 'vehicle-task-done') {
+          await restRequest(`vehicle_tasks?id=eq.${encodeFilter(id)}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({ status: 'done', completed_at: new Date().toISOString() })
+          });
+        }
+
+        if (action === 'home-task-done') {
+          await restRequest(`household_tasks?id=eq.${encodeFilter(id)}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({ status: 'done', completed_at: new Date().toISOString() })
+          });
+        }
+
+        if (action === 'home-task-delete') {
+          if (!window.confirm('¿Borrar esta gestión?')) return;
+          await restRequest(`household_tasks?id=eq.${encodeFilter(id)}`, {
+            method: 'DELETE',
+            headers: { Prefer: 'return=minimal' }
+          });
+        }
+
+        await loadHomeData();
+        showSyncStatus('Hogar actualizado.', 'success');
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo actualizar Hogar.', 'error');
+      }
+    });
+  });
+}
+
+function renderHomeUnavailable() {
+  ['home-summary-list', 'bills-list', 'vehicles-list', 'home-tasks-list'].forEach((id) => {
+    const container = document.getElementById(id);
+    if (container) {
+      container.innerHTML = '<p class="empty error-text">No se pudo cargar el hogar compartido.</p>';
+    }
+  });
+}
+
+function formatMoney(value) {
+  if (value === null || value === undefined || value === '') return '';
+  return Number(value).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+}
+
+function formatDueDate(value) {
+  if (!value) return 'Sin fecha';
+
+  const date = new Date(`${value}T00:00:00`);
+  const formatted = date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (date < today) return `Vencido · ${formatted}`;
+  return formatted;
+}
+
+function isOverdueTag(value) {
+  return String(value || '').startsWith('Vencido');
+}
+
+function compareDates(a, b) {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return new Date(a) - new Date(b);
+}
+
+function getBillCategoryLabel(value) {
+  const labels = {
+    electricity: 'Luz',
+    water: 'Agua',
+    phone: 'Telefonía',
+    mortgage: 'Hipoteca',
+    insurance: 'Seguro',
+    tax: 'Impuesto',
+    subscription: 'Suscripción',
+    other: 'Otro'
+  };
+  return labels[value] || 'Factura';
+}
+
+function getFrequencyLabel(value) {
+  const labels = {
+    monthly: 'Mensual',
+    bimonthly: 'Bimestral',
+    quarterly: 'Trimestral',
+    yearly: 'Anual',
+    one_time: 'Puntual'
+  };
+  return labels[value] || 'Sin periodicidad';
+}
+
+function getStatusLabel(value) {
+  const labels = {
+    pending: 'Pendiente',
+    paid: 'Pagada',
+    reviewed: 'Revisada',
+    claimed: 'Reclamada'
+  };
+  return labels[value] || 'Pendiente';
+}
+
+function getTaskTypeLabel(value) {
+  const labels = {
+    itv: 'ITV',
+    insurance: 'Seguro',
+    tax: 'Impuesto',
+    maintenance: 'Revisión',
+    tires: 'Neumáticos',
+    other: 'Otro'
+  };
+  return labels[value] || 'Aviso';
+}
+
+function getHomeCategoryLabel(value) {
+  const labels = {
+    house: 'Casa',
+    bureaucracy: 'Burocracia',
+    university: 'UNED',
+    finance: 'Banco / dinero',
+    works: 'Obras',
+    other: 'Otra'
+  };
+  return labels[value] || 'Gestión';
+}
+
+
 function setupDocumentDemo() {
   const downloadButton = document.getElementById('download-demo');
   const emailButton = document.getElementById('email-demo');
@@ -2129,6 +2678,7 @@ function boot() {
   safeSetup('citas', setupMedicalAppointments);
   safeSetup('documentos médicos', setupMedicalDocuments);
   safeSetup('medicación', setupMedications);
+  safeSetup('hogar', setupHome);
   safeSetup('listas', setupShoppingForms);
   safeSetup('documentos', setupDocumentDemo);
   safeSetup('registros de salud iniciales', () => renderHealthRecords([]));
