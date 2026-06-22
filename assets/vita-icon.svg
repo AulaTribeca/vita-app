@@ -1,24 +1,15 @@
 <svg width="520" height="520" viewBox="0 0 520 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="VITA">
   <defs>
-    <linearGradient id="leafPurple" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#A58BEA"/>
-      <stop offset="100%" stop-color="#6E56CF"/>
-    </linearGradient>
-    <linearGradient id="leafTeal" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#4FC5BD"/>
-      <stop offset="100%" stop-color="#168C89"/>
-    </linearGradient>
-    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#3D326B" flood-opacity="0.18"/>
-    </filter>
+    <linearGradient id="p" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#A58BEA"/><stop offset="100%" stop-color="#6E56CF"/></linearGradient>
+    <linearGradient id="t" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#56D1CA"/><stop offset="100%" stop-color="#168C89"/></linearGradient>
   </defs>
   <rect width="520" height="520" rx="126" fill="#FBF8FF"/>
-  <g filter="url(#softShadow)" transform="translate(87 56)">
-    <path d="M171 360 C169 307 172 256 189 210 C204 169 232 135 262 103" fill="none" stroke="#51477A" stroke-width="18" stroke-linecap="round"/>
-    <path d="M187 211 C130 190 86 150 69 88 C130 98 178 139 187 211Z" fill="url(#leafTeal)"/>
-    <path d="M220 161 C178 113 167 57 193 0 C243 44 254 107 220 161Z" fill="url(#leafPurple)"/>
-    <path d="M245 126 C282 72 335 42 397 42 C379 105 323 151 245 126Z" fill="url(#leafPurple)"/>
-    <path d="M176 281 C116 263 69 227 37 169 C98 167 159 201 176 281Z" fill="url(#leafTeal)"/>
-    <path d="M202 250 C240 201 295 174 362 177 C338 240 279 283 202 250Z" fill="url(#leafPurple)"/>
+  <g transform="translate(74 52)">
+    <path d="M180 380 C176 315 183 250 204 206 C222 169 248 137 284 98" fill="none" stroke="#222043" stroke-width="17" stroke-linecap="round"/>
+    <path d="M197 214 C134 193 84 151 64 84 C132 94 187 139 197 214Z" fill="url(#t)"/>
+    <path d="M232 165 C187 112 177 52 206 0 C260 48 268 112 232 165Z" fill="url(#p)"/>
+    <path d="M260 128 C299 72 357 39 424 42 C399 111 339 156 260 128Z" fill="url(#p)"/>
+    <path d="M186 293 C121 272 70 229 35 166 C102 164 170 203 186 293Z" fill="url(#t)"/>
+    <path d="M213 258 C255 205 315 177 386 182 C359 250 293 293 213 258Z" fill="url(#p)"/>
   </g>
 </svg>

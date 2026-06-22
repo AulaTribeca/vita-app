@@ -1,35 +1,30 @@
-# VITA v5.2.2, sin cron
+# VITA ONE 1.0
 
-Proyecto completo listo para subir a GitHub.
+Reconstrucción conceptual de VITA como asistente personal visual, no como colección de formularios.
 
-## Qué cambia
+## Prioridades reales
 
-Se elimina el cron de notificaciones para evitar filtraciones de Bearer Token y dejar de depender de un secreto escrito en SQL.
-
-La app mantiene:
-
-- PWA completa.
-- Login privado.
-- Logo vegetal oficial.
-- Tarjetas clicables.
-- Hoy, Calendario, Salud, Hogar y Más.
-- Prueba local de notificaciones.
-- Prueba push real manual desde la app.
-- Edge Function sin cron.
+- Pantalla Hoy útil.
+- Lista de la compra real, una entrada por producto.
+- Checkbox y tachado de productos comprados.
+- Salud con citas, volantes, medicación y registros.
+- Medicación con stock y botón para añadir a farmacia.
+- Hogar organizado por activos, coche, facturas y contactos.
+- Calendario con día, semana, mes y año.
+- Botón atrás del móvil funcional mediante historial del navegador.
+- Sin cron y sin tokens reales en GitHub.
 
 ## SQL obligatorio
 
-Ejecuta si todavía no tienes la base v5:
+Ejecuta:
 
-`docs/supabase_v5_2_core.sql`
+`docs/supabase_vita_one_schema.sql`
 
-## SQL para eliminar el cron
+## SQL recomendado
 
-Ejecuta una vez:
+Para eliminar cron antiguo si quedó programado:
 
-`docs/supabase_v5_2_2_eliminar_cron.sql`
-
-Este SQL no contiene secretos.
+`docs/supabase_vita_one_eliminar_cron_antiguo.sql`
 
 ## Edge Function
 
@@ -45,8 +40,6 @@ Secrets necesarios:
 - `VAPID_PRIVATE_KEY`
 - `VAPID_SUBJECT`
 
-## GitHub
+## Commit sugerido
 
-Commit sugerido:
-
-`VITA v5.2.2 elimina cron`
+`VITA ONE 1.0`

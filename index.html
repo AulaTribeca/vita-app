@@ -7,222 +7,101 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="VITA">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=5.2.2">
-  <link rel="icon" href="./assets/vita-icon.svg?v=5.2.2" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=5.2.2">
-  <link rel="stylesheet" href="./styles.css?v=5.2.2">
+  <title>VITA ONE</title>
+  <link rel="manifest" href="./manifest.webmanifest?v=one-1">
+  <link rel="icon" href="./assets/vita-icon.svg?v=one-1" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=one-1">
+  <link rel="stylesheet" href="./styles.css?v=one-1">
 </head>
 <body>
-  <section id="login-screen" class="login-screen">
-    <div class="login-card">
-      <img src="./assets/vita-icon.svg" class="login-logo" alt="">
-      <p class="eyebrow">VITA v5.2</p>
-      <h1>Tu vida, en orden</h1>
-      <p>Una app para recordar, avisar y organizar, sin tener que buscarlo todo.</p>
+  <section id="login-view" class="login-view">
+    <article class="login-card">
+      <img src="./assets/vita-icon.svg" alt="" class="login-logo">
+      <p class="eyebrow">VITA ONE</p>
+      <h1>Tu asistente personal de vida diaria.</h1>
+      <p>Menos ruido. Más claridad. Lo que toca, justo cuando lo necesitas.</p>
       <form id="login-form" class="form-stack" novalidate>
         <label class="field"><span>Usuario</span><input id="login-user" type="text" placeholder="Patricia o Román" autocomplete="username"></label>
-        <label class="field"><span>Contraseña</span><input id="login-pass" type="password" placeholder="Contraseña" autocomplete="current-password"></label>
-        <button class="primary-button" type="submit">Entrar</button>
+        <label class="field"><span>Contraseña</span><input id="login-password" type="password" placeholder="Contraseña" autocomplete="current-password"></label>
+        <button class="primary" type="submit">Entrar</button>
       </form>
-      <p id="login-msg" class="status-line">Acceso privado.</p>
-    </div>
+      <p id="login-message" class="notice">Acceso privado.</p>
+    </article>
   </section>
 
   <main id="app" class="app hidden">
-    <header class="app-header">
-      <div>
-        <div class="brand"><img src="./assets/vita-icon.svg" alt=""><span>VITA</span></div>
+    <header class="topbar">
+      <button id="back-button" class="round hidden" type="button" aria-label="Volver">←</button>
+      <div class="topbar-text">
+        <div class="brand"><img src="./assets/vita-icon.svg" alt=""><strong>VITA</strong><span>ONE</span></div>
         <h1 id="screen-title">Hoy</h1>
-        <p id="screen-subtitle">Lo urgente, lo próximo y lo que necesita acción.</p>
+        <p id="screen-subtitle">Lo importante, sin buscar.</p>
       </div>
-      <button id="account-button" class="circle-button" type="button" aria-label="Cuenta">👤</button>
+      <button id="account-shortcut" class="round" type="button" aria-label="Cuenta">👤</button>
     </header>
 
-    <section id="global-status" class="global-status">Cargando...</section>
+    <section id="app-status" class="notice">Preparando VITA...</section>
 
-    <section id="screen-home" class="screen active">
-      <article id="push-warning" class="push-card">
-        <div>
-          <span class="badge">Avisos</span>
-          <h2>Notificaciones push</h2>
-          <p id="push-summary">Comprueba permisos, suscripción y envío real.</p>
-        </div>
-        <button class="secondary-button" data-nav="more" data-open-more="notifications" type="button">Revisar</button>
+    <section class="screen active" id="screen-today">
+      <article class="now-card">
+        <div><span class="eyebrow">Ahora</span><h2 id="now-title">Cargando...</h2><p id="now-text">VITA está ordenando tus próximos pasos.</p></div>
+        <button class="primary" data-open-form="task" type="button">Añadir</button>
       </article>
-
-      <article class="focus-panel">
-        <div>
-          <span class="eyebrow">Ahora</span>
-          <h2 id="today-focus">Cargando pendientes...</h2>
-          <p id="today-focus-sub">VITA debe decirte qué toca, no obligarte a buscarlo.</p>
-        </div>
-        <button id="quick-add-task" class="primary-button" type="button">Añadir</button>
-      </article>
-
-      <section class="section-block">
-        <div class="section-title">
-          <h2>Hoy</h2>
-          <span id="today-count" class="count-pill">0</span>
-        </div>
-        <div id="today-list" class="stack-list"></div>
-      </section>
-
-      <section class="section-block">
-        <div class="section-title">
-          <h2>Esta semana</h2>
-          <span id="week-count" class="count-pill">0</span>
-        </div>
-        <div id="week-list" class="stack-list"></div>
-      </section>
-
-      <section class="section-block">
-        <div class="section-title">
-          <h2>Accesos principales</h2>
-          <span class="count-pill">tocar</span>
-        </div>
-        <div id="home-shortcuts" class="module-grid"></div>
-      </section>
+      <article class="panel"><div class="panel-head"><h2>Hoy</h2><span id="today-count" class="count">0</span></div><div class="card-list" id="today-list"></div></article>
+      <article class="panel"><div class="panel-head"><h2>Esta semana</h2><span id="week-count" class="count">0</span></div><div class="card-list" id="week-list"></div></article>
+      <article class="panel"><div class="panel-head"><h2>Accesos limpios</h2><span class="count">5</span></div><div class="tile-grid">
+        <button class="tile" data-nav="shopping" type="button">🛒<strong>Compra</strong><small>lista compartida</small></button>
+        <button class="tile" data-nav="calendar" type="button">📅<strong>Calendario</strong><small>día, semana, mes</small></button>
+        <button class="tile" data-nav="health" type="button">♡<strong>Salud</strong><small>citas y medicación</small></button>
+        <button class="tile" data-nav="home" type="button">⌂<strong>Hogar</strong><small>activos y gestiones</small></button>
+        <button class="tile" data-nav="more" type="button">⚙<strong>Más</strong><small>avisos, viajes, UNED</small></button>
+      </div></article>
     </section>
 
-    <section id="screen-calendar" class="screen">
-      <article class="section-block">
-        <div class="calendar-toolbar">
-          <button id="calendar-prev" class="small-button" type="button">←</button>
-          <input id="calendar-date" type="date">
-          <button id="calendar-next" class="small-button" type="button">→</button>
-        </div>
-        <div class="view-switch">
-          <button class="active" data-view="month" type="button">Mes</button>
-          <button data-view="week" type="button">Semana</button>
-          <button data-view="day" type="button">Día</button>
-        </div>
-        <div class="filter-row" id="calendar-filters"></div>
-        <div id="calendar-grid" class="calendar-grid"></div>
-      </article>
-
-      <article class="section-block">
-        <div class="section-title">
-          <h2 id="selected-day-title">Día seleccionado</h2>
-          <button id="calendar-add-button" class="small-button" type="button">Añadir evento</button>
-        </div>
-        <div id="selected-day-list" class="stack-list"></div>
+    <section class="screen" id="screen-shopping">
+      <article class="panel shopping-panel">
+        <div class="panel-head"><div><h2>Lista de la compra</h2><p>Una línea por producto. Cada línea se convierte en un elemento con check.</p></div><span id="shopping-count" class="count">0</span></div>
+        <form id="shopping-form" class="shopping-form">
+          <textarea id="shopping-input" rows="5" placeholder="Leche&#10;Pan&#10;Detergente&#10;Bilasten"></textarea>
+          <div class="shopping-row"><select id="shopping-category"><option value="supermercado">Supermercado</option><option value="farmacia">Farmacia</option><option value="casa">Casa</option><option value="otros">Otros</option></select><button class="primary" type="submit">Añadir productos</button></div>
+        </form>
+        <div id="shopping-wallet" class="wallet-strip"></div>
+        <div class="tool-row"><button id="toggle-bought" class="chip active" type="button">Ocultar comprados</button><button id="clear-bought" class="chip danger" type="button">Borrar comprados</button></div>
+        <div class="shopping-sections" id="shopping-list"></div>
       </article>
     </section>
 
-    <section id="screen-health" class="screen">
-      <article class="section-block">
-        <div class="section-title">
-          <h2>Salud</h2>
-          <span class="count-pill">clicable</span>
-        </div>
-        <div id="health-grid" class="module-grid"></div>
-      </article>
-      <article class="section-block">
-        <div class="section-title">
-          <h2>Próximo en salud</h2>
-          <span id="health-count" class="count-pill">0</span>
-        </div>
-        <div id="health-list" class="stack-list"></div>
-      </article>
+    <section class="screen" id="screen-calendar">
+      <article class="panel"><div class="calendar-toolbar"><button class="chip" id="calendar-prev" type="button">←</button><input id="calendar-date" type="date"><button class="chip" id="calendar-next" type="button">→</button></div><div class="segmented"><button class="active" data-calendar-mode="month" type="button">Mes</button><button data-calendar-mode="week" type="button">Semana</button><button data-calendar-mode="day" type="button">Día</button><button data-calendar-mode="year" type="button">Año</button></div><div id="calendar-filters" class="filter-row"></div><div id="calendar-grid" class="calendar-grid"></div></article>
+      <article class="panel"><div class="panel-head"><h2 id="selected-day-title">Día seleccionado</h2><button class="chip" data-open-form="task-for-day" type="button">Añadir</button></div><div id="selected-day-list" class="card-list"></div></article>
     </section>
 
-    <section id="screen-homehub" class="screen">
-      <article class="section-block">
-        <div class="section-title">
-          <h2>Hogar</h2>
-          <span class="count-pill">activos</span>
-        </div>
-        <div id="homehub-grid" class="module-grid"></div>
-      </article>
-      <article class="section-block">
-        <div class="section-title">
-          <h2>Próximo en hogar</h2>
-          <span id="homehub-count" class="count-pill">0</span>
-        </div>
-        <div id="homehub-list" class="stack-list"></div>
-      </article>
+    <section class="screen" id="screen-health">
+      <div class="tile-grid section-tabs"><button class="tile active" data-subtab="health-records" type="button">♡<strong>Registros</strong><small>cuerpo y ánimo</small></button><button class="tile" data-subtab="health-appointments" type="button">🏥<strong>Citas</strong><small>preparar y completar</small></button><button class="tile" data-subtab="health-documents" type="button">📄<strong>Volantes</strong><small>pendientes y usados</small></button><button class="tile" data-subtab="health-meds" type="button">💊<strong>Medicación</strong><small>stock y compra</small></button></div>
+      <article class="panel subpanel active" id="health-records"><div class="panel-head"><h2>Registros de salud</h2><button class="chip" data-open-form="health-record" type="button">Añadir</button></div><div id="health-record-list" class="card-list"></div></article>
+      <article class="panel subpanel" id="health-appointments"><div class="panel-head"><h2>Citas médicas</h2><button class="chip" data-open-form="appointment" type="button">Añadir</button></div><div id="appointment-list" class="card-list"></div></article>
+      <article class="panel subpanel" id="health-documents"><div class="panel-head"><h2>Volantes e informes</h2><button class="chip" data-open-form="medical-document" type="button">Añadir</button></div><div id="medical-document-list" class="card-list"></div></article>
+      <article class="panel subpanel" id="health-meds"><div class="panel-head"><h2>Medicación</h2><button class="chip" data-open-form="medication" type="button">Añadir</button></div><div id="medication-list" class="card-list"></div></article>
     </section>
 
-    <section id="screen-more" class="screen">
-      <article class="section-block">
-        <div class="section-title">
-          <h2>Más</h2>
-          <span class="count-pill">módulos</span>
-        </div>
-        <div id="more-grid" class="module-grid"></div>
-      </article>
-
-      <article class="section-block hidden" id="notifications-panel">
-        <div class="push-center">
-          <span class="badge">Centro de avisos</span>
-          <h2>Activar y probar push</h2>
-          <p>VITA comprobará instalación, permiso, service worker, suscripción, guardado en Supabase y envío desde Edge Function.</p>
-          <div class="button-row">
-            <button id="enable-push" class="primary-button" type="button">Activar avisos</button>
-            <button id="test-local" class="secondary-button" type="button">Prueba local</button>
-            <button id="test-push" class="secondary-button" type="button">Prueba push real</button>
-          </div>
-        </div>
-        <div class="section-title"><h2>Diagnóstico</h2></div>
-        <div id="push-diagnostics" class="diagnostic-list"></div>
-        <div class="section-title extra-title"><h2>Avisos programados</h2></div>
-        <div id="notification-cards" class="stack-list"></div>
-      </article>
+    <section class="screen" id="screen-home">
+      <div class="tile-grid section-tabs"><button class="tile active" data-subtab="home-assets" type="button">⌂<strong>Activos</strong><small>casa, piso</small></button><button class="tile" data-subtab="home-car" type="button">🚗<strong>Coche</strong><small>ITV, seguro...</small></button><button class="tile" data-subtab="home-bills" type="button">💶<strong>Facturas</strong><small>suministros</small></button><button class="tile" data-subtab="home-contacts" type="button">☎️<strong>Contactos</strong><small>proveedores</small></button></div>
+      <article class="panel subpanel active" id="home-assets"><div class="panel-head"><h2>Activos</h2><button class="chip" data-open-form="home-asset" type="button">Añadir</button></div><div id="asset-list" class="card-list"></div></article>
+      <article class="panel subpanel" id="home-car"><div class="panel-head"><h2>Coche</h2><button class="chip" data-open-form="home-car" type="button">Añadir</button></div><div id="car-list" class="card-list"></div></article>
+      <article class="panel subpanel" id="home-bills"><div class="panel-head"><h2>Facturas y suministros</h2><button class="chip" data-open-form="home-bill" type="button">Añadir</button></div><div id="bill-list" class="card-list"></div></article>
+      <article class="panel subpanel" id="home-contacts"><div class="panel-head"><h2>Contactos útiles</h2><button class="chip" data-open-form="home-contact" type="button">Añadir</button></div><div id="contact-list" class="card-list"></div></article>
     </section>
 
-    <section id="screen-module-detail" class="screen">
-      <button class="back-button" type="button" id="module-back-button">← Volver</button>
-      <article class="module-hero">
-        <div>
-          <span id="module-detail-badge" class="badge"></span>
-          <h2 id="module-detail-title"></h2>
-          <p id="module-detail-subtitle"></p>
-        </div>
-        <button id="module-add-button" class="primary-button" type="button">Añadir</button>
-      </article>
-      <div id="module-items" class="stack-list"></div>
+    <section class="screen" id="screen-more">
+      <article class="panel"><div class="panel-head"><h2>Más</h2><span class="count">ordenado</span></div><div class="tile-grid"><button class="tile" data-open-form="task" type="button">✅<strong>Tarea</strong><small>pendiente general</small></button><button class="tile" data-open-form="university" type="button">🎓<strong>UNED</strong><small>exámenes y entregas</small></button><button class="tile" data-open-form="travel" type="button">✈️<strong>Viaje</strong><small>vuelos y estancias</small></button><button class="tile" data-open-form="bureaucracy" type="button">📁<strong>Trámite</strong><small>papeleo</small></button></div></article>
+      <article class="panel"><div class="panel-head"><h2>Notificaciones</h2><span id="push-state" class="count">comprobar</span></div><p>Sin cron y sin tokens en GitHub. Las pruebas push se hacen manualmente desde aquí.</p><div class="tool-row"><button id="enable-push" class="primary" type="button">Activar avisos</button><button id="test-local" class="chip" type="button">Prueba local</button><button id="test-push" class="chip" type="button">Prueba push real</button></div><div id="push-diagnostics" class="diagnostic-list"></div></article>
+      <article class="panel"><div class="account-line"><img src="./assets/vita-icon.svg" alt=""><div><h2 id="account-name">Cuenta</h2><p id="account-email">Sesión privada</p></div></div><button id="logout" class="danger full" type="button">Cerrar sesión</button></article>
     </section>
 
-    <section id="screen-account" class="screen">
-      <article class="section-block">
-        <div class="account-card">
-          <img src="./assets/vita-icon.svg" alt="">
-          <div>
-            <h2 id="account-name">Cuenta</h2>
-            <p id="account-email">Sesión privada</p>
-          </div>
-        </div>
-        <button id="install-app" class="primary-button" type="button">Instalar / reinstalar app</button>
-        <button id="logout" class="danger-button" type="button">Cerrar sesión</button>
-      </article>
-    </section>
-
-    <nav class="bottom-nav">
-      <button class="nav-item active" data-nav="home" type="button">🏠<span>Hoy</span></button>
-      <button class="nav-item" data-nav="calendar" type="button">📅<span>Calendario</span></button>
-      <button class="nav-item" data-nav="health" type="button">♡<span>Salud</span></button>
-      <button class="nav-item" data-nav="homehub" type="button">⌂<span>Hogar</span></button>
-      <button class="nav-item" data-nav="more" type="button">⚙<span>Más</span></button>
-    </nav>
+    <nav class="bottom-nav"><button class="active" data-nav="today" type="button">🏠<span>Hoy</span></button><button data-nav="shopping" type="button">🛒<span>Compra</span></button><button data-nav="calendar" type="button">📅<span>Calendario</span></button><button data-nav="health" type="button">♡<span>Salud</span></button><button data-nav="home" type="button">⌂<span>Hogar</span></button></nav>
   </main>
 
-  <dialog id="card-dialog" class="modal">
-    <form method="dialog">
-      <button class="modal-close" value="cancel">×</button>
-    </form>
-    <div id="card-dialog-body"></div>
-  </dialog>
-
-  <dialog id="form-dialog" class="modal">
-    <form method="dialog">
-      <button class="modal-close" value="cancel">×</button>
-    </form>
-    <div id="form-dialog-body"></div>
-  </dialog>
-
-  <script src="./config.js?v=5.2.2"></script>
-  <script src="./app.js?v=5.2.2"></script>
+  <dialog id="dialog"><form method="dialog"><button class="dialog-close" value="cancel">×</button></form><div id="dialog-body"></div></dialog>
+  <script src="./config.js?v=one-1"></script><script src="./app.js?v=one-1"></script>
 </body>
 </html>

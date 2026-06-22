@@ -1,893 +1,242 @@
-const CONFIG = window.VITA_CONFIG;
-const SESSION_KEY = "vita-session-v5";
-
-const MODULES = [
-  { id: "tasks", label: "Tareas", emoji: "✅", subtitle: "Pendientes, recados y acciones", group: "more", visibility: "private", calendar: "tasks" },
-  { id: "reminders", label: "Recordatorios", emoji: "🔔", subtitle: "Avisos sueltos y cosas que no puedes olvidar", group: "more", visibility: "private", calendar: "reminders" },
-  { id: "health_records", label: "Registros", emoji: "💗", subtitle: "Baño, síntomas, sueño, regla, dolor y ánimo", group: "health", visibility: "private", calendar: "health" },
-  { id: "medical", label: "Citas médicas", emoji: "🏥", subtitle: "Citas, resumen, alta y seguimiento", group: "health", visibility: "private", calendar: "medical" },
-  { id: "documents", label: "Volantes e informes", emoji: "📄", subtitle: "Documentos médicos y adjuntos pendientes", group: "health", visibility: "private", calendar: "medical" },
-  { id: "medication", label: "Medicación", emoji: "💊", subtitle: "Stock, pauta y aviso de compra", group: "health", visibility: "private", calendar: "medication" },
-  { id: "pharmacy", label: "Farmacia", emoji: "✚", subtitle: "Compras de medicación y farmacia", group: "health", visibility: "private", calendar: "medication" },
-  { id: "home_assets", label: "Casa y piso", emoji: "🏡", subtitle: "Activos importantes del hogar", group: "homehub", visibility: "household", calendar: "home" },
-  { id: "vehicles", label: "Coche", emoji: "🚗", subtitle: "Coche, seguro, ITV y gasolina", group: "homehub", visibility: "household", calendar: "home" },
-  { id: "bills", label: "Facturas", emoji: "💶", subtitle: "Cargos, suministros e impuestos", group: "homehub", visibility: "household", calendar: "bills" },
-  { id: "supplies", label: "Suministros", emoji: "💡", subtitle: "Luz, agua, telefonía e internet", group: "homehub", visibility: "household", calendar: "bills" },
-  { id: "works", label: "Obras", emoji: "🧰", subtitle: "Obras, presupuestos y mantenimiento", group: "homehub", visibility: "household", calendar: "home" },
-  { id: "mortgage", label: "Hipoteca", emoji: "🏠", subtitle: "Hipoteca y vivienda", group: "homehub", visibility: "household", calendar: "bills" },
-  { id: "shopping", label: "Compra compartida", emoji: "🛒", subtitle: "Lista de la compra común", group: "homehub", visibility: "household", calendar: "shopping" },
-  { id: "wallet", label: "Wallet", emoji: "💳", subtitle: "Eroski, IKEA y tarjetas útiles", group: "homehub", visibility: "private", calendar: "home" },
-  { id: "contacts", label: "Contactos útiles", emoji: "☎️", subtitle: "Teléfonos, proveedores y emergencias", group: "homehub", visibility: "household", calendar: "home" },
-  { id: "university", label: "Universidad", emoji: "🎓", subtitle: "UNED, exámenes, cursos y entregas", group: "more", visibility: "private", calendar: "university" },
-  { id: "bureaucracy", label: "Burocracia", emoji: "📁", subtitle: "Trámites, documentos y gestiones", group: "more", visibility: "private", calendar: "tasks" },
-  { id: "travel", label: "Viajes y vacaciones", emoji: "✈️", subtitle: "Vacaciones, vuelos, estancias y desplazamientos", group: "more", visibility: "household", calendar: "travel" },
-  { id: "private_list", label: "Lista privada", emoji: "🔒", subtitle: "Cosas solo tuyas", group: "more", visibility: "private", calendar: "tasks" },
-  { id: "wishlist", label: "Deseos", emoji: "🎁", subtitle: "Regalos y enlaces visibles para quien elijas", group: "more", visibility: "private", calendar: "tasks" },
-  { id: "search", label: "Búsqueda", emoji: "🔎", subtitle: "Localizar información guardada", group: "more", visibility: "private", calendar: "tasks" },
-  { id: "privacy", label: "Privacidad", emoji: "🔐", subtitle: "Privado y compartido", group: "more", visibility: "private", calendar: "tasks" },
-  { id: "settings", label: "Ajustes", emoji: "⚙️", subtitle: "Cuenta, instalación y preferencias", group: "more", visibility: "private", calendar: "tasks" }
-];
-
-const MODULE_BY_ID = Object.fromEntries(MODULES.map((m) => [m.id, m]));
-const GROUP_TITLES = {
-  home: ["Hoy", "Lo urgente, lo próximo y lo que necesita acción."],
-  calendar: ["Calendario", "Día, semana, mes y filtros."],
-  health: ["Salud", "Registros, citas, volantes y medicación."],
-  homehub: ["Hogar", "Casa, piso, coche, facturas, listas y contactos."],
-  more: ["Más", "Tareas, universidad, viajes, documentos y ajustes."],
-  account: ["Cuenta", "Instalación, sesión y ajustes."],
-  "module-detail": ["Módulo", "Ver, añadir, editar y borrar."]
+const C = window.VITA_CONFIG;
+const SESSION_KEY = "vita-one-session";
+const table = {
+  tasks: "vita_one_tasks",
+  shopping: "vita_one_shopping_items",
+  health: "vita_one_health_records",
+  appointments: "vita_one_appointments",
+  meds: "vita_one_medications",
+  docs: "vita_one_documents",
+  home: "vita_one_home_items",
+  push: "vita_push_subscriptions"
 };
-
-let currentUser = null;
-let currentHousehold = null;
-let currentModuleId = null;
-let previousScreen = "home";
+let user = null;
+let householdId = null;
 let deferredPrompt = null;
-let calendarCursor = new Date();
-let calendarView = "month";
-let calendarFilter = "all";
-let cards = [];
-let pushSubscription = null;
-
-function $(id) { return document.getElementById(id); }
-function cfg() { return CONFIG; }
-function todayStart() { const d = new Date(); d.setHours(0,0,0,0); return d; }
-function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() + days); return d; }
-function escapeHtml(value) {
-  return String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+let state = {
+  view: "today",
+  previousView: "today",
+  calendar: new Date(),
+  calendarMode: "month",
+  calendarFilter: "all",
+  hideBought: true,
+  tasks: [], shopping: [], health: [], appointments: [], meds: [], docs: [], home: [], pushSub: null
+};
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+const todayStart = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const sameDay = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+const dateText = (v) => v ? new Date(v).toLocaleDateString("es-ES",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}) : "Sin fecha";
+const shortDate = (v) => v ? new Date(v).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}) : "";
+const setNotice = (msg,type="") => { const n = $("app-status"); if(n){ n.textContent=msg; n.className=`notice ${type}`; } };
+const setLoginNotice = (msg,type="") => { const n = $("login-message"); n.textContent=msg; n.className=`notice ${type}`; };
+function alias(v){ const raw = String(v||"").trim().toLowerCase(); return C.USER_ALIASES[raw] || raw; }
+function displayName(email){ return C.USER_DISPLAY_NAMES[email] || email || "Usuario"; }
+function getSession(){ try{ const s=JSON.parse(localStorage.getItem(SESSION_KEY)||"null"); if(!s?.access_token||!s?.user) return null; if(s.expires_at && Number(s.expires_at)*1000<Date.now()){ localStorage.removeItem(SESSION_KEY); return null; } return s; }catch{ localStorage.removeItem(SESSION_KEY); return null; } }
+function saveSession(s){ localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
+function clearSession(){ localStorage.removeItem(SESSION_KEY); }
+function authUrl(path){ return `${C.SUPABASE_URL}/auth/v1/${path}`; }
+function restUrl(path){ return `${C.SUPABASE_URL}/rest/v1/${path}`; }
+async function login(email,password){
+  const res = await fetch(authUrl("token?grant_type=password"), { method:"POST", headers:{apikey:C.SUPABASE_ANON_KEY,"Content-Type":"application/json"}, body:JSON.stringify({email,password}) });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error_description || data.msg || "No se pudo iniciar sesión.");
+  saveSession(data); user = data.user;
 }
-function normalizeEmail(value) {
-  const raw = String(value || "").trim().toLowerCase();
-  return cfg().USER_ALIASES?.[raw] || raw;
+async function rest(path,opt={}){
+  const s=getSession(); if(!s) throw new Error("Sesión no disponible.");
+  const res = await fetch(restUrl(path), {...opt, headers:{apikey:C.SUPABASE_ANON_KEY, Authorization:`Bearer ${s.access_token}`, "Content-Type":"application/json", ...(opt.headers||{})}});
+  if(!res.ok){ const data = await res.json().catch(()=>({})); throw new Error(data.message || data.error || `Error Supabase ${res.status}`); }
+  if(res.status===204) return null; return res.json();
 }
-function displayName(email) {
-  return cfg().USER_DISPLAY_NAMES?.[email] || email || "Usuario";
+async function insertRows(name,payload){ return rest(name,{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(payload)}); }
+async function updateRow(name,id,payload){ return rest(`${name}?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(payload)}); }
+async function deleteRow(name,id){ return rest(`${name}?id=eq.${encodeURIComponent(id)}`,{method:"DELETE",headers:{Prefer:"return=minimal"}}); }
+function renderAccess(){
+  const s=getSession(); user=s?.user || null;
+  $("login-view").classList.toggle("hidden", !!user); $("app").classList.toggle("hidden", !user);
+  if(user){ $("account-name").textContent=displayName(user.email); $("account-email").textContent=user.email; }
 }
-function status(message, type = "neutral") {
-  const node = $("global-status");
-  if (!node) return;
-  node.textContent = message;
-  node.className = `global-status ${type}`;
+async function loadHousehold(){
+  householdId = null;
+  const rows = await rest(`household_members?select=household_id&user_id=eq.${user.id}&status=eq.active&limit=1`).catch(()=>[]);
+  householdId = rows?.[0]?.household_id || null;
 }
-function loginStatus(message, type = "neutral") {
-  const node = $("login-msg");
-  node.textContent = message;
-  node.className = `status-line ${type}`;
-}
-function dateLabel(value, mode = "long") {
-  if (!value) return "Sin fecha";
-  const date = new Date(value);
-  const opts = mode === "short"
-    ? { day: "2-digit", month: "short" }
-    : { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" };
-  return date.toLocaleDateString("es-ES", opts);
-}
-function isSameDay(a, b) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-function moduleLabel(moduleId) { return MODULE_BY_ID[moduleId]?.label || moduleId || "VITA"; }
-function moduleEmoji(moduleId) { return MODULE_BY_ID[moduleId]?.emoji || "●"; }
-function moduleCalendar(moduleId) { return MODULE_BY_ID[moduleId]?.calendar || moduleId || "tasks"; }
-function saveSession(session) { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }
-function getSession() {
-  try {
-    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
-    if (!s?.access_token || !s?.user) return null;
-    if (s.expires_at && Number(s.expires_at) * 1000 < Date.now()) {
-      localStorage.removeItem(SESSION_KEY);
-      return null;
-    }
-    return s;
-  } catch {
-    localStorage.removeItem(SESSION_KEY);
-    return null;
-  }
-}
-function clearSession() { localStorage.removeItem(SESSION_KEY); }
-
-function authUrl(path) { return `${cfg().SUPABASE_URL}/auth/v1/${path}`; }
-function restUrl(path) { return `${cfg().SUPABASE_URL}/rest/v1/${path}`; }
-
-async function login(email, password) {
-  const res = await fetch(authUrl("token?grant_type=password"), {
-    method: "POST",
-    headers: { apikey: cfg().SUPABASE_ANON_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error_description || data.msg || "No se pudo iniciar sesión.");
-  saveSession(data);
-  currentUser = data.user;
-}
-
-async function rest(path, options = {}) {
-  const session = getSession();
-  if (!session) throw new Error("Sesión no disponible.");
-  const res = await fetch(restUrl(path), {
-    ...options,
-    headers: {
-      apikey: cfg().SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${session.access_token}`,
-      "Content-Type": "application/json",
-      ...(options.headers || {})
-    }
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    if (res.status === 401) {
-      clearSession();
-      renderAccess();
-    }
-    throw new Error(data.message || data.error || `Error Supabase ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
-
-async function insertCard(payload) {
-  return rest("vita_cards", {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
-    body: JSON.stringify(payload)
-  });
-}
-async function updateCard(id, payload) {
-  return rest(`vita_cards?id=eq.${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify(payload)
-  });
-}
-
-async function loadHousehold() {
-  currentHousehold = null;
-  try {
-    const memberships = await rest(`household_members?select=household_id,status&user_id=eq.${currentUser.id}&status=eq.active&limit=1`);
-    currentHousehold = memberships?.[0]?.household_id || null;
-  } catch {
-    currentHousehold = null;
-  }
-}
-
-async function loadCards() {
+async function loadAll(){
+  setNotice("Cargando VITA...");
   await loadHousehold();
-  const data = await rest("vita_cards?select=*&order=due_at.asc.nullslast,created_at.desc");
-  cards = data || [];
-  renderAll();
-  status("VITA lista.", "success");
+  const u=user.id, h=householdId;
+  await Promise.all([
+    rest(`${table.tasks}?select=*&or=(owner_id.eq.${u},and(visibility.eq.household,household_id.eq.${h}))&status=neq.deleted&order=done.asc,due_at.asc.nullslast,created_at.desc`).then(d=>state.tasks=d||[]).catch(()=>state.tasks=[]),
+    rest(`${table.shopping}?select=*&household_id=eq.${h}&order=checked.asc,created_at.desc`).then(d=>state.shopping=d||[]).catch(()=>state.shopping=[]),
+    rest(`${table.health}?select=*&owner_id=eq.${u}&order=occurred_at.desc`).then(d=>state.health=d||[]).catch(()=>state.health=[]),
+    rest(`${table.appointments}?select=*&owner_id=eq.${u}&order=appointment_at.asc.nullslast,created_at.desc`).then(d=>state.appointments=d||[]).catch(()=>state.appointments=[]),
+    rest(`${table.meds}?select=*&owner_id=eq.${u}&active=eq.true&order=created_at.desc`).then(d=>state.meds=d||[]).catch(()=>state.meds=[]),
+    rest(`${table.docs}?select=*&owner_id=eq.${u}&order=status.asc,created_at.desc`).then(d=>state.docs=d||[]).catch(()=>state.docs=[]),
+    rest(`${table.home}?select=*&household_id=eq.${h}&status=neq.deleted&order=done.asc,due_at.asc.nullslast,created_at.desc`).then(d=>state.home=d||[]).catch(()=>state.home=[])
+  ]);
+  renderAll(); setNotice("VITA lista.","success");
 }
-
-function renderAccess() {
-  const session = getSession();
-  currentUser = session?.user || null;
-  $("login-screen").classList.toggle("hidden", Boolean(currentUser));
-  $("app").classList.toggle("hidden", !currentUser);
-  if (currentUser) {
-    $("account-name").textContent = displayName(currentUser.email);
-    $("account-email").textContent = currentUser.email;
-  }
+function navigate(view,push=true){
+  if(view===state.view) return;
+  state.previousView = state.view; state.view = view;
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); $("screen-"+view).classList.add("active");
+  document.querySelectorAll("[data-nav]").forEach(b=>b.classList.toggle("active", b.dataset.nav===view));
+  const titles = {today:["Hoy","Lo importante, sin buscar."], shopping:["Compra","Una lista real, rápida y compartida."], calendar:["Calendario","Planificar sin perderte."], health:["Salud","Citas, volantes, medicación y registros."], home:["Hogar","Activos, coche, facturas y contactos."], more:["Más","Avisos, viajes, UNED y trámites."]};
+  $("screen-title").textContent=titles[view]?.[0]||"VITA"; $("screen-subtitle").textContent=titles[view]?.[1]||"";
+  $("back-button").classList.toggle("hidden", view==="today");
+  if(push) history.pushState({view},"",`#${view}`); window.scrollTo({top:0,behavior:"smooth"});
 }
-
-function renderAll() {
-  renderShortcuts();
-  renderGroupedModules("health", "health-grid");
-  renderGroupedModules("homehub", "homehub-grid");
-  renderGroupedModules("more", "more-grid");
-  renderHome();
-  renderGroupPreview("health", "health-list", "health-count");
-  renderGroupPreview("homehub", "homehub-list", "homehub-count");
-  renderCalendar();
-  renderNotifications();
-  updatePushSummary();
-}
-
-function setScreen(name, options = {}) {
-  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
-  $(`screen-${name}`).classList.add("active");
-  document.querySelectorAll(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.nav === name));
-  const t = GROUP_TITLES[name] || ["VITA", ""];
-  $("screen-title").textContent = t[0];
-  $("screen-subtitle").textContent = t[1];
-  if (name !== "module-detail") previousScreen = name;
-  if (name === "more" && options.openNotifications) $("notifications-panel").classList.remove("hidden");
-  else if (name === "more" && !options.keepNotifications) $("notifications-panel").classList.add("hidden");
-  location.hash = name;
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function openModule(moduleId) {
-  currentModuleId = moduleId;
-  const m = MODULE_BY_ID[moduleId];
-  $("module-detail-badge").textContent = m.label;
-  $("module-detail-title").textContent = `${m.emoji} ${m.label}`;
-  $("module-detail-subtitle").textContent = m.subtitle;
-  renderModuleItems();
-  setScreen("module-detail");
-}
-
-function cardsForModule(moduleId) {
-  return cards
-    .filter((card) => card.module === moduleId && card.status !== "deleted")
-    .sort((a,b) => {
-      if (a.status === "done" && b.status !== "done") return 1;
-      if (a.status !== "done" && b.status === "done") return -1;
-      const ad = a.due_at ? new Date(a.due_at).getTime() : 9999999999999;
-      const bd = b.due_at ? new Date(b.due_at).getTime() : 9999999999999;
-      return ad - bd;
-    });
-}
-function cardsForGroup(group) {
-  const ids = MODULES.filter((m) => m.group === group).map((m) => m.id);
-  return cards.filter((c) => ids.includes(c.module) && c.status !== "deleted").sort(sortByDue);
-}
-
-function renderShortcuts() {
-  const shortcuts = [
-    { id: "health", label: "Salud", emoji: "♡", screen: "health", subtitle: "Citas, registros y medicación" },
-    { id: "homehub", label: "Hogar", emoji: "⌂", screen: "homehub", subtitle: "Casa, coche, facturas y listas" },
-    { id: "calendar", label: "Calendario", emoji: "📅", screen: "calendar", subtitle: "Día, semana y mes" },
-    { id: "more", label: "Más", emoji: "⚙", screen: "more", subtitle: "Tareas, viajes, UNED y avisos" }
-  ];
-  $("home-shortcuts").innerHTML = shortcuts.map((m) => `<button class="module-card" type="button" data-nav="${m.screen}">
-    <span class="module-emoji">${m.emoji}</span>
-    <span><strong>${escapeHtml(m.label)}</strong><br><small>${escapeHtml(m.subtitle)}</small></span>
-  </button>`).join("");
-}
-
-function renderGroupedModules(group, containerId) {
-  const mods = MODULES.filter((m) => m.group === group);
-  $(containerId).innerHTML = mods.map((m) => {
-    const count = cardsForModule(m.id).filter((c) => c.status !== "done").length;
-    return `<button class="module-card" type="button" data-module="${m.id}">
-      <span class="module-emoji">${m.emoji}</span>
-      <span><strong>${escapeHtml(m.label)}</strong><br><small>${escapeHtml(m.subtitle)}</small></span>
-      <span class="count-pill">${count}</span>
-    </button>`;
-  }).join("");
-}
-
-function activeCards() { return cards.filter((c) => c.status !== "done" && c.status !== "deleted"); }
-function dueCards() {
-  const start = todayStart();
-  const tomorrow = addDays(start, 1);
-  const week = addDays(start, 8);
-  const today = activeCards().filter((c) => c.due_at && new Date(c.due_at) < tomorrow).sort(sortByDue);
-  const next = activeCards().filter((c) => c.due_at && new Date(c.due_at) >= tomorrow && new Date(c.due_at) < week).sort(sortByDue);
-  return { today, next };
-}
-function sortByDue(a,b) {
-  const ad = a.due_at ? new Date(a.due_at).getTime() : 9999999999999;
-  const bd = b.due_at ? new Date(b.due_at).getTime() : 9999999999999;
-  return ad - bd;
-}
-
-function renderHome() {
-  const { today, next } = dueCards();
-  $("today-count").textContent = today.length;
-  $("week-count").textContent = next.length;
-  $("today-focus").textContent = today.length ? `${today.length} cosa(s) para hoy` : "Hoy no hay urgencias";
-  $("today-focus-sub").textContent = next.length ? `${next.length} cosa(s) más en los próximos 7 días.` : "La semana está despejada.";
-  $("today-list").innerHTML = today.length ? today.map(renderItemCard).join("") : `<p class="empty">No hay nada pendiente para hoy.</p>`;
-  $("week-list").innerHTML = next.length ? next.map(renderItemCard).join("") : `<p class="empty">No hay pendientes fechados para los próximos días.</p>`;
-}
-
-function renderGroupPreview(group, containerId, countId) {
-  const items = cardsForGroup(group).filter((c) => c.status !== "done").slice(0, 8);
-  $(countId).textContent = items.length;
-  $(containerId).innerHTML = items.length ? items.map(renderItemCard).join("") : `<p class="empty">No hay nada pendiente en este apartado.</p>`;
-}
-
-function renderModuleItems() {
-  if (!currentModuleId) return;
-  const items = cardsForModule(currentModuleId);
-  $("module-items").innerHTML = items.length
-    ? items.map(renderItemCard).join("")
-    : `<p class="empty">Todavía no hay nada en ${escapeHtml(moduleLabel(currentModuleId))}. Pulsa “Añadir”.</p>`;
-}
-
-function renderItemCard(card) {
-  const due = card.due_at ? new Date(card.due_at) : null;
-  const overdue = due && due < new Date() && card.status !== "done";
-  const notify = card.notify_at ? `Aviso ${dateLabel(card.notify_at)}` : "Sin aviso";
-  return `<article class="item-card" data-card-id="${card.id}">
-    <div class="item-card-main">
-      <span class="item-icon">${moduleEmoji(card.module)}</span>
-      <button class="plain-card-button" type="button" data-open-card="${card.id}">
-        <h3>${escapeHtml(card.title || "Sin título")}</h3>
-        <p>${escapeHtml(card.details || card.payload?.subtitle || "")}</p>
-      </button>
-      <button class="small-button" type="button" data-open-card="${card.id}">Abrir</button>
-    </div>
-    <div class="tags">
-      <span class="tag">${escapeHtml(moduleLabel(card.module))}</span>
-      ${card.due_at ? `<span class="tag ${overdue ? "danger" : ""}">${escapeHtml(dateLabel(card.due_at))}</span>` : ""}
-      ${card.notify_at ? `<span class="tag ok">${escapeHtml(notify)}</span>` : ""}
-      ${card.visibility === "household" ? `<span class="tag">Compartido</span>` : `<span class="tag">Privado</span>`}
-      ${card.status === "done" ? `<span class="tag ok">Hecho</span>` : ""}
-    </div>
-    <div class="card-actions">
-      <button type="button" data-done-card="${card.id}">${card.status === "done" ? "Reabrir" : "Hecho"}</button>
-      <button type="button" data-edit-card="${card.id}">Editar</button>
-      <button class="danger" type="button" data-delete-card="${card.id}">Borrar</button>
-    </div>
-  </article>`;
-}
-
-function cardById(id) { return cards.find((c) => c.id === id); }
-
-function openCard(id) {
-  const card = cardById(id);
-  if (!card) return;
-  const body = $("card-dialog-body");
-  body.innerHTML = `<span class="badge">${escapeHtml(moduleLabel(card.module))}</span>
-    <h2>${moduleEmoji(card.module)} ${escapeHtml(card.title || "Sin título")}</h2>
-    <p>${escapeHtml(card.details || "Sin detalles.")}</p>
-    <div class="tags">
-      ${card.due_at ? `<span class="tag">${escapeHtml(dateLabel(card.due_at))}</span>` : ""}
-      ${card.notify_at ? `<span class="tag ok">Aviso ${escapeHtml(dateLabel(card.notify_at))}</span>` : ""}
-      <span class="tag">${card.visibility === "household" ? "Compartido" : "Privado"}</span>
-      <span class="tag">${escapeHtml(card.status || "open")}</span>
-    </div>
-    ${renderPayload(card)}
-    <div class="dialog-actions">
-      <button class="primary-button" type="button" data-edit-card="${card.id}">Editar</button>
-      <button class="secondary-button" type="button" data-done-card="${card.id}">${card.status === "done" ? "Reabrir" : "Marcar hecho"}</button>
-      <button class="danger-button" type="button" data-delete-card="${card.id}">Borrar</button>
-    </div>`;
-  $("card-dialog").showModal();
-}
-
-function renderPayload(card) {
-  const payload = card.payload || {};
-  const entries = Object.entries(payload).filter(([k,v]) => v !== null && v !== undefined && v !== "" && !["subtitle"].includes(k));
-  if (!entries.length) return "";
-  return `<div class="section-block inline-info"><h3>Información</h3>${entries.map(([k,v]) => `<p><strong>${escapeHtml(labelField(k))}:</strong> ${escapeHtml(Array.isArray(v) ? v.join(", ") : v)}</p>`).join("")}</div>`;
-}
-
-function labelField(key) {
-  const labels = {
-    stock: "Stock", warning: "Avisar con", dose: "Dosis", phone: "Teléfono", provider: "Proveedor",
-    address: "Dirección", url: "Enlace", specialty: "Especialidad", result: "Resultado", card_number: "Número",
-    flight: "Vuelo", hotel: "Alojamiento", plate: "Matrícula", policy: "Póliza"
-  };
-  return labels[key] || key;
-}
-
-function openForm(moduleId, card = null, preferredDue = null) {
-  const m = MODULE_BY_ID[moduleId] || MODULE_BY_ID.tasks;
-  const title = card ? "Editar" : "Añadir";
-  const payload = card?.payload || {};
-  const body = $("form-dialog-body");
-  body.innerHTML = `<span class="badge">${escapeHtml(m.label)}</span>
-    <h2>${title} ${escapeHtml(m.label.toLowerCase())}</h2>
-    <form id="card-form" class="form-stack">
-      <label class="field"><span>Título</span><input id="form-title" type="text" value="${escapeHtml(card?.title || "")}" required placeholder="${placeholderFor(moduleId)}"></label>
-      <label class="field"><span>Detalles</span><textarea id="form-details" rows="3" placeholder="Notas, contexto, pasos, indicaciones...">${escapeHtml(card?.details || "")}</textarea></label>
-      <div class="form-grid two">
-        <label class="field"><span>Fecha y hora</span><input id="form-due" type="datetime-local" value="${toDateTimeLocal(card?.due_at || preferredDue)}"></label>
-        <label class="field"><span>Aviso</span>
-          <select id="form-notify">
-            <option value="none">Sin aviso</option>
-            <option value="at">A la hora indicada</option>
-            <option value="hour">1 hora antes</option>
-            <option value="day">1 día antes</option>
-            <option value="week">1 semana antes</option>
-          </select>
-        </label>
-      </div>
-      ${extraFields(moduleId, payload)}
-      <label class="field"><span>Visibilidad</span>
-        <select id="form-visibility">
-          <option value="private">Privado</option>
-          <option value="household">Compartido en casa</option>
-        </select>
-      </label>
-      <button class="primary-button" type="submit">${card ? "Guardar cambios" : "Guardar"}</button>
-    </form>`;
-  $("form-visibility").value = card?.visibility || m.visibility || "private";
-  $("form-notify").value = card?.notify_at ? "at" : "none";
-  $("card-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    await saveForm(moduleId, card?.id || null);
-  });
-  $("form-dialog").showModal();
-}
-
-function placeholderFor(moduleId) {
-  return {
-    tasks: "Ej. Pedir cita, llamar, comprar...",
-    reminders: "Ej. Acordarme de...",
-    health_records: "Ej. Dolor, regla, sueño, síntoma...",
-    medical: "Ej. Endocrino, dermatología...",
-    documents: "Ej. Volante para endocrino",
-    medication: "Ej. Eutirox 112 microgramos",
-    pharmacy: "Ej. Comprar Bilasten",
-    home_assets: "Ej. Casa, piso, trastero...",
-    vehicles: "Ej. Coche Patricia",
-    bills: "Ej. Renta, luz, internet...",
-    supplies: "Ej. Luz, agua, internet...",
-    works: "Ej. Pintar habitación, presupuesto...",
-    mortgage: "Ej. Hipoteca junio",
-    shopping: "Ej. Leche, detergente...",
-    wallet: "Ej. Eroski Club, IKEA Family",
-    contacts: "Ej. Proveedor internet",
-    university: "Ej. Examen UNED, entrega TFG...",
-    bureaucracy: "Ej. Renta, cita administrativa...",
-    travel: "Ej. Vuelo, hotel, vacaciones...",
-    private_list: "Ej. Mirar papeles...",
-    wishlist: "Ej. Libro, bolso, enlace..."
-  }[moduleId] || "Título";
-}
-
-function extraFields(moduleId, payload = {}) {
-  if (moduleId === "medication" || moduleId === "pharmacy") {
-    return `<div class="form-grid two">
-      <label class="field"><span>Dosis</span><input id="extra-dose" type="text" value="${escapeHtml(payload.dose || "")}" placeholder="1 comprimido/día"></label>
-      <label class="field"><span>Stock</span><input id="extra-stock" type="number" min="0" value="${escapeHtml(payload.stock ?? "")}" placeholder="37"></label>
-    </div>
-    <label class="field"><span>Avisar cuando queden</span><input id="extra-warning" type="number" min="1" value="${escapeHtml(payload.warning ?? 7)}"></label>`;
-  }
-  if (moduleId === "contacts") {
-    return `<div class="form-grid two">
-      <label class="field"><span>Teléfono</span><input id="extra-phone" type="tel" value="${escapeHtml(payload.phone || "")}"></label>
-      <label class="field"><span>Proveedor / entidad</span><input id="extra-provider" type="text" value="${escapeHtml(payload.provider || "")}"></label>
-    </div>`;
-  }
-  if (moduleId === "wallet") {
-    return `<div class="form-grid two">
-      <label class="field"><span>Entidad</span><input id="extra-provider" type="text" value="${escapeHtml(payload.provider || "")}"></label>
-      <label class="field"><span>Número o código</span><input id="extra-card-number" type="text" value="${escapeHtml(payload.card_number || "")}"></label>
-    </div>`;
-  }
-  if (moduleId === "medical" || moduleId === "documents") {
-    return `<label class="field"><span>Especialidad</span><input id="extra-specialty" type="text" value="${escapeHtml(payload.specialty || "")}" placeholder="Endocrino, alergología..."></label>`;
-  }
-  if (["home_assets","vehicles","works","mortgage","travel","supplies"].includes(moduleId)) {
-    return `<label class="field"><span>Dirección / lugar / referencia</span><input id="extra-address" type="text" value="${escapeHtml(payload.address || "")}"></label>`;
-  }
-  if (moduleId === "wishlist") {
-    return `<label class="field"><span>Enlace</span><input id="extra-url" type="url" value="${escapeHtml(payload.url || "")}" placeholder="https://..."></label>`;
-  }
-  return "";
-}
-
-function toDateTimeLocal(value) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0,16);
-}
-function notifyAtFrom(dueAt, mode) {
-  if (!dueAt || mode === "none") return null;
-  const d = new Date(dueAt);
-  if (mode === "hour") d.setHours(d.getHours() - 1);
-  if (mode === "day") d.setDate(d.getDate() - 1);
-  if (mode === "week") d.setDate(d.getDate() - 7);
-  return d.toISOString();
-}
-function payloadFromForm(moduleId) {
-  const payload = {};
-  if ($("extra-dose")) payload.dose = $("extra-dose").value.trim();
-  if ($("extra-stock")) payload.stock = $("extra-stock").value ? Number($("extra-stock").value) : null;
-  if ($("extra-warning")) payload.warning = $("extra-warning").value ? Number($("extra-warning").value) : 7;
-  if ($("extra-phone")) payload.phone = $("extra-phone").value.trim();
-  if ($("extra-provider")) payload.provider = $("extra-provider").value.trim();
-  if ($("extra-card-number")) payload.card_number = $("extra-card-number").value.trim();
-  if ($("extra-specialty")) payload.specialty = $("extra-specialty").value.trim();
-  if ($("extra-address")) payload.address = $("extra-address").value.trim();
-  if ($("extra-url")) payload.url = $("extra-url").value.trim();
-  return payload;
-}
-
-async function saveForm(moduleId, id = null) {
-  const dueRaw = $("form-due").value;
-  const dueAt = dueRaw ? new Date(dueRaw).toISOString() : null;
-  const visibility = $("form-visibility").value;
-  const payload = {
-    owner_id: currentUser.id,
-    household_id: visibility === "household" ? currentHousehold : null,
-    visibility,
-    module: moduleId,
-    category: moduleCalendar(moduleId),
-    title: $("form-title").value.trim(),
-    details: $("form-details").value.trim() || null,
-    due_at: dueAt,
-    notify_at: notifyAtFrom(dueAt, $("form-notify").value),
-    notified_at: null,
-    status: "open",
-    payload: payloadFromForm(moduleId)
-  };
-  if (!payload.title) throw new Error("Falta el título.");
-  if (id) await updateCard(id, payload);
-  else await insertCard(payload);
-  $("form-dialog").close();
-  await loadCards();
-}
-
-function availableCalendarTypes() {
+function renderAll(){ renderToday(); renderShopping(); renderCalendar(); renderHealth(); renderAppointments(); renderDocs(); renderMeds(); renderHome(); renderPushDiagnostics(); }
+function allEvents(){
   return [
-    ["all", "Todo"],
-    ["health", "Salud"],
-    ["medical", "Citas"],
-    ["medication", "Medicación"],
-    ["home", "Hogar"],
-    ["bills", "Facturas"],
-    ["shopping", "Compra"],
-    ["university", "UNED"],
-    ["travel", "Viajes"],
-    ["tasks", "Tareas"]
-  ];
+    ...state.tasks.map(t=>({source:"task", id:t.id, title:t.title, details:t.details, date:t.due_at, done:t.done, emoji:"✅", kind:"task"})),
+    ...state.appointments.map(a=>({source:"appointment", id:a.id, title:a.title, details:[a.specialty,a.location].filter(Boolean).join(" · "), date:a.appointment_at, done:a.completed, emoji:"🏥", kind:"health"})),
+    ...state.home.map(h=>({source:"home", id:h.id, title:h.title, details:h.details, date:h.due_at, done:h.done, emoji:homeEmoji(h.kind), kind:"home"})),
+    ...state.docs.filter(d=>d.status==="pending_to_use").map(d=>({source:"doc", id:d.id, title:`Llevar ${d.title}`, details:d.specialty||d.notes, date:d.due_at, done:false, emoji:"📄", kind:"health"}))
+  ].filter(e=>e.date);
 }
-function renderCalendarFilters() {
-  $("calendar-filters").innerHTML = availableCalendarTypes().map(([id,label]) => `<button class="${calendarFilter === id ? "active" : ""}" type="button" data-calendar-filter="${id}">${escapeHtml(label)}</button>`).join("");
+function medicationAlerts(){
+  return state.meds.filter(m=>Number(m.stock||0) <= Number(m.warning_threshold||7)).map(m=>({source:"med", id:m.id, title:`Comprar ${m.name}`, details:`Quedan ${m.stock||0} unidades. Umbral: ${m.warning_threshold||7}.`, date:new Date().toISOString(), done:false, emoji:"💊", kind:"health"}));
 }
-function calendarCards() {
-  return cards.filter((c) => {
-    if (!c.due_at || c.status === "deleted") return false;
-    if (calendarFilter === "all") return true;
-    return (c.category || moduleCalendar(c.module)) === calendarFilter || c.module === calendarFilter;
+function sortedEvents(){ return [...allEvents(), ...medicationAlerts()].filter(e=>!e.done).sort((a,b)=>new Date(a.date)-new Date(b.date)); }
+function renderToday(){
+  const start=todayStart(), tomorrow=addDays(start,1), week=addDays(start,8);
+  const events=sortedEvents(); const today=events.filter(e=>new Date(e.date)<tomorrow); const weekItems=events.filter(e=>new Date(e.date)>=tomorrow && new Date(e.date)<week);
+  $("today-count").textContent=today.length; $("week-count").textContent=weekItems.length;
+  $("now-title").textContent = today.length ? `${today.length} cosa(s) para hoy` : "Hoy no hay urgencias";
+  $("now-text").textContent = today.length ? "Empieza por la primera tarjeta. Lo demás puede esperar." : (weekItems.length ? `${weekItems.length} cosa(s) próximas esta semana.` : "Semana despejada de momento.");
+  $("today-list").innerHTML = today.length ? today.map(renderEventCard).join("") : `<p class="empty">Nada urgente para hoy.</p>`;
+  $("week-list").innerHTML = weekItems.length ? weekItems.map(renderEventCard).join("") : `<p class="empty">Nada fechado para esta semana.</p>`;
+}
+function renderEventCard(e){
+  return `<article class="card ${e.done?"done":""}"><div class="card-main"><span class="emoji">${e.emoji}</span><button class="open-card" data-open-event="${e.source}:${e.id}" type="button"><h3>${esc(e.title)}</h3><p>${esc(e.details||"")}</p></button><span class="tag ${new Date(e.date)<new Date()&&!e.done?"danger":""}">${esc(shortDate(e.date))}</span></div><div class="tags"><span class="tag">${esc(dateText(e.date))}</span></div><div class="actions"><button data-toggle-event="${e.source}:${e.id}" type="button">${e.done?"Reabrir":"Hecho"}</button><button data-edit-event="${e.source}:${e.id}" type="button">Editar</button><button class="danger" data-delete-event="${e.source}:${e.id}" type="button">Borrar</button></div></article>`;
+}
+function renderShopping(){
+  const pending=state.shopping.filter(i=>!i.checked).length; $("shopping-count").textContent=pending;
+  $("toggle-bought").classList.toggle("active", state.hideBought); $("toggle-bought").textContent=state.hideBought?"Mostrar comprados":"Ocultar comprados";
+  const items=state.shopping.filter(i=>!state.hideBought || !i.checked);
+  const cats=["supermercado","farmacia","casa","otros"];
+  $("shopping-wallet").innerHTML = `<span class="wallet-card">💳 Eroski Club</span><span class="wallet-card">💳 IKEA Family</span>`;
+  $("shopping-list").innerHTML = cats.map(cat=>{
+    const arr=items.filter(i=>(i.category||"supermercado")===cat);
+    if(!arr.length) return "";
+    return `<section class="shop-category"><div class="shop-category-title"><span>${labelCategory(cat)}</span><span>${arr.filter(i=>!i.checked).length}</span></div>${arr.map(renderShopItem).join("")}</section>`;
+  }).join("") || `<p class="empty">Lista vacía. Escribe productos, uno por línea.</p>`;
+}
+function labelCategory(c){ return {supermercado:"Supermercado", farmacia:"Farmacia", casa:"Casa", otros:"Otros"}[c] || c; }
+function renderShopItem(i){ return `<div class="shop-item ${i.checked?"checked":""}"><input type="checkbox" ${i.checked?"checked":""} data-shop-check="${i.id}" aria-label="Marcar ${esc(i.title)} comprado"><div class="shop-title">${esc(i.title)}</div><div class="shop-actions"><button data-shop-edit="${i.id}" type="button">Editar</button><button data-shop-delete="${i.id}" type="button">Borrar</button></div></div>`; }
+function renderCalendar(){
+  $("calendar-date").value=state.calendar.toISOString().slice(0,10); renderFilters();
+  document.querySelectorAll("[data-calendar-mode]").forEach(b=>b.classList.toggle("active", b.dataset.calendarMode===state.calendarMode));
+  if(state.calendarMode==="year") return renderYear();
+  if(state.calendarMode==="day") return renderDayOnly();
+  const date=new Date(state.calendar); const first=state.calendarMode==="week"?getWeekStart(date):new Date(date.getFullYear(),date.getMonth(),1); const start=new Date(first); if(state.calendarMode==="month") start.setDate(first.getDate()-((first.getDay()+6)%7));
+  const len=state.calendarMode==="week"?7:42; const days=Array.from({length:len},(_,i)=>addDays(start,i));
+  $("calendar-grid").innerHTML = `<h2>${date.toLocaleDateString("es-ES",{month:"long",year:"numeric"})}</h2><div class="weekdays">${["L","M","X","J","V","S","D"].map(d=>`<span>${d}</span>`).join("")}</div><div class="days">${days.map(d=>dayButton(d,date)).join("")}</div>`;
+  renderSelectedDayList();
+}
+function getWeekStart(d){ const s=new Date(d); s.setDate(d.getDate()-((d.getDay()+6)%7)); return s; }
+function filteredEvents(){ return sortedEvents().filter(e=>state.calendarFilter==="all" || e.kind===state.calendarFilter || e.source===state.calendarFilter); }
+function eventsOnDay(day){ return filteredEvents().filter(e=>sameDay(new Date(e.date),day)); }
+function dayButton(day,current){ const ev=eventsOnDay(day); const cls=["day"]; if(state.calendarMode==="month"&&day.getMonth()!==current.getMonth()) cls.push("muted"); if(sameDay(day,new Date())) cls.push("today"); if(sameDay(day,state.calendar)) cls.push("selected"); return `<button class="${cls.join(" ")}" data-select-day="${day.toISOString().slice(0,10)}" type="button"><strong>${day.getDate()}</strong><span class="dots">${ev.slice(0,7).map(e=>`<i class="dot ${e.kind}"></i>`).join("")}</span></button>`; }
+function renderFilters(){ const filters=[["all","Todo"],["task","Tareas"],["health","Salud"],["home","Hogar"]]; $("calendar-filters").innerHTML=filters.map(([id,label])=>`<button class="${state.calendarFilter===id?"active":""}" data-filter="${id}" type="button">${label}</button>`).join(""); }
+function renderSelectedDayList(){ const ev=eventsOnDay(state.calendar); $("selected-day-title").textContent=state.calendar.toLocaleDateString("es-ES",{weekday:"long",day:"2-digit",month:"long"}); $("selected-day-list").innerHTML=ev.length?ev.map(renderEventCard).join(""):`<p class="empty">No hay nada registrado este día.</p>`; }
+function renderDayOnly(){ $("calendar-grid").innerHTML=`<h2>${state.calendar.toLocaleDateString("es-ES",{weekday:"long",day:"2-digit",month:"long"})}</h2>`; renderSelectedDayList(); }
+function renderYear(){ const y=state.calendar.getFullYear(); const ev=filteredEvents().filter(e=>new Date(e.date).getFullYear()===y); $("calendar-grid").innerHTML=`<h2>${y}</h2><div class="year-grid">${Array.from({length:12},(_,m)=>{ const n=ev.filter(e=>new Date(e.date).getMonth()===m).length; return `<button class="year-month" data-year-month="${m}" type="button"><strong>${new Date(y,m,1).toLocaleDateString("es-ES",{month:"long"})}</strong><br><span class="tag">${n} evento(s)</span></button>`; }).join("")}</div>`; renderSelectedDayList(); }
+function renderHealth(){ $("health-record-list").innerHTML=state.health.length?state.health.map(h=>`<article class="card"><div class="card-main"><span class="emoji">♡</span><button class="open-card" type="button"><h3>${esc(h.title)}</h3><p>${esc(h.notes||"")}</p></button><span class="tag">${esc(shortDate(h.occurred_at))}</span></div><div class="actions"><button data-edit-health="${h.id}" type="button">Editar</button><button class="danger" data-delete-health="${h.id}" type="button">Borrar</button></div></article>`).join(""):`<p class="empty">Sin registros. Añade sueño, dolor, ánimo, regla, baño o síntomas.</p>`; }
+function renderAppointments(){ $("appointment-list").innerHTML=state.appointments.length?state.appointments.map(a=>renderEventCard({source:"appointment",id:a.id,title:a.title,details:[a.specialty,a.location,a.result||a.notes].filter(Boolean).join(" · "),date:a.appointment_at||a.created_at,done:a.completed,emoji:"🏥",kind:"health"})).join(""):`<p class="empty">Sin citas médicas.</p>`; }
+function renderDocs(){ $("medical-document-list").innerHTML=state.docs.length?state.docs.map(d=>`<article class="card ${d.status==="used"?"done":""}"><div class="card-main"><span class="emoji">📄</span><button class="open-card" type="button"><h3>${esc(d.title)}</h3><p>${esc([d.specialty,d.notes].filter(Boolean).join(" · "))}</p></button><span class="tag ${d.status==="pending_to_use"?"danger":""}">${esc(labelDocStatus(d.status))}</span></div><div class="actions"><button data-use-doc="${d.id}" type="button">${d.status==="used"?"Reabrir":"Usado"}</button><button data-edit-doc="${d.id}" type="button">Editar</button><button class="danger" data-delete-doc="${d.id}" type="button">Borrar</button></div></article>`).join(""):`<p class="empty">Sin volantes ni informes. Al completar una cita, VITA puede crear uno pendiente.</p>`; }
+function labelDocStatus(s){ return {pending_upload:"Pendiente de subir", pending_to_use:"Pendiente de llevar", used:"Usado", archived:"Archivado"}[s]||s; }
+function renderMeds(){ $("medication-list").innerHTML=state.meds.length?state.meds.map(m=>{ const low=Number(m.stock||0)<=Number(m.warning_threshold||7); return `<article class="card"><div class="card-main"><span class="emoji">💊</span><button class="open-card" type="button"><h3>${esc(m.name)}</h3><p>${esc(m.dose||"")}</p></button><span class="tag ${low?"danger":"ok"}">${m.stock||0} uds</span></div><div class="tags"><span class="tag">Avisar con ${m.warning_threshold||7}</span>${low?`<span class="tag danger">Comprar</span>`:""}</div><div class="actions"><button data-med-take="${m.id}" type="button">Tomado</button><button data-med-buy="${m.id}" type="button">Añadir a farmacia</button><button data-edit-med="${m.id}" type="button">Editar</button><button class="danger" data-delete-med="${m.id}" type="button">Borrar</button></div></article>`; }).join(""):`<p class="empty">Sin medicación registrada.</p>`; }
+function homeEmoji(k){ return {asset:"⌂", car:"🚗", bill:"💶", contact:"☎️", travel:"✈️", university:"🎓", bureaucracy:"📁"}[k] || "⌂"; }
+function renderHome(){ const by=k=>state.home.filter(h=>h.kind===k); const render=arr=>arr.length?arr.map(h=>renderEventCard({source:"home",id:h.id,title:h.title,details:h.details,date:h.due_at||h.created_at,done:h.done,emoji:homeEmoji(h.kind),kind:"home"})).join(""):`<p class="empty">Sin elementos.</p>`; $("asset-list").innerHTML=render(by("asset")); $("car-list").innerHTML=render(by("car")); $("bill-list").innerHTML=render(by("bill")); $("contact-list").innerHTML=render(by("contact")); }
+function switchSubtab(id){ const parent=id.startsWith("health")?"health":"home"; document.querySelectorAll(`#screen-${parent} .subpanel`).forEach(p=>p.classList.remove("active")); document.querySelectorAll(`#screen-${parent} [data-subtab]`).forEach(b=>b.classList.toggle("active", b.dataset.subtab===id)); $(id).classList.add("active"); }
+function openDialog(html){ $("dialog-body").innerHTML=html; $("dialog").showModal(); }
+function closeDialog(){ $("dialog").close(); }
+function dateInput(v){ if(!v) return ""; const d=new Date(v); const l=new Date(d.getTime()-d.getTimezoneOffset()*60000); return l.toISOString().slice(0,16); }
+function form(title, fields, submit="Guardar"){ return `<h2>${esc(title)}</h2><form id="modal-form" class="form-stack">${fields}<button class="primary" type="submit">${esc(submit)}</button></form>`; }
+function openTaskForm(item=null, preferredDate=null, kind="task"){
+  const titleMap={task:"Tarea", university:"UNED", travel:"Viaje", bureaucracy:"Trámite"};
+  openDialog(form(item?`Editar ${titleMap[kind]||"tarea"}`:`Añadir ${titleMap[kind]||"tarea"}`, `<label class="field"><span>Título</span><input id="f-title" value="${esc(item?.title||"")}" required></label><label class="field"><span>Detalles</span><textarea id="f-details" rows="3">${esc(item?.details||"")}</textarea></label><div class="grid-two"><label class="field"><span>Fecha</span><input id="f-date" type="datetime-local" value="${dateInput(item?.due_at||preferredDate)}"></label><label class="field"><span>Visibilidad</span><select id="f-vis"><option value="private">Privado</option><option value="household">Compartido</option></select></label></div>`));
+  $("f-vis").value=item?.visibility||"private"; $("modal-form").onsubmit=async e=>{ e.preventDefault(); const vis=$("f-vis").value, raw=$("f-date").value; const payload={owner_id:user.id, household_id:vis==="household"?householdId:null, visibility:vis, kind, title:$("f-title").value.trim(), details:$("f-details").value.trim()||null, due_at:raw?new Date(raw).toISOString():null, done:false, status:"open"}; if(item) await updateRow(table.tasks,item.id,payload); else await insertRows(table.tasks,payload); closeDialog(); await loadAll(); };
+}
+function openHealthRecordForm(item=null){
+  openDialog(form(item?"Editar registro":"Añadir registro", `<label class="field"><span>Tipo</span><select id="f-type"><option value="note">Nota</option><option value="bathroom">Baño</option><option value="symptoms">Síntomas</option><option value="sleep">Sueño</option><option value="period">Regla</option><option value="pain">Dolor</option><option value="mood">Ánimo</option></select></label><label class="field"><span>Registro</span><input id="f-title" value="${esc(item?.title||"")}" required></label><label class="field"><span>Notas</span><textarea id="f-notes" rows="3">${esc(item?.notes||"")}</textarea></label>`));
+  $("f-type").value=item?.record_type||"note"; $("modal-form").onsubmit=async e=>{ e.preventDefault(); const payload={owner_id:user.id, record_type:$("f-type").value, title:$("f-title").value.trim(), notes:$("f-notes").value.trim()||null, occurred_at:new Date().toISOString()}; if(item) await updateRow(table.health,item.id,payload); else await insertRows(table.health,payload); closeDialog(); await loadAll(); };
+}
+function openAppointmentForm(item=null){
+  openDialog(form(item?"Editar cita médica":"Añadir cita médica", `<label class="field"><span>Cita</span><input id="f-title" value="${esc(item?.title||"")}" required></label><label class="field"><span>Especialidad</span><input id="f-specialty" value="${esc(item?.specialty||"")}"></label><label class="field"><span>Fecha</span><input id="f-date" type="datetime-local" value="${dateInput(item?.appointment_at)}"></label><label class="field"><span>Lugar</span><input id="f-location" value="${esc(item?.location||"")}"></label><label class="field"><span>Notas</span><textarea id="f-notes" rows="3">${esc(item?.notes||"")}</textarea></label>`));
+  $("modal-form").onsubmit=async e=>{ e.preventDefault(); const raw=$("f-date").value; const payload={owner_id:user.id,title:$("f-title").value.trim(),specialty:$("f-specialty").value.trim()||null,appointment_at:raw?new Date(raw).toISOString():null,location:$("f-location").value.trim()||null,notes:$("f-notes").value.trim()||null}; if(item) await updateRow(table.appointments,item.id,payload); else await insertRows(table.appointments,payload); closeDialog(); await loadAll(); };
+}
+function openCompleteAppointment(item){
+  openDialog(form("Completar cita", `<p>VITA necesita saber qué ocurrió para ayudarte después.</p><label class="field"><span>Resumen</span><textarea id="f-result" rows="4">${esc(item.result||"")}</textarea></label><label class="field"><span>¿Te dieron volante, informe o receta?</span><select id="f-doc"><option value="no">No</option><option value="yes">Sí</option></select></label><label class="field"><span>¿Para qué especialista o prueba?</span><input id="f-for" value="${esc(item.document_for||"")}"></label>`));
+  $("modal-form").onsubmit=async e=>{ e.preventDefault(); const got=$("f-doc").value==="yes"; await updateRow(table.appointments,item.id,{completed:true,result:$("f-result").value.trim()||null,document_given:got,document_for:$("f-for").value.trim()||null}); if(got){ await insertRows(table.docs,{owner_id:user.id,appointment_id:item.id,title:$("f-for").value.trim()?`Volante para ${$("f-for").value.trim()}`:"Volante o informe pendiente",specialty:$("f-for").value.trim()||null,status:"pending_to_use",notes:"Creado al completar una cita médica."}); } closeDialog(); await loadAll(); };
+}
+function openDocForm(item=null){
+  openDialog(form(item?"Editar documento":"Añadir volante o informe", `<label class="field"><span>Título</span><input id="f-title" value="${esc(item?.title||"")}" required></label><label class="field"><span>Especialidad / prueba</span><input id="f-specialty" value="${esc(item?.specialty||"")}"></label><label class="field"><span>Estado</span><select id="f-status"><option value="pending_to_use">Pendiente de llevar</option><option value="pending_upload">Pendiente de subir</option><option value="used">Usado</option><option value="archived">Archivado</option></select></label><label class="field"><span>Notas</span><textarea id="f-notes" rows="3">${esc(item?.notes||"")}</textarea></label>`));
+  $("f-status").value=item?.status||"pending_to_use"; $("modal-form").onsubmit=async e=>{ e.preventDefault(); const payload={owner_id:user.id,title:$("f-title").value.trim(),specialty:$("f-specialty").value.trim()||null,status:$("f-status").value,notes:$("f-notes").value.trim()||null}; if(item) await updateRow(table.docs,item.id,payload); else await insertRows(table.docs,payload); closeDialog(); await loadAll(); };
+}
+function openMedForm(item=null){
+  openDialog(form(item?"Editar medicación":"Añadir medicación", `<label class="field"><span>Nombre</span><input id="f-name" value="${esc(item?.name||"")}" required></label><label class="field"><span>Pauta</span><input id="f-dose" value="${esc(item?.dose||"")}"></label><div class="grid-two"><label class="field"><span>Stock</span><input id="f-stock" type="number" min="0" value="${esc(item?.stock??"")}"></label><label class="field"><span>Avisar cuando queden</span><input id="f-warning" type="number" min="1" value="${esc(item?.warning_threshold??7)}"></label></div>`));
+  $("modal-form").onsubmit=async e=>{ e.preventDefault(); const payload={owner_id:user.id,name:$("f-name").value.trim(),dose:$("f-dose").value.trim()||null,stock:Number($("f-stock").value||0),warning_threshold:Number($("f-warning").value||7),active:true}; if(item) await updateRow(table.meds,item.id,payload); else await insertRows(table.meds,payload); closeDialog(); await loadAll(); };
+}
+function openHomeForm(kind,item=null){
+  const labels={asset:"activo",car:"coche",bill:"factura",contact:"contacto"};
+  openDialog(form(item?`Editar ${labels[kind]}`:`Añadir ${labels[kind]}`, `<label class="field"><span>Título</span><input id="f-title" value="${esc(item?.title||"")}" required></label><label class="field"><span>Detalles</span><textarea id="f-details" rows="3">${esc(item?.details||"")}</textarea></label><label class="field"><span>Fecha si procede</span><input id="f-date" type="datetime-local" value="${dateInput(item?.due_at)}"></label>`));
+  $("modal-form").onsubmit=async e=>{ e.preventDefault(); const raw=$("f-date").value; const payload={household_id:householdId,created_by:user.id,kind,title:$("f-title").value.trim(),details:$("f-details").value.trim()||null,due_at:raw?new Date(raw).toISOString():null,done:false,status:"open"}; if(item) await updateRow(table.home,item.id,payload); else await insertRows(table.home,payload); closeDialog(); await loadAll(); };
+}
+function findEvent(key){ const [source,id]=key.split(":"); if(source==="task") return {source,item:state.tasks.find(x=>x.id===id)}; if(source==="appointment") return {source,item:state.appointments.find(x=>x.id===id)}; if(source==="home") return {source,item:state.home.find(x=>x.id===id)}; if(source==="doc") return {source,item:state.docs.find(x=>x.id===id)}; if(source==="med") return {source,item:state.meds.find(x=>x.id===id)}; return {}; }
+async function toggleEvent(key){ const {source,item}=findEvent(key); if(!item) return; if(source==="task") await updateRow(table.tasks,item.id,{done:!item.done}); else if(source==="appointment"){ if(!item.completed) return openCompleteAppointment(item); await updateRow(table.appointments,item.id,{completed:false}); } else if(source==="home") await updateRow(table.home,item.id,{done:!item.done}); else if(source==="doc") await updateRow(table.docs,item.id,{status:item.status==="used"?"pending_to_use":"used"}); else if(source==="med") await updateRow(table.meds,item.id,{stock:Math.max(Number(item.stock||0)-1,0)}); await loadAll(); }
+function editEvent(key){ const {source,item}=findEvent(key); if(!item) return; if(source==="task") openTaskForm(item); else if(source==="appointment") openAppointmentForm(item); else if(source==="home") openHomeForm(item.kind,item); else if(source==="doc") openDocForm(item); else if(source==="med") openMedForm(item); }
+async function deleteEvent(key){ const {source,item}=findEvent(key); if(!item||!confirm("¿Borrar?")) return; if(source==="task") await updateRow(table.tasks,item.id,{status:"deleted"}); else if(source==="appointment") await deleteRow(table.appointments,item.id); else if(source==="home") await updateRow(table.home,item.id,{status:"deleted"}); else if(source==="doc") await deleteRow(table.docs,item.id); else if(source==="med") await updateRow(table.meds,item.id,{active:false}); await loadAll(); }
+async function registerSW(){ if(!("serviceWorker" in navigator)) throw new Error("Este navegador no soporta Service Worker."); const reg=await navigator.serviceWorker.register("./service-worker.js"); await navigator.serviceWorker.ready; return reg; }
+function vapidToUint8Array(v){ const pad="=".repeat((4-v.length%4)%4); const b=(v+pad).replaceAll("-","+").replaceAll("_","/"); return Uint8Array.from([...atob(b)].map(c=>c.charCodeAt(0))); }
+async function subscribePush(){ const reg=await registerSW(); if(!("Notification" in window)) throw new Error("Este navegador no permite notificaciones."); const perm=Notification.permission==="granted"?"granted":await Notification.requestPermission(); if(perm!=="granted") throw new Error("Permiso denegado."); let sub=await reg.pushManager.getSubscription(); if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:vapidToUint8Array(C.PUSH.VAPID_PUBLIC_KEY)}); const j=sub.toJSON(); await rest(table.push,{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({owner_id:user.id,endpoint:j.endpoint,p256dh:j.keys?.p256dh||"",auth:j.keys?.auth||"",user_agent:navigator.userAgent,enabled:true})}); }
+async function renderPushDiagnostics(){ const rows=[]; rows.push(["HTTPS", location.protocol==="https:" || location.hostname==="localhost"]); rows.push(["Service Worker", "serviceWorker" in navigator]); rows.push(["Notificaciones", "Notification" in window]); rows.push(["Permiso", ("Notification" in window)&&Notification.permission==="granted"]); let sub=null; try{ const reg=await navigator.serviceWorker.getRegistration(); sub=reg?await reg.pushManager.getSubscription():null; }catch{} rows.push(["Suscripción push", !!sub]); $("push-state").textContent=sub?"activa":"revisar"; $("push-diagnostics").innerHTML=rows.map(([l,ok])=>`<div class="diag ${ok?"ok":"bad"}"><span>${l}</span><strong>${ok?"OK":"Falta"}</strong></div>`).join(""); }
+async function testLocal(){ const reg=await registerSW(); if(Notification.permission!=="granted"){ const p=await Notification.requestPermission(); if(p!=="granted") throw new Error("Permiso denegado."); } await reg.showNotification("VITA",{body:"Prueba local correcta.",icon:"./assets/vita-icon-192.png",badge:"./assets/vita-icon-192.png",tag:"vita-local"}); }
+async function testPush(){ await subscribePush(); const s=getSession(); const res=await fetch(C.PUSH.EDGE_FUNCTION_URL,{method:"POST",headers:{apikey:C.SUPABASE_ANON_KEY,Authorization:`Bearer ${s.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({title:"VITA",body:"Prueba push real correcta.",target:"today"})}); const data=await res.json().catch(()=>({})); if(!res.ok||data.ok===false) throw new Error(data.message||data.error||"No se pudo enviar push."); }
+function setup(){
+  $("login-form").onsubmit=async e=>{ e.preventDefault(); try{ setLoginNotice("Entrando..."); await login(alias($("login-user").value),$("login-password").value); renderAccess(); history.replaceState({view:"today"},"","#today"); await loadAll(); setLoginNotice("Sesión iniciada.","success"); }catch(err){ setLoginNotice(err.message,"error"); } };
+  document.addEventListener("click", async e=>{
+    const nav=e.target.closest("[data-nav]"); if(nav){ navigate(nav.dataset.nav); return; }
+    const sub=e.target.closest("[data-subtab]"); if(sub){ switchSubtab(sub.dataset.subtab); return; }
+    const formBtn=e.target.closest("[data-open-form]"); if(formBtn){ const type=formBtn.dataset.openForm; if(type==="task"||type==="task-for-day") openTaskForm(null, type==="task-for-day"?state.calendar:null); else if(type==="health-record") openHealthRecordForm(); else if(type==="appointment") openAppointmentForm(); else if(type==="medical-document") openDocForm(); else if(type==="medication") openMedForm(); else if(type==="home-asset") openHomeForm("asset"); else if(type==="home-car") openHomeForm("car"); else if(type==="home-bill") openHomeForm("bill"); else if(type==="home-contact") openHomeForm("contact"); else if(type==="university"||type==="travel"||type==="bureaucracy") openTaskForm(null,null,type); return; }
+    const open=e.target.closest("[data-open-event]"); if(open){ const {item}=findEvent(open.dataset.openEvent); if(item) alert(item.details||item.notes||item.result||item.title); return; }
+    const tog=e.target.closest("[data-toggle-event]"); if(tog){ await toggleEvent(tog.dataset.toggleEvent); return; }
+    const ed=e.target.closest("[data-edit-event]"); if(ed){ editEvent(ed.dataset.editEvent); return; }
+    const de=e.target.closest("[data-delete-event]"); if(de){ await deleteEvent(de.dataset.deleteEvent); return; }
+    const check=e.target.closest("[data-shop-check]"); if(check){ await updateRow(table.shopping,check.dataset.shopCheck,{checked:check.checked}); await loadAll(); return; }
+    const shEd=e.target.closest("[data-shop-edit]"); if(shEd){ const item=state.shopping.find(i=>i.id===shEd.dataset.shopEdit); const val=prompt("Producto",item?.title||""); if(val!==null&&val.trim()){ await updateRow(table.shopping,item.id,{title:val.trim()}); await loadAll(); } return; }
+    const shDel=e.target.closest("[data-shop-delete]"); if(shDel){ if(confirm("¿Borrar producto?")){ await deleteRow(table.shopping,shDel.dataset.shopDelete); await loadAll(); } return; }
+    const filt=e.target.closest("[data-filter]"); if(filt){ state.calendarFilter=filt.dataset.filter; renderCalendar(); return; }
+    const mode=e.target.closest("[data-calendar-mode]"); if(mode){ state.calendarMode=mode.dataset.calendarMode; renderCalendar(); return; }
+    const day=e.target.closest("[data-select-day]"); if(day){ state.calendar=new Date(`${day.dataset.selectDay}T12:00:00`); state.calendarMode="day"; renderCalendar(); return; }
+    const month=e.target.closest("[data-year-month]"); if(month){ state.calendar=new Date(state.calendar.getFullYear(),Number(month.dataset.yearMonth),1,12); state.calendarMode="month"; renderCalendar(); return; }
+    const editHealth=e.target.closest("[data-edit-health]"); if(editHealth){ openHealthRecordForm(state.health.find(h=>h.id===editHealth.dataset.editHealth)); return; }
+    const delHealth=e.target.closest("[data-delete-health]"); if(delHealth){ if(confirm("¿Borrar registro?")){ await deleteRow(table.health,delHealth.dataset.deleteHealth); await loadAll(); } return; }
+    const useDoc=e.target.closest("[data-use-doc]"); if(useDoc){ const d=state.docs.find(x=>x.id===useDoc.dataset.useDoc); await updateRow(table.docs,d.id,{status:d.status==="used"?"pending_to_use":"used"}); await loadAll(); return; }
+    const editDoc=e.target.closest("[data-edit-doc]"); if(editDoc){ openDocForm(state.docs.find(d=>d.id===editDoc.dataset.editDoc)); return; }
+    const delDoc=e.target.closest("[data-delete-doc]"); if(delDoc){ if(confirm("¿Borrar documento?")){ await deleteRow(table.docs,delDoc.dataset.deleteDoc); await loadAll(); } return; }
+    const medTake=e.target.closest("[data-med-take]"); if(medTake){ const m=state.meds.find(x=>x.id===medTake.dataset.medTake); await updateRow(table.meds,m.id,{stock:Math.max(Number(m.stock||0)-1,0)}); await loadAll(); return; }
+    const medBuy=e.target.closest("[data-med-buy]"); if(medBuy){ const m=state.meds.find(x=>x.id===medBuy.dataset.medBuy); await insertRows(table.shopping,{household_id:householdId,created_by:user.id,title:m.name,category:"farmacia",checked:false}); await loadAll(); navigate("shopping"); return; }
+    const editMed=e.target.closest("[data-edit-med]"); if(editMed){ openMedForm(state.meds.find(m=>m.id===editMed.dataset.editMed)); return; }
+    const delMed=e.target.closest("[data-delete-med]"); if(delMed){ if(confirm("¿Borrar medicación?")){ await updateRow(table.meds,delMed.dataset.deleteMed,{active:false}); await loadAll(); } return; }
   });
+  $("shopping-form").onsubmit=async e=>{ e.preventDefault(); const lines=$("shopping-input").value.split(/\n+/).map(x=>x.trim()).filter(Boolean); if(!lines.length) return; const category=$("shopping-category").value; const payload=lines.map(title=>({household_id:householdId,created_by:user.id,title,category,checked:false})); await insertRows(table.shopping,payload); $("shopping-input").value=""; await loadAll(); };
+  $("toggle-bought").onclick=()=>{ state.hideBought=!state.hideBought; renderShopping(); };
+  $("clear-bought").onclick=async()=>{ const bought=state.shopping.filter(i=>i.checked); if(!bought.length) return; if(!confirm(`¿Borrar ${bought.length} producto(s) comprados?`)) return; await Promise.all(bought.map(i=>deleteRow(table.shopping,i.id))); await loadAll(); };
+  $("calendar-prev").onclick=()=>{ if(state.calendarMode==="year") state.calendar.setFullYear(state.calendar.getFullYear()-1); else if(state.calendarMode==="week") state.calendar.setDate(state.calendar.getDate()-7); else state.calendar.setMonth(state.calendar.getMonth()-1); renderCalendar(); };
+  $("calendar-next").onclick=()=>{ if(state.calendarMode==="year") state.calendar.setFullYear(state.calendar.getFullYear()+1); else if(state.calendarMode==="week") state.calendar.setDate(state.calendar.getDate()+7); else state.calendar.setMonth(state.calendar.getMonth()+1); renderCalendar(); };
+  $("calendar-date").onchange=()=>{ state.calendar=new Date(`${$("calendar-date").value}T12:00:00`); renderCalendar(); };
+  $("back-button").onclick=()=>history.back(); $("account-shortcut").onclick=()=>navigate("more");
+  window.onpopstate=e=>{ navigate(e.state?.view||"today",false); };
+  $("logout").onclick=()=>{ clearSession(); location.reload(); };
+  $("enable-push").onclick=async()=>{ try{ await subscribePush(); setNotice("Avisos activados.","success"); await renderPushDiagnostics(); }catch(err){ setNotice(err.message,"error"); } };
+  $("test-local").onclick=async()=>{ try{ await testLocal(); setNotice("Prueba local enviada.","success"); await renderPushDiagnostics(); }catch(err){ setNotice(err.message,"error"); } };
+  $("test-push").onclick=async()=>{ try{ await testPush(); setNotice("Prueba push real enviada.","success"); await renderPushDiagnostics(); }catch(err){ setNotice(err.message,"error"); } };
+  window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredPrompt=e; });
 }
-function renderCalendar() {
-  renderCalendarFilters();
-  const date = new Date(calendarCursor);
-  const grid = $("calendar-grid");
-  document.querySelectorAll(".view-switch button").forEach((b) => b.classList.toggle("active", b.dataset.view === calendarView));
-  $("calendar-date").value = date.toISOString().slice(0,10);
-  if (calendarView === "day") return renderCalendarDay(date, grid);
-  if (calendarView === "week") return renderCalendarWeek(date, grid);
-  renderCalendarMonth(date, grid);
-  renderSelectedDayList(date);
-}
-function cardsOnDay(day) {
-  return calendarCards().filter((c) => isSameDay(new Date(c.due_at), day)).sort(sortByDue);
-}
-function renderCalendarMonth(date, grid) {
-  const first = new Date(date.getFullYear(), date.getMonth(), 1);
-  const start = new Date(first);
-  start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
-  const days = Array.from({ length: 42 }, (_, i) => addDays(start, i));
-  const head = ["L","M","X","J","V","S","D"].map((d) => `<span>${d}</span>`).join("");
-  grid.innerHTML = `<h2>${date.toLocaleDateString("es-ES", { month:"long", year:"numeric" })}</h2><div class="cal-weekdays">${head}</div><div class="cal-days">${days.map((d) => renderDayCell(d, date)).join("")}</div>`;
-}
-function renderCalendarWeek(date, grid) {
-  const start = new Date(date);
-  start.setDate(date.getDate() - ((date.getDay() + 6) % 7));
-  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  grid.innerHTML = `<h2>Semana de ${dateLabel(start, "short")}</h2><div class="cal-days">${days.map((d) => renderDayCell(d, date)).join("")}</div>`;
-  renderSelectedDayList(date);
-}
-function renderCalendarDay(date, grid) {
-  grid.innerHTML = `<h2>${date.toLocaleDateString("es-ES", { weekday:"long", day:"2-digit", month:"long" })}</h2>`;
-  renderSelectedDayList(date);
-}
-function renderDayCell(day, current) {
-  const dayCards = cardsOnDay(day);
-  const classes = ["day-cell"];
-  if (day.getMonth() !== current.getMonth() && calendarView === "month") classes.push("muted");
-  if (isSameDay(day, new Date())) classes.push("today");
-  if (isSameDay(day, calendarCursor)) classes.push("selected");
-  return `<button class="${classes.join(" ")}" data-calendar-day="${day.toISOString().slice(0,10)}" type="button">
-    <strong>${day.getDate()}</strong>
-    <small>${day.toLocaleDateString("es-ES", { weekday:"short" })}</small>
-    <span class="dot-row">${dayCards.slice(0,6).map((c) => `<span class="dot ${escapeHtml(moduleCalendar(c.module))}"></span>`).join("")}</span>
-  </button>`;
-}
-function renderSelectedDayList(date) {
-  $("selected-day-title").textContent = date.toLocaleDateString("es-ES", { weekday:"long", day:"2-digit", month:"long" });
-  const list = cardsOnDay(date);
-  $("selected-day-list").innerHTML = list.length ? list.map(renderItemCard).join("") : `<p class="empty">No hay nada registrado este día.</p>`;
-}
-
-function renderNotifications() {
-  const notifyCards = activeCards().filter((c) => c.notify_at).sort((a,b) => new Date(a.notify_at)-new Date(b.notify_at));
-  $("notification-cards").innerHTML = notifyCards.length ? notifyCards.map(renderItemCard).join("") : `<p class="empty">No hay avisos programados. Añade fecha y aviso en cualquier tarjeta.</p>`;
-  renderDiagnostics();
-}
-function diagnosticItem(label, ok, detail = "") {
-  return `<div class="diagnostic-item ${ok ? "ok" : "bad"}"><span>${escapeHtml(label)}</span><strong>${ok ? "OK" : "Falta"}</strong>${detail ? `<small>${escapeHtml(detail)}</small>` : ""}</div>`;
-}
-async function collectDiagnostics() {
-  const isHttps = location.protocol === "https:" || location.hostname === "localhost";
-  const hasSW = "serviceWorker" in navigator;
-  const hasNotification = "Notification" in window;
-  const hasPush = "PushManager" in window;
-  const permission = hasNotification ? Notification.permission : "no";
-  let registration = null;
-  let subscription = null;
-  try {
-    if (hasSW) registration = await navigator.serviceWorker.getRegistration();
-    if (registration && hasPush) subscription = await registration.pushManager.getSubscription();
-  } catch {}
-  pushSubscription = subscription;
-  return [
-    ["HTTPS o localhost", isHttps, location.protocol],
-    ["Service Worker disponible", hasSW, ""],
-    ["Service Worker registrado", Boolean(registration), ""],
-    ["Notifications API", hasNotification, ""],
-    ["Permiso de notificación", permission === "granted", permission],
-    ["PushManager", hasPush, ""],
-    ["VAPID configurada", Boolean(cfg().PUSH?.VAPID_PUBLIC_KEY), ""],
-    ["Suscripción push", Boolean(subscription), ""]
-  ];
-}
-async function renderDiagnostics() {
-  const rows = await collectDiagnostics();
-  $("push-diagnostics").innerHTML = rows.map(([l,ok,d]) => diagnosticItem(l, ok, d)).join("");
-}
-function updatePushSummary() {
-  const warning = $("push-warning");
-  if (!("Notification" in window) || Notification.permission !== "granted" || !pushSubscription) {
-    warning.classList.add("needs-action");
-    $("push-summary").textContent = "Los avisos no están completamente activados. Entra en Más y pulsa Revisar.";
-  } else {
-    warning.classList.remove("needs-action");
-    $("push-summary").textContent = "Permisos y suscripción activos. Haz una prueba push real cuando quieras.";
-  }
-}
-async function registerSW() {
-  if (!("serviceWorker" in navigator)) throw new Error("Este navegador no soporta Service Worker.");
-  const reg = await navigator.serviceWorker.register("./service-worker.js");
-  await navigator.serviceWorker.ready;
-  await reg.update().catch(() => null);
-  return reg;
-}
-function vapidToUint8Array(base64String) {
-  const padding = "=".repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replaceAll("-", "+").replaceAll("_", "/");
-  const raw = atob(base64);
-  return Uint8Array.from([...raw].map((char) => char.charCodeAt(0)));
-}
-async function subscribePush() {
-  if (location.protocol !== "https:" && location.hostname !== "localhost") throw new Error("Las push requieren HTTPS.");
-  const reg = await registerSW();
-  if (!("Notification" in window)) throw new Error("Este navegador no permite notificaciones.");
-  if (!("PushManager" in window)) throw new Error("Este navegador no permite PushManager.");
-  const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
-  if (permission !== "granted") throw new Error("No se concedió permiso de notificación.");
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: vapidToUint8Array(cfg().PUSH.VAPID_PUBLIC_KEY)
-    });
-  }
-  const json = sub.toJSON();
-  await rest("vita_push_subscriptions", {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-    body: JSON.stringify({
-      owner_id: currentUser.id,
-      endpoint: json.endpoint,
-      p256dh: json.keys?.p256dh || "",
-      auth: json.keys?.auth || "",
-      user_agent: navigator.userAgent,
-      enabled: true
-    })
-  });
-  pushSubscription = sub;
-  renderNotifications();
-  updatePushSummary();
-  return sub;
-}
-async function testLocalNotification() {
-  const reg = await registerSW();
-  if (Notification.permission !== "granted") {
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") throw new Error("Permiso denegado.");
-  }
-  await reg.showNotification("VITA", {
-    body: "Prueba local: tu móvil puede mostrar notificaciones.",
-    icon: "./assets/vita-icon-192.png",
-    badge: "./assets/vita-icon-192.png",
-    tag: "vita-local-test",
-    data: { url: "./#home" }
-  });
-}
-async function testPushReal() {
-  await subscribePush();
-  const session = getSession();
-  const res = await fetch(cfg().PUSH.EDGE_FUNCTION_URL, {
-    method: "POST",
-    headers: {
-      apikey: cfg().SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${session.access_token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ mode: "test", title: "VITA", body: "Prueba push real enviada desde Supabase.", target: "home" })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.ok === false) throw new Error(data.message || data.error || "Edge Function no pudo enviar la push.");
-  return data;
-}
-
-async function toggleDone(id) {
-  const card = cardById(id);
-  if (!card) return;
-  await updateCard(id, { status: card.status === "done" ? "open" : "done" });
-  await loadCards();
-}
-async function removeCard(id) {
-  if (!confirm("¿Borrar esta tarjeta?")) return;
-  await updateCard(id, { status: "deleted" });
-  await loadCards();
-}
-function editCard(id) {
-  const card = cardById(id);
-  if (!card) return;
-  openForm(card.module, card);
-}
-
-function setupEvents() {
-  $("login-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    loginStatus("Entrando...", "neutral");
-    try {
-      await login(normalizeEmail($("login-user").value), $("login-pass").value);
-      renderAccess();
-      await loadCards();
-      loginStatus("Sesión iniciada.", "success");
-    } catch (error) {
-      loginStatus(error.message, "error");
-    }
-  });
-
-  document.addEventListener("click", async (event) => {
-    const nav = event.target.closest("[data-nav]");
-    if (nav) {
-      setScreen(nav.dataset.nav, { openNotifications: Boolean(nav.dataset.openMore) });
-      return;
-    }
-    const moduleButton = event.target.closest("[data-module]");
-    if (moduleButton) {
-      openModule(moduleButton.dataset.module);
-      return;
-    }
-    const open = event.target.closest("[data-open-card]");
-    if (open) {
-      openCard(open.dataset.openCard);
-      return;
-    }
-    const edit = event.target.closest("[data-edit-card]");
-    if (edit) {
-      editCard(edit.dataset.editCard);
-      return;
-    }
-    const del = event.target.closest("[data-delete-card]");
-    if (del) {
-      await removeCard(del.dataset.deleteCard);
-      return;
-    }
-    const done = event.target.closest("[data-done-card]");
-    if (done) {
-      await toggleDone(done.dataset.doneCard);
-      return;
-    }
-    const day = event.target.closest("[data-calendar-day]");
-    if (day) {
-      calendarCursor = new Date(`${day.dataset.calendarDay}T12:00:00`);
-      calendarView = "day";
-      renderCalendar();
-      return;
-    }
-    const calFilter = event.target.closest("[data-calendar-filter]");
-    if (calFilter) {
-      calendarFilter = calFilter.dataset.calendarFilter;
-      renderCalendar();
-      return;
-    }
-  });
-
-  $("module-add-button").addEventListener("click", () => openForm(currentModuleId || "tasks"));
-  $("module-back-button").addEventListener("click", () => setScreen(previousScreen || "home"));
-  $("quick-add-task").addEventListener("click", () => openForm("tasks"));
-  $("calendar-add-button").addEventListener("click", () => openForm("tasks", null, calendarCursor));
-  $("calendar-date").addEventListener("change", () => {
-    calendarCursor = new Date(`${$("calendar-date").value}T12:00:00`);
-    renderCalendar();
-  });
-  $("calendar-prev").addEventListener("click", () => {
-    if (calendarView === "month") calendarCursor.setMonth(calendarCursor.getMonth() - 1);
-    else calendarCursor.setDate(calendarCursor.getDate() - (calendarView === "week" ? 7 : 1));
-    renderCalendar();
-  });
-  $("calendar-next").addEventListener("click", () => {
-    if (calendarView === "month") calendarCursor.setMonth(calendarCursor.getMonth() + 1);
-    else calendarCursor.setDate(calendarCursor.getDate() + (calendarView === "week" ? 7 : 1));
-    renderCalendar();
-  });
-  document.querySelectorAll(".view-switch button").forEach((button) => {
-    button.addEventListener("click", () => {
-      calendarView = button.dataset.view;
-      renderCalendar();
-    });
-  });
-  $("enable-push").addEventListener("click", async () => {
-    status("Activando avisos...", "neutral");
-    try {
-      await subscribePush();
-      status("Avisos activados y suscripción guardada.", "success");
-    } catch (error) {
-      status(error.message, "error");
-      renderDiagnostics();
-    }
-  });
-  $("test-local").addEventListener("click", async () => {
-    try {
-      await testLocalNotification();
-      status("Prueba local enviada.", "success");
-      renderDiagnostics();
-    } catch (error) {
-      status(error.message, "error");
-      renderDiagnostics();
-    }
-  });
-  $("test-push").addEventListener("click", async () => {
-    status("Enviando push real...", "neutral");
-    try {
-      const result = await testPushReal();
-      status(`Push real enviada. Enviadas: ${result.sent ?? "?"}.`, "success");
-      renderDiagnostics();
-    } catch (error) {
-      status(error.message, "error");
-      renderDiagnostics();
-    }
-  });
-  $("install-app").addEventListener("click", async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
-    } else {
-      status("Si no aparece instalación automática, usa el menú del navegador y Añadir a pantalla de inicio.", "neutral");
-    }
-  });
-  $("logout").addEventListener("click", () => {
-    clearSession();
-    currentUser = null;
-    cards = [];
-    renderAccess();
-  });
-  $("account-button").addEventListener("click", () => setScreen("account"));
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredPrompt = event;
-  });
-}
-
-async function boot() {
-  setupEvents();
-  await registerSW().catch(() => null);
-  renderAccess();
-  const hash = location.hash.replace("#", "");
-  if (hash && $(`screen-${hash}`)) setScreen(hash);
-  if (currentUser) {
-    status("Cargando VITA...", "neutral");
-    await loadCards().catch((error) => status(error.message, "error"));
-  }
-  renderDiagnostics();
-}
-
+async function boot(){ setup(); await registerSW().catch(()=>null); renderAccess(); if(user){ await loadAll().catch(err=>setNotice(err.message,"error")); } const hash=location.hash.replace("#","")||"today"; if($("screen-"+hash)) navigate(hash,false); else history.replaceState({view:"today"},"","#today"); await renderPushDiagnostics().catch(()=>null); }
 boot();

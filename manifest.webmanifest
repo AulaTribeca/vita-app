@@ -1,32 +1,18 @@
 {
-  "name": "VITA",
+  "name": "VITA ONE",
   "short_name": "VITA",
-  "description": "VITA, organizador visual sin cron, con avisos push manuales, calendario, salud, hogar y módulos clicables.",
+  "description": "VITA ONE, asistente personal visual para organizar salud, compra, hogar, calendario y vida diaria.",
   "id": "/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f9f6ff",
+  "background_color": "#FBF8FF",
   "theme_color": "#6E56CF",
-  "categories": [
-    "productivity",
-    "health",
-    "utilities"
-  ],
-  "version": "5.2.2",
+  "version": "1.0.0",
+  "categories": ["productivity", "health", "utilities"],
   "icons": [
-    {
-      "src": "./assets/vita-icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./assets/vita-icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    {"src":"./assets/vita-icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"./assets/vita-icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
   ]
 }
