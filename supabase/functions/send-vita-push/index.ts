@@ -21,49 +21,34 @@ const ANON_KEY =
   Deno.env.get("SUPABASE_ANON_KEY") ??
   Deno.env.get("ANON_KEY") ??
   SERVICE_ROLE;
+
 const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:admin@example.com";
-const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return json({ ok: true });
   if (req.method !== "POST") return json({ ok: false, message: "Method not allowed" }, 405);
 
   try {
-    const payload = await req.json().catch(() => ({}));
-    const mode = payload.mode ?? "test";
     assertSecrets();
 
-    if (mode === "test") {
-      const user = await getUser(req);
-      if (!user?.id) return json({ ok: false, message: "JWT no válido." }, 401);
-      const result = await sendToUser(user.id, {
-        title: payload.title ?? "VITA",
-        body: payload.body ?? "Prueba push real.",
-        target: payload.target ?? "home",
-        tag: "vita-test"
-      });
-      return json({ ok: true, ...result });
-    }
+    const payload = await req.json().catch(() => ({}));
+    const user = await getUser(req);
+    if (!user?.id) return json({ ok: false, message: "JWT no válido." }, 401);
 
-    if (mode === "scheduled") {
-      const auth = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
-      if (CRON_SECRET && auth !== CRON_SECRET && auth !== SERVICE_ROLE) {
-        return json({ ok: false, message: "Token de cron no válido." }, 401);
-      }
-      if (!CRON_SECRET && auth !== SERVICE_ROLE) {
-        return json({ ok: false, message: "Token de cron no válido." }, 401);
-      }
-      const result = await sendDueCards();
-      return json({ ok: true, ...result });
-    }
+    const result = await sendToUser(user.id, {
+      title: payload.title ?? "VITA",
+      body: payload.body ?? "Prueba push real.",
+      target: payload.target ?? "home",
+      tag: payload.tag ?? "vita-test"
+    });
 
-    return json({ ok: false, message: "Modo no reconocido." }, 400);
+    return json({ ok: true, ...result });
   } catch (error) {
     return json({ ok: false, message: error?.message ?? String(error) }, 500);
   }
@@ -71,8 +56,8 @@ Deno.serve(async (req) => {
 
 function assertSecrets() {
   const missing = [];
-  if (!SUPABASE_URL) missing.push("SUPABASE_URL");
-  if (!SERVICE_ROLE) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL) missing.push("SUPABASE_URL o URL");
+  if (!SERVICE_ROLE) missing.push("SUPABASE_SERVICE_ROLE_KEY o SERVICE_ROLE_KEY");
   if (!VAPID_PUBLIC_KEY) missing.push("VAPID_PUBLIC_KEY");
   if (!VAPID_PRIVATE_KEY) missing.push("VAPID_PRIVATE_KEY");
   if (missing.length) throw new Error(`Faltan secrets: ${missing.join(", ")}`);
@@ -111,30 +96,6 @@ async function api(path, options = {}) {
 async function sendToUser(ownerId, notification) {
   const subscriptions = await api(`vita_push_subscriptions?select=*&owner_id=eq.${encodeURIComponent(ownerId)}&enabled=eq.true`);
   return await sendToSubscriptions(subscriptions, notification);
-}
-
-async function sendDueCards() {
-  const now = new Date().toISOString();
-  const cards = await api(`vita_cards?select=*&status=eq.open&notify_at=lte.${encodeURIComponent(now)}&notified_at=is.null&limit=100`);
-  let sent = 0;
-  let failed = 0;
-
-  for (const card of cards) {
-    const result = await sendToUser(card.owner_id, {
-      title: "VITA",
-      body: card.title ?? "Tienes algo pendiente.",
-      target: "home",
-      tag: `vita-card-${card.id}`
-    });
-    sent += result.sent;
-    failed += result.failed;
-    await api(`vita_cards?id=eq.${encodeURIComponent(card.id)}`, {
-      method: "PATCH",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ notified_at: now, last_notification_result: result })
-    });
-  }
-  return { processed: cards.length, sent, failed };
 }
 
 async function sendToSubscriptions(subscriptions, notification) {

@@ -1,66 +1,52 @@
-# VITA v5.2.1, instalación completa
+# VITA v5.2.2, sin cron
 
-Proyecto completo listo para instalar.
+Proyecto completo listo para subir a GitHub.
 
-## Navegación oficial
+## Qué cambia
 
-- Hoy
-- Calendario
-- Salud
-- Hogar
-- Más
+Se elimina el cron de notificaciones para evitar filtraciones de Bearer Token y dejar de depender de un secreto escrito en SQL.
 
-## Estructura
+La app mantiene:
 
-Cada apartado se organiza con tarjetas clicables. Al tocar una tarjeta se entra en su módulo y desde ahí se puede:
-
-- ver lo existente;
-- añadir;
-- editar;
-- borrar;
-- marcar como hecho;
-- programar avisos.
-
-## Logo
-
-Incluye el logo vegetal oficial de VITA en:
-
-- `assets/vita-icon.svg`
-- `assets/vita-logo.svg`
-- `assets/vita-icon-192.png`
-- `assets/vita-icon-512.png`
+- PWA completa.
+- Login privado.
+- Logo vegetal oficial.
+- Tarjetas clicables.
+- Hoy, Calendario, Salud, Hogar y Más.
+- Prueba local de notificaciones.
+- Prueba push real manual desde la app.
+- Edge Function sin cron.
 
 ## SQL obligatorio
 
-Ejecuta:
+Ejecuta si todavía no tienes la base v5:
 
 `docs/supabase_v5_2_core.sql`
 
-Si ya habías ejecutado v5.1, también puedes ejecutar v5.2: es compatible y no borra datos.
+## SQL para eliminar el cron
+
+Ejecuta una vez:
+
+`docs/supabase_v5_2_2_eliminar_cron.sql`
+
+Este SQL no contiene secretos.
 
 ## Edge Function
 
-Despliega o sustituye:
+Despliega:
 
 `supabase/functions/send-vita-push/index.ts`
 
-La función acepta:
+Secrets necesarios:
 
-- `SUPABASE_URL` o `URL`
-- `SUPABASE_SERVICE_ROLE_KEY` o `SERVICE_ROLE_KEY`
-- `SUPABASE_ANON_KEY` o `ANON_KEY`
+- `URL`
+- `SERVICE_ROLE_KEY`
+- `VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`
+- `VAPID_SUBJECT`
 
-## Cron
+## GitHub
 
-Ejecuta solo cuando la prueba push real funcione:
+Commit sugerido:
 
-`docs/supabase_v5_2_cron_definitivo_sin_vault.sql`
-
-## Commit sugerido
-
-`VITA v5.2.1 instalacion completa`
-
-
-## Seguridad
-
-No subas el `CRON_SECRET` real a GitHub. El cron del proyecto trae un placeholder que debes sustituir solo en Supabase SQL Editor.
+`VITA v5.2.2 elimina cron`

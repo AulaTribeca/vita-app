@@ -1,7 +1,7 @@
 {
   "name": "VITA",
   "short_name": "VITA",
-  "description": "VITA, organizador visual con avisos, calendario, salud, hogar, listas y módulos clicables.",
+  "description": "VITA, organizador visual sin cron, con avisos push manuales, calendario, salud, hogar y módulos clicables.",
   "id": "/",
   "start_url": "./index.html",
   "scope": "./",
@@ -14,7 +14,7 @@
     "health",
     "utilities"
   ],
-  "version": "5.2.0",
+  "version": "5.2.2",
   "icons": [
     {
       "src": "./assets/vita-icon-192.png",
