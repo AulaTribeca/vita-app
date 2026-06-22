@@ -1,51 +1,44 @@
-# VITA v0.5 completa
+# VITA v0.6
 
-Versión rehecha desde cero para eliminar parches acumulados.
+Nivel 6 de VITA: listas reales conectadas a Supabase.
 
-## Qué incluye
+## Qué añade
 
-- Carpeta completa de la app.
-- Login privado real con usuario y contraseña.
-- Sin demo local.
-- Sin entrada sin usuario.
-- Sin dependencia externa `supabase-js`.
-- Inicio de sesión contra Supabase Auth mediante REST.
-- Pantallas:
-  - Hoy
-  - Salud
-  - Citas
-  - Medicación
-  - Hogar
-  - Listas
-  - Documentos
-  - Cuenta y privacidad
+- Carga del perfil real del usuario conectado.
+- Carga del hogar compartido.
+- Lista de la compra compartida desde Supabase.
+- Lista personal desde Supabase.
+- Lista de deseos básica desde Supabase.
+- Añadir elementos reales a cada lista.
+- Marcar elementos como comprados o pendientes.
+- Separación por usuario mediante las políticas RLS ya creadas.
 
-## Usuarios
+## Archivos modificados
 
-La pantalla permite:
+- `index.html`
+- `app.js`
+- `styles.css`
+- `config.js`
+- `service-worker.js`
+- `README.md`
+- `docs/instrucciones_v0_6.md`
 
-- `Patricia`
-- `Patri`
-- `Román`
-- `Roman`
+## Requisitos
 
-Internamente se traducen a:
+Deben estar ejecutados en Supabase:
 
-- `patricia@vitaapp.com`
-- `roman@vitaapp.com`
+1. `docs/supabase_v0_2.sql`
+2. `docs/supabase_v0_3.sql`
+3. `vita_post_usuarios_setup.sql`
 
-## Instalación
+## Pruebas
 
-Sustituye por completo la carpeta del repositorio por los archivos de este ZIP.
-
-Después:
-
-1. GitHub Desktop.
-2. Commit: `VITA v0.5 carpeta completa`
-3. Push origin.
-4. Espera el despliegue de GitHub Pages.
-5. Abre en incógnito.
-
-## Seguridad
-
-Antes de seguir desarrollando, cambia cualquier contraseña que haya aparecido en capturas.
+1. Entra como Patricia.
+2. Añade un producto a la lista compartida.
+3. Cierra sesión.
+4. Entra como Román.
+5. Comprueba que ve el producto compartido.
+6. Añade un producto a la lista personal de Román.
+7. Cierra sesión.
+8. Entra como Patricia.
+9. Comprueba que no ves la lista personal de Román.

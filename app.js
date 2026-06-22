@@ -33,6 +33,13 @@ const ICONS = {
 
 const SESSION_KEY = 'vita_session_v050';
 let currentUser = null;
+let currentProfile = null;
+let currentHousehold = null;
+let currentLists = {
+  shared: null,
+  personal: null,
+  wishlist: null
+};
 
 function getConfig() {
   return window.VITA_CONFIG || {};
@@ -56,6 +63,53 @@ function getAuthHeaders(accessToken) {
 
   return headers;
 }
+
+
+function getRestEndpoint(path) {
+  const config = getConfig();
+  return `${config.SUPABASE_URL}/rest/v1/${path}`;
+}
+
+async function restRequest(path, options = {}) {
+  const session = getStoredSession();
+  if (!session || !session.access_token) {
+    throw new Error('Sesión no disponible.');
+  }
+
+  const headers = {
+    apikey: getConfig().SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${session.access_token}`,
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+
+  const response = await fetch(getRestEndpoint(path), {
+    ...options,
+    headers
+  });
+
+  if (!response.ok) {
+    let message = 'No se pudo completar la operación.';
+    try {
+      const payload = await response.json();
+      message = payload.message || payload.error || message;
+    } catch {
+      /* Sin cuerpo JSON. */
+    }
+    throw new Error(message);
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return response.json();
+}
+
+function encodeFilter(value) {
+  return encodeURIComponent(value);
+}
+
 
 function normalizeLoginName(value) {
   return String(value || '')
@@ -156,6 +210,9 @@ async function signOut() {
 
   clearSession();
   currentUser = null;
+  currentProfile = null;
+  currentHousehold = null;
+  currentLists = { shared: null, personal: null, wishlist: null };
 }
 
 function injectIcons() {
@@ -244,6 +301,7 @@ function setupLogin() {
       passwordInput.value = '';
       renderAccess();
       showScreen('hoy');
+      await initializePrivateData();
     } catch (error) {
       setLoginMessage(error.message || 'Usuario o contraseña incorrectos.', 'error');
     }
@@ -376,29 +434,193 @@ function setupHealthRecords() {
   }
 }
 
-function setupShoppingDemo() {
-  const form = document.getElementById('shared-shopping-form');
-  const input = document.getElementById('shared-shopping-input');
+
+function setupShoppingForms() {
+  setupListForm('shared-shopping-form', 'shared-shopping-input', 'shared');
+  setupListForm('personal-shopping-form', 'personal-shopping-input', 'personal');
+  setupListForm('wishlist-form', 'wishlist-input', 'wishlist');
+}
+
+function setupListForm(formId, inputId, listKey) {
+  const form = document.getElementById(formId);
+  const input = document.getElementById(inputId);
 
   if (!form || !input) return;
 
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const value = input.value.trim();
-    if (!value) return;
 
-    const row = document.createElement('label');
-    row.className = 'check-row';
-    row.innerHTML = `
-      <input type="checkbox">
-      <span>${escapeHtml(value)}</span>
-      <em>Nuevo</em>
-    `;
+    const title = input.value.trim();
+    if (!title) return;
 
-    form.before(row);
-    input.value = '';
+    if (!currentUser) {
+      showSyncStatus('Inicia sesión para guardar cambios.', 'error');
+      return;
+    }
+
+    const list = currentLists[listKey];
+    if (!list) {
+      showSyncStatus('La lista todavía no está preparada.', 'error');
+      return;
+    }
+
+    input.disabled = true;
+
+    try {
+      await createListItem(list.id, title);
+      input.value = '';
+      await loadListsAndItems();
+      showSyncStatus('Lista actualizada.', 'success');
+    } catch (error) {
+      showSyncStatus(error.message || 'No se pudo añadir el elemento.', 'error');
+    } finally {
+      input.disabled = false;
+      input.focus();
+    }
   });
 }
+
+async function initializePrivateData() {
+  try {
+    showSyncStatus('Sincronizando listas...', 'neutral');
+    await loadProfileAndHousehold();
+    await loadListsAndItems();
+    showSyncStatus('Listas conectadas a Supabase.', 'success');
+  } catch (error) {
+    showSyncStatus(error.message || 'No se pudieron cargar las listas.', 'error');
+    renderListError();
+  }
+}
+
+async function loadProfileAndHousehold() {
+  if (!currentUser || !currentUser.id) {
+    throw new Error('Sesión no disponible.');
+  }
+
+  const profiles = await restRequest(`profiles?select=id,email,preferred_name,avatar_initial&id=eq.${encodeFilter(currentUser.id)}&limit=1`);
+  currentProfile = profiles && profiles.length ? profiles[0] : null;
+
+  if (!currentProfile) {
+    throw new Error('No se encontró el perfil del usuario.');
+  }
+
+  const memberships = await restRequest(`household_members?select=household_id,role,status&user_id=eq.${encodeFilter(currentUser.id)}&status=eq.active&limit=1`);
+  const membership = memberships && memberships.length ? memberships[0] : null;
+
+  if (!membership) {
+    currentHousehold = null;
+    return;
+  }
+
+  const households = await restRequest(`households?select=id,name&id=eq.${encodeFilter(membership.household_id)}&limit=1`);
+  currentHousehold = households && households.length ? households[0] : null;
+}
+
+async function loadListsAndItems() {
+  if (!currentProfile) {
+    await loadProfileAndHousehold();
+  }
+
+  const lists = await restRequest('shopping_lists?select=id,owner_id,household_id,visibility,name,list_type&order=created_at.asc');
+
+  currentLists.shared = lists.find((list) => list.list_type === 'household' && list.visibility === 'household') || null;
+  currentLists.personal = lists.find((list) => list.list_type === 'personal' && list.owner_id === currentUser.id) || null;
+  currentLists.wishlist = lists.find((list) => list.list_type === 'wishlist' && list.owner_id === currentUser.id) || null;
+
+  renderList('shared-list-items', currentLists.shared, await getItemsForList(currentLists.shared), 'shared');
+  renderList('personal-list-items', currentLists.personal, await getItemsForList(currentLists.personal), 'personal');
+  renderList('wishlist-items', currentLists.wishlist, await getItemsForList(currentLists.wishlist), 'wishlist');
+}
+
+async function getItemsForList(list) {
+  if (!list) return [];
+  return restRequest(`shopping_list_items?select=id,title,status,notes,url,image_path,price_estimate,created_at&list_id=eq.${encodeFilter(list.id)}&order=created_at.asc`);
+}
+
+async function createListItem(listId, title) {
+  const payload = {
+    list_id: listId,
+    owner_id: currentUser.id,
+    title,
+    status: 'pending'
+  };
+
+  await restRequest('shopping_list_items', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify(payload)
+  });
+}
+
+async function updateListItemStatus(itemId, checked) {
+  await restRequest(`shopping_list_items?id=eq.${encodeFilter(itemId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ status: checked ? 'bought' : 'pending' })
+  });
+}
+
+function renderList(containerId, list, items, listKey) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!list) {
+    container.innerHTML = '<p class="empty">Lista no encontrada. Revisa que el SQL de VITA esté ejecutado.</p>';
+    return;
+  }
+
+  if (!items || !items.length) {
+    container.innerHTML = '<p class="empty">Todavía no hay elementos.</p>';
+    return;
+  }
+
+  container.innerHTML = items.map((item) => {
+    const checked = item.status === 'bought' ? 'checked' : '';
+    const status = item.status === 'bought' ? 'Comprado' : 'Pendiente';
+
+    return `
+      <label class="check-row dynamic-row" data-list="${escapeHtml(listKey)}">
+        <input class="js-item-status" type="checkbox" data-id="${escapeHtml(item.id)}" ${checked}>
+        <span>${escapeHtml(item.title)}</span>
+        <em>${status}</em>
+      </label>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.js-item-status').forEach((checkbox) => {
+    checkbox.addEventListener('change', async () => {
+      checkbox.disabled = true;
+      try {
+        await updateListItemStatus(checkbox.dataset.id, checkbox.checked);
+        await loadListsAndItems();
+        showSyncStatus('Lista actualizada.', 'success');
+      } catch (error) {
+        checkbox.checked = !checkbox.checked;
+        showSyncStatus(error.message || 'No se pudo actualizar.', 'error');
+      } finally {
+        checkbox.disabled = false;
+      }
+    });
+  });
+}
+
+function renderListError() {
+  ['shared-list-items', 'personal-list-items', 'wishlist-items'].forEach((id) => {
+    const container = document.getElementById(id);
+    if (container) {
+      container.innerHTML = '<p class="empty error-text">No se pudieron cargar los datos.</p>';
+    }
+  });
+}
+
+function showSyncStatus(message, type = 'neutral') {
+  const node = document.getElementById('sync-status');
+  if (!node) return;
+  node.textContent = message;
+  node.dataset.type = type;
+}
+
+
 
 function setupDocumentDemo() {
   const downloadButton = document.getElementById('download-demo');
@@ -457,13 +679,16 @@ function boot() {
   setupNavigation();
   setupLogin();
   setupHealthRecords();
-  setupShoppingDemo();
+  setupShoppingForms();
   setupDocumentDemo();
   renderHealthRecords();
 
   const stored = getStoredSession();
   currentUser = stored ? stored.user : null;
   renderAccess();
+  if (currentUser) {
+    initializePrivateData();
+  }
   registerServiceWorker();
 }
 

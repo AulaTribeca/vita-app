@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#7154c8">
   <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.5.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=0.5.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=0.5.0">
-  <link rel="stylesheet" href="./styles.css?v=0.5.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=0.6.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=0.6.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=0.6.0">
+  <link rel="stylesheet" href="./styles.css?v=0.6.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -277,11 +277,12 @@
         </article>
       </section>
 
+
       <section class="screen" id="screen-listas" data-screen="listas">
         <header class="topbar compact">
           <div>
             <h1>Listas</h1>
-            <p>Compra, compras personales y deseos</p>
+            <p>Compra compartida, compras personales y deseos</p>
           </div>
         </header>
 
@@ -294,12 +295,16 @@
         <article class="list-panel shared-list">
           <div class="list-header">
             <span class="app-icon" data-icon="cart"></span>
-            <div><span class="eyebrow">Hogar</span><h2>Lista de la compra compartida</h2><p>Visible para Patricia y Román.</p></div>
+            <div>
+              <span class="eyebrow">Hogar</span>
+              <h2>Lista de la compra compartida</h2>
+              <p>Visible para Patricia y Román.</p>
+            </div>
           </div>
 
-          <label class="check-row"><input type="checkbox" checked><span>Leche</span><em>Comprado</em></label>
-          <label class="check-row"><input type="checkbox"><span>Papel higiénico</span><em>Casa</em></label>
-          <label class="check-row"><input type="checkbox"><span>Fruta para smoothies</span><em>Comida</em></label>
+          <div id="shared-list-items" class="dynamic-list">
+            <p class="empty">Cargando lista compartida...</p>
+          </div>
 
           <form class="mini-form" id="shared-shopping-form">
             <input id="shared-shopping-input" type="text" placeholder="Añadir a la compra compartida">
@@ -310,34 +315,42 @@
         <article class="list-panel private-list">
           <div class="list-header">
             <span class="app-icon" data-icon="lock"></span>
-            <div><span class="eyebrow">Privado</span><h2>Mis compras personales</h2><p>Solo visible para tu perfil.</p></div>
+            <div>
+              <span class="eyebrow">Privado</span>
+              <h2>Mis compras personales</h2>
+              <p>Solo visible para tu perfil.</p>
+            </div>
           </div>
 
-          <label class="check-row"><input type="checkbox"><span>Recoger medicación</span><em>Salud</em></label>
-          <label class="check-row"><input type="checkbox"><span>Comprar bolígrafos para exámenes</span><em>UNED</em></label>
+          <div id="personal-list-items" class="dynamic-list">
+            <p class="empty">Cargando lista personal...</p>
+          </div>
+
+          <form class="mini-form" id="personal-shopping-form">
+            <input id="personal-shopping-input" type="text" placeholder="Añadir a mi lista personal">
+            <button type="submit">Añadir</button>
+          </form>
         </article>
 
         <article class="wishlist-card">
-          <div class="wishlist-image" aria-hidden="true"><span class="app-icon" data-icon="gift"></span></div>
+          <div class="wishlist-image" aria-hidden="true">
+            <span class="app-icon" data-icon="gift"></span>
+          </div>
           <div class="wishlist-content">
             <span class="eyebrow">Lista de deseos</span>
             <h2>Regalos que me gustaría recibir</h2>
-            <p>Artículos con enlace, imagen, precio orientativo y visibilidad seleccionada.</p>
-            <div class="wishlist-actions">
-              <button type="button"><span class="app-icon" data-icon="link"></span>Añadir enlace</button>
-              <button class="secondary" type="button"><span class="app-icon" data-icon="image"></span>Añadir imagen</button>
-            </div>
+            <p>En esta versión se muestra tu lista de deseos. En la siguiente añadiremos enlaces, imágenes y visibilidad selectiva.</p>
           </div>
         </article>
 
-        <article class="wish-item">
-          <div class="wish-thumb"><span class="app-icon" data-icon="gift"></span></div>
-          <div>
-            <h3>Ejemplo de regalo</h3>
-            <p>Visible para usuarios seleccionados · Cumpleaños / Navidad</p>
-            <small>Enlace e imagen pendientes</small>
-          </div>
-        </article>
+        <div id="wishlist-items" class="dynamic-list wishlist-dynamic">
+          <p class="empty">Cargando deseos...</p>
+        </div>
+
+        <form class="mini-form wishlist-form" id="wishlist-form">
+          <input id="wishlist-input" type="text" placeholder="Añadir deseo o regalo">
+          <button type="submit">Añadir</button>
+        </form>
       </section>
 
       <section class="screen" id="screen-documentos" data-screen="documentos">
@@ -398,6 +411,8 @@
           </div>
 
           <p class="fine-print" id="auth-helper">Tus datos se protegen con sesión privada.</p>
+
+          <div id="sync-status" class="sync-status">Listas conectadas a Supabase.</div>
         </article>
 
         <article class="privacy-grid">
@@ -417,7 +432,7 @@
     </main>
   </div>
 
-  <script src="./config.js?v=0.5.0"></script>
-  <script src="./app.js?v=0.5.0"></script>
+  <script src="./config.js?v=0.6.0"></script>
+  <script src="./app.js?v=0.6.0"></script>
 </body>
 </html>
