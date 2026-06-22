@@ -1,23 +1,20 @@
-# VITA v0.9
+# VITA v1.0
 
-Nivel 9 de VITA: citas médicas reales.
+Nivel 10 de VITA: volantes y documentos médicos.
 
 ## Qué añade
 
-- Tabla `medical_appointments` en Supabase.
-- Creación de citas médicas.
-- Citas próximas.
-- Historial de citas.
-- Registro posterior a la cita:
-  - información recibida;
-  - alta;
-  - volante o derivación;
-  - seguimiento pendiente.
-- Recordatorios básicos:
-  - tarjeta sanitaria;
-  - DNI;
-  - llevar volante o informe.
-- Privacidad: cada usuario solo ve sus propias citas médicas.
+- Bucket privado `vita-medical-documents` en Supabase Storage.
+- Tabla `medical_documents`.
+- Subida de fotos/PDF de volantes, informes, recetas o peticiones de prueba.
+- Relación opcional con una cita médica.
+- Estados:
+  - pendiente de subir;
+  - pendiente de llevar;
+  - usado;
+  - archivado.
+- Descarga autenticada de documentos.
+- Al registrar una cita con volante dado, VITA crea un recordatorio para guardar el volante.
 
 ## Archivos modificados
 
@@ -27,9 +24,9 @@ Nivel 9 de VITA: citas médicas reales.
 - `config.js`
 - `service-worker.js`
 - `README.md`
-- `docs/instrucciones_v0_9.md`
-- `docs/supabase_v0_9.sql`
+- `docs/instrucciones_v1_0.md`
+- `docs/supabase_v1_0.sql`
 
 ## Importante
 
-Antes de probar Citas, ejecuta `docs/supabase_v0_9.sql` en Supabase.
+Antes de probar Volantes, ejecuta `docs/supabase_v1_0.sql` en Supabase.

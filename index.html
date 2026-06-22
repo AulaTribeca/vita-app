@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#7154c8">
   <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0.9.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=0.9.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=0.9.0">
-  <link rel="stylesheet" href="./styles.css?v=0.9.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=1.0.0">
+  <link rel="icon" href="./assets/vita-icon.svg?v=1.0.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=1.0.0">
+  <link rel="stylesheet" href="./styles.css?v=1.0.0">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -277,9 +277,10 @@
           </div>
         </header>
 
-        <div class="tabs compact-tabs">
+        <div class="tabs compact-tabs appointment-tabs">
           <button class="active" type="button" data-appointment-tab="upcoming">Próximas</button>
           <button type="button" data-appointment-tab="history">Historial</button>
+          <button type="button" data-appointment-tab="documents">Volantes</button>
           <button type="button" data-appointment-tab="new">Nueva</button>
         </div>
 
@@ -418,6 +419,88 @@
             </button>
           </form>
         </article>
+
+        <article class="appointment-panel document-panel" data-appointment-section="documents">
+          <div class="list-header">
+            <span class="app-icon" data-icon="upload"></span>
+            <div>
+              <span class="eyebrow">Volantes y documentos</span>
+              <h2>Guardar documento médico</h2>
+              <p>Sube foto o PDF del volante para no perderlo y recordarlo en la cita correspondiente.</p>
+            </div>
+          </div>
+
+          <form id="medical-document-form" class="appointment-form" enctype="multipart/form-data">
+            <label class="field">
+              <span>Título</span>
+              <input id="document-title-input" type="text" placeholder="Ej. Volante para especialista, informe, receta...">
+            </label>
+
+            <label class="field">
+              <span>Tipo</span>
+              <select id="document-type-input">
+                <option value="referral">Volante o derivación</option>
+                <option value="report">Informe médico</option>
+                <option value="prescription">Receta o medicación</option>
+                <option value="test_request">Petición de prueba</option>
+                <option value="other">Otro documento</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Cita relacionada, si procede</span>
+              <select id="document-appointment-input">
+                <option value="">Sin cita relacionada</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Para qué especialista o prueba</span>
+              <input id="document-specialty-input" type="text" placeholder="Ej. Endocrino, analítica, ecografía...">
+            </label>
+
+            <label class="field">
+              <span>Estado</span>
+              <select id="document-status-input">
+                <option value="pending_to_use">Pendiente de llevar</option>
+                <option value="pending_upload">Pendiente de subir archivo</option>
+                <option value="used">Usado</option>
+                <option value="archived">Archivado</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Archivo</span>
+              <input id="document-file-input" type="file" accept="image/*,.pdf">
+            </label>
+
+            <label class="field">
+              <span>Notas</span>
+              <textarea id="document-notes-input" rows="3" placeholder="Dónde te lo dieron, para qué sirve, qué debes recordar..."></textarea>
+            </label>
+
+            <button class="form-submit" type="submit">
+              <span class="app-icon" data-icon="upload"></span>
+              Guardar documento
+            </button>
+          </form>
+        </article>
+
+        <article class="appointment-panel document-panel" data-appointment-section="documents">
+          <div class="list-header">
+            <span class="app-icon" data-icon="file"></span>
+            <div>
+              <span class="eyebrow">Carpeta de salud</span>
+              <h2>Volantes guardados</h2>
+              <p>Los pendientes aparecerán como recordatorio para llevarlos cuando corresponda.</p>
+            </div>
+          </div>
+
+          <div id="medical-documents-list" class="documents-list">
+            <p class="empty">Cargando documentos...</p>
+          </div>
+        </article>
+
       </section>
 
       <section class="screen" id="screen-medicacion" data-screen="medicacion">
@@ -698,7 +781,7 @@
 
           <p class="fine-print" id="auth-helper">Tus datos se protegen con sesión privada.</p>
 
-          <div id="sync-status" class="sync-status">Listas, salud y citas conectadas a Supabase.</div>
+          <div id="sync-status" class="sync-status">Listas, salud, citas y volantes conectados a Supabase.</div>
         </article>
 
         <article class="privacy-grid">
@@ -718,7 +801,7 @@
     </main>
   </div>
 
-  <script src="./config.js?v=0.9.0"></script>
-  <script src="./app.js?v=0.9.0"></script>
+  <script src="./config.js?v=1.0.0"></script>
+  <script src="./app.js?v=1.0.0"></script>
 </body>
 </html>

@@ -43,9 +43,13 @@ let currentLists = {
 let currentHouseholdMembers = [];
   healthRecords = [];
   medicalAppointments = [];
+  medicalDocuments = [];
 let healthRecords = [];
   medicalAppointments = [];
+  medicalDocuments = [];
 let medicalAppointments = [];
+  medicalDocuments = [];
+let medicalDocuments = [];
 
 const HEALTH_TYPES = {
   bathroom: { label: 'Baño', icon: 'bath' },
@@ -121,6 +125,88 @@ async function restRequest(path, options = {}) {
 
   return response.json();
 }
+
+
+function getStorageBucket(name = 'MEDICAL_DOCUMENTS') {
+  return getConfig().STORAGE_BUCKETS?.[name] || 'vita-medical-documents';
+}
+
+function sanitizeFileName(name) {
+  return String(name || 'documento')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 120) || 'documento';
+}
+
+async function uploadMedicalFile(file) {
+  const session = getStoredSession();
+  if (!session || !session.access_token) {
+    throw new Error('Sesión no disponible.');
+  }
+
+  const bucket = getStorageBucket('MEDICAL_DOCUMENTS');
+  const fileName = sanitizeFileName(file.name);
+  const path = `${currentUser.id}/${crypto.randomUUID ? crypto.randomUUID() : Date.now()}-${fileName}`;
+  const url = `${getConfig().SUPABASE_URL}/storage/v1/object/${bucket}/${path}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      apikey: getConfig().SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': 'false'
+    },
+    body: file
+  });
+
+  if (!response.ok) {
+    throw new Error('No se pudo subir el archivo.');
+  }
+
+  return {
+    path,
+    fileName,
+    mimeType: file.type || 'application/octet-stream',
+    sizeBytes: file.size
+  };
+}
+
+async function downloadMedicalFile(filePath, fileName) {
+  const session = getStoredSession();
+  if (!session || !session.access_token) {
+    throw new Error('Sesión no disponible.');
+  }
+
+  const bucket = getStorageBucket('MEDICAL_DOCUMENTS');
+  const url = `${getConfig().SUPABASE_URL}/storage/v1/object/${bucket}/${filePath}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      apikey: getConfig().SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session.access_token}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('No se pudo descargar el archivo.');
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = fileName || 'documento-medico';
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 
 function encodeFilter(value) {
   return encodeURIComponent(value);
@@ -232,6 +318,7 @@ async function signOut() {
   currentHouseholdMembers = [];
   healthRecords = [];
   medicalAppointments = [];
+  medicalDocuments = [];
 }
 
 function injectIcons() {
@@ -717,7 +804,8 @@ async function initializePrivateData() {
     await loadListsAndItems();
     await loadHealthRecords();
     await loadMedicalAppointments();
-    showSyncStatus('Listas, salud y citas conectadas a Supabase.', 'success');
+    await loadMedicalDocuments();
+    showSyncStatus('Listas, salud, citas y volantes conectados a Supabase.', 'success');
   } catch (error) {
     showSyncStatus(error.message || 'No se pudieron cargar las listas.', 'error');
     renderListError();
@@ -744,6 +832,7 @@ async function loadProfileAndHousehold() {
     currentHouseholdMembers = [];
   healthRecords = [];
   medicalAppointments = [];
+  medicalDocuments = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -758,6 +847,7 @@ async function loadProfileAndHousehold() {
     currentHouseholdMembers = [];
   healthRecords = [];
   medicalAppointments = [];
+  medicalDocuments = [];
     renderWishlistViewerOptions();
     return;
   }
@@ -1136,9 +1226,14 @@ function setupMedicalAppointments() {
           body: JSON.stringify(payload)
         });
 
+        if (payload.referral_given) {
+          await createReferralPlaceholderIfNeeded(id, payload.referral_for);
+        }
+
         resultForm.reset();
         await loadMedicalAppointments();
-        showSyncStatus('Resultado de la cita guardado.', 'success');
+        await loadMedicalDocuments();
+        showSyncStatus(payload.referral_given ? 'Resultado guardado. Recuerda subir o conservar el volante.' : 'Resultado de la cita guardado.', 'success');
       } catch (error) {
         showSyncStatus(error.message || 'No se pudo guardar el resultado.', 'error');
       }
@@ -1181,6 +1276,7 @@ async function loadMedicalAppointments() {
     medicalAppointments = await restRequest(`medical_appointments?select=*&owner_id=eq.${encodeFilter(currentUser.id)}&order=appointment_at.asc`);
     renderMedicalAppointments();
     renderAppointmentSelect();
+    renderDocumentAppointmentSelect();
   } catch (error) {
     renderAppointmentsError();
   }
@@ -1323,6 +1419,246 @@ function renderAppointmentsError() {
   }
 }
 
+
+function setupMedicalDocuments() {
+  const form = document.getElementById('medical-document-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const titleInput = document.getElementById('document-title-input');
+    const title = titleInput.value.trim();
+    const fileInput = document.getElementById('document-file-input');
+    const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+
+    if (!title) {
+      showSyncStatus('Escribe un título para el documento.', 'error');
+      titleInput.focus();
+      return;
+    }
+
+    form.querySelectorAll('input, select, textarea, button').forEach((field) => field.disabled = true);
+
+    try {
+      let uploaded = null;
+
+      if (file) {
+        uploaded = await uploadMedicalFile(file);
+      }
+
+      const payload = {
+        owner_id: currentUser.id,
+        appointment_id: document.getElementById('document-appointment-input').value || null,
+        document_type: document.getElementById('document-type-input').value,
+        title,
+        status: document.getElementById('document-status-input').value,
+        related_specialty: document.getElementById('document-specialty-input').value.trim() || null,
+        notes: document.getElementById('document-notes-input').value.trim() || null,
+        file_path: uploaded ? uploaded.path : null,
+        file_name: uploaded ? uploaded.fileName : null,
+        mime_type: uploaded ? uploaded.mimeType : null,
+        size_bytes: uploaded ? uploaded.sizeBytes : null
+      };
+
+      await restRequest('medical_documents', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(payload)
+      });
+
+      form.reset();
+      await loadMedicalDocuments();
+      showSyncStatus('Documento médico guardado.', 'success');
+    } catch (error) {
+      showSyncStatus(error.message || 'No se pudo guardar el documento.', 'error');
+    } finally {
+      form.querySelectorAll('input, select, textarea, button').forEach((field) => field.disabled = false);
+    }
+  });
+}
+
+async function createReferralPlaceholderIfNeeded(appointmentId, referralFor) {
+  const existing = await restRequest(`medical_documents?select=id&appointment_id=eq.${encodeFilter(appointmentId)}&document_type=eq.referral&limit=1`);
+
+  if (existing && existing.length) {
+    return;
+  }
+
+  const appointment = medicalAppointments.find((item) => item.id === appointmentId);
+  const title = referralFor
+    ? `Volante para ${referralFor}`
+    : `Volante de ${appointment ? appointment.title : 'cita médica'}`;
+
+  await restRequest('medical_documents', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      owner_id: currentUser.id,
+      appointment_id: appointmentId,
+      document_type: 'referral',
+      title,
+      status: 'pending_upload',
+      related_specialty: referralFor || null,
+      notes: 'Pendiente de guardar el archivo del volante.'
+    })
+  });
+}
+
+async function loadMedicalDocuments() {
+  if (!currentUser) return;
+
+  try {
+    medicalDocuments = await restRequest(`medical_documents?select=*&owner_id=eq.${encodeFilter(currentUser.id)}&order=created_at.desc`);
+    renderMedicalDocuments();
+    renderDocumentAppointmentSelect();
+  } catch (error) {
+    renderDocumentsError();
+  }
+}
+
+function renderDocumentAppointmentSelect() {
+  const select = document.getElementById('document-appointment-input');
+  if (!select) return;
+
+  const options = medicalAppointments
+    .slice()
+    .sort((a, b) => new Date(b.appointment_at) - new Date(a.appointment_at))
+    .map((item) => {
+      const date = new Date(item.appointment_at);
+      const label = `${item.title} · ${date.toLocaleDateString('es-ES')}`;
+      return `<option value="${escapeHtml(item.id)}">${escapeHtml(label)}</option>`;
+    })
+    .join('');
+
+  select.innerHTML = `<option value="">Sin cita relacionada</option>${options}`;
+}
+
+function renderMedicalDocuments() {
+  const container = document.getElementById('medical-documents-list');
+  if (!container) return;
+
+  if (!medicalDocuments.length) {
+    container.innerHTML = '<p class="empty">Todavía no hay documentos médicos guardados.</p>';
+    return;
+  }
+
+  container.innerHTML = medicalDocuments.map((documentItem) => renderMedicalDocumentCard(documentItem)).join('');
+  bindMedicalDocumentActions(container);
+}
+
+function renderMedicalDocumentCard(documentItem) {
+  const typeLabel = getDocumentTypeLabel(documentItem.document_type);
+  const statusLabel = getDocumentStatusLabel(documentItem.status);
+  const warningClass = ['pending_upload', 'pending_to_use'].includes(documentItem.status) ? 'warning' : '';
+  const specialty = documentItem.related_specialty ? `<p><strong>Para:</strong> ${escapeHtml(documentItem.related_specialty)}</p>` : '';
+  const notes = documentItem.notes ? `<p>${escapeHtml(documentItem.notes)}</p>` : '';
+  const fileTag = documentItem.file_path ? '<span>Archivo guardado</span>' : '<span class="warning">Sin archivo</span>';
+
+  return `
+    <article class="document-card">
+      <span class="document-icon app-icon" data-icon="file"></span>
+      <div class="document-body">
+        <h3>${escapeHtml(documentItem.title)}</h3>
+        <p>${escapeHtml(typeLabel)}</p>
+        ${specialty}
+        ${notes}
+        <div class="document-tags">
+          <span class="${warningClass}">${escapeHtml(statusLabel)}</span>
+          ${fileTag}
+        </div>
+        <div class="document-actions">
+          ${documentItem.file_path ? `<button class="js-download-document" type="button" data-id="${escapeHtml(documentItem.id)}">Descargar</button>` : ''}
+          ${documentItem.status !== 'used' ? `<button class="js-mark-document-used" type="button" data-id="${escapeHtml(documentItem.id)}">Marcar usado</button>` : ''}
+          <button class="js-delete-document danger-text" type="button" data-id="${escapeHtml(documentItem.id)}">Borrar</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function bindMedicalDocumentActions(container) {
+  injectIcons();
+
+  container.querySelectorAll('.js-download-document').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const item = medicalDocuments.find((documentItem) => documentItem.id === button.dataset.id);
+      if (!item || !item.file_path) return;
+
+      try {
+        await downloadMedicalFile(item.file_path, item.file_name || item.title);
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo descargar el documento.', 'error');
+      }
+    });
+  });
+
+  container.querySelectorAll('.js-mark-document-used').forEach((button) => {
+    button.addEventListener('click', async () => {
+      try {
+        await restRequest(`medical_documents?id=eq.${encodeFilter(button.dataset.id)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ status: 'used' })
+        });
+        await loadMedicalDocuments();
+        showSyncStatus('Documento marcado como usado.', 'success');
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo actualizar el documento.', 'error');
+      }
+    });
+  });
+
+  container.querySelectorAll('.js-delete-document').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const confirmed = window.confirm('¿Eliminar este documento de VITA?');
+      if (!confirmed) return;
+
+      try {
+        await restRequest(`medical_documents?id=eq.${encodeFilter(button.dataset.id)}`, {
+          method: 'DELETE',
+          headers: { Prefer: 'return=minimal' }
+        });
+        await loadMedicalDocuments();
+        showSyncStatus('Documento eliminado.', 'success');
+      } catch (error) {
+        showSyncStatus(error.message || 'No se pudo eliminar el documento.', 'error');
+      }
+    });
+  });
+}
+
+function getDocumentTypeLabel(type) {
+  const labels = {
+    referral: 'Volante o derivación',
+    report: 'Informe médico',
+    prescription: 'Receta o medicación',
+    test_request: 'Petición de prueba',
+    other: 'Otro documento'
+  };
+
+  return labels[type] || 'Documento médico';
+}
+
+function getDocumentStatusLabel(status) {
+  const labels = {
+    pending_upload: 'Pendiente de subir',
+    pending_to_use: 'Pendiente de llevar',
+    used: 'Usado',
+    archived: 'Archivado'
+  };
+
+  return labels[status] || 'Pendiente';
+}
+
+function renderDocumentsError() {
+  const container = document.getElementById('medical-documents-list');
+  if (container) {
+    container.innerHTML = '<p class="empty error-text">No se pudieron cargar los documentos. Ejecuta el SQL de VITA v1.0.</p>';
+  }
+}
+
+
 function setupDocumentDemo() {
   const downloadButton = document.getElementById('download-demo');
   const emailButton = document.getElementById('email-demo');
@@ -1381,6 +1717,7 @@ function boot() {
   setupLogin();
   setupHealthRecords();
   setupMedicalAppointments();
+  setupMedicalDocuments();
   setupShoppingForms();
   setupDocumentDemo();
   renderHealthRecords([]);
