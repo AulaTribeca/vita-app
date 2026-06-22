@@ -2130,3 +2130,35 @@ button { cursor: pointer; }
   background: rgba(112, 116, 140, 0.1);
   color: var(--muted);
 }
+
+
+.stacked-mobile {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.push-setup-note {
+  border: 1px solid rgba(86, 77, 128, 0.12);
+  background: rgba(255,255,255,0.72);
+  border-radius: 16px;
+  padding: 10px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.push-setup-note strong,
+.push-setup-note span {
+  display: block;
+}
+
+.push-setup-note strong {
+  color: var(--purple-dark);
+  margin-bottom: 3px;
+}
+
+@media (max-width: 480px) {
+  .stacked-mobile {
+    grid-template-columns: 1fr;
+  }
+}

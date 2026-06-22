@@ -4,12 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#7154c8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="VITA">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="description" content="VITA, organización personal, salud, hogar y recordatorios.">
   <title>VITA</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=1.6.0">
-  <link rel="icon" href="./assets/vita-icon.svg?v=1.6.0" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./assets/vita-icon.svg?v=1.6.0">
-  <link rel="stylesheet" href="./styles.css?v=1.6.0">
+  <link rel="manifest" href="./manifest.webmanifest?v=2.0.1">
+  <link rel="icon" href="./assets/vita-icon.svg?v=2.0.1" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/vita-icon-192.png?v=2.0.1">
+  <link rel="stylesheet" href="./styles.css?v=2.0.1">
 </head>
 <body>
   <section id="login-screen" class="login-screen">
@@ -1117,24 +1121,30 @@
 
           <p class="fine-print" id="auth-helper">Tus datos se protegen con sesión privada.</p>
 
-          <div id="sync-status" class="sync-status">VITA v1.6 estable. Sistema depurado.</div>
+          <div id="sync-status" class="sync-status">VITA v2.0.1 VAPID configurado.</div>
 
         </article>
 
+
         <article class="auth-panel notification-panel">
           <span class="app-icon panel-icon" data-icon="bell"></span>
-          <span class="eyebrow">Avisos automáticos</span>
-          <h2>Notificaciones de VITA</h2>
-          <p id="notification-status">Las notificaciones todavía no están activadas en este dispositivo.</p>
+          <span class="eyebrow">PWA y push</span>
+          <h2>Instalación y notificaciones push</h2>
+          <p id="pwa-status">Comprobando instalación...</p>
+          <p id="notification-status">Las notificaciones push todavía no están activadas en este dispositivo.</p>
 
-          <div class="button-row">
+          <div class="button-row stacked-mobile">
+            <button id="install-pwa" type="button">
+              <span class="app-icon" data-icon="download"></span>
+              Instalar VITA
+            </button>
             <button id="enable-notifications" type="button">
               <span class="app-icon" data-icon="bell"></span>
-              Activar avisos
+              Activar push
             </button>
             <button id="test-notification" class="secondary" type="button">
               <span class="app-icon" data-icon="check"></span>
-              Probar
+              Probar push
             </button>
           </div>
 
@@ -1161,7 +1171,12 @@
             </label>
           </div>
 
-          <p class="fine-print">Estos avisos funcionan cuando la PWA está instalada o abierta en el navegador. Las notificaciones push con envío desde servidor se dejarán preparadas para una fase posterior si quieres avisos aunque la app esté completamente cerrada.</p>
+          <div class="push-setup-note" id="push-setup-note">
+            <strong>Estado técnico:</strong>
+            <span id="push-setup-message">Pendiente de comprobar VAPID y Edge Function.</span>
+          </div>
+
+          <p class="fine-print">Para recibir avisos aunque VITA esté cerrada, deben estar configurados el manifest, el service worker, la suscripción push y la Edge Function de Supabase.</p>
         </article>
 
 
@@ -1206,7 +1221,7 @@
     </main>
   </div>
 
-  <script src="./config.js?v=1.6.0"></script>
-  <script src="./app.js?v=1.6.0"></script>
+  <script src="./config.js?v=2.0.1"></script>
+  <script src="./app.js?v=2.0.1"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 /*
-  VITA v1.6
+  VITA v2.0.1
 
   Configuración pública de Supabase para el frontend.
 
@@ -10,7 +10,7 @@
 window.VITA_CONFIG = {
   SUPABASE_URL: "https://vbcqiggxpzlecilbukvn.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_MdUXjMd7qYe_he2OZoRXZQ_PJayheBR",
-  APP_VERSION: "1.6.0",
+  APP_VERSION: "2.0.1",
   USER_ALIASES: {
     "patricia": "patricia@vitaapp.com",
     "patri": "patricia@vitaapp.com",
@@ -23,5 +23,9 @@ window.VITA_CONFIG = {
   },
   STORAGE_BUCKETS: {
     MEDICAL_DOCUMENTS: "vita-medical-documents"
+  },
+  PUSH: {
+    VAPID_PUBLIC_KEY: "BNUOaI8qPVa5lXStmiuDB4ZpoS4-eFjhhdLJTAmwv2jUey6sjSex5PScpwxXO4ykuBlpzyDYBoYB0RY_k9zx70Y",
+    EDGE_FUNCTION_URL: "https://vbcqiggxpzlecilbukvn.supabase.co/functions/v1/send-vita-push"
   }
 };

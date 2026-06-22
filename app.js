@@ -53,6 +53,7 @@ let householdTasks = [];
 let smartReminders = [];
 let exportedReports = [];
 let notificationInterval = null;
+let deferredInstallPrompt = null;
 
 const HEALTH_TYPES = {
   bathroom: { label: 'Baño', icon: 'bath' },
@@ -2917,29 +2918,22 @@ function dismissReminderForToday(id) {
 
 
 
+
 function setupNotifications() {
+  setupPwaInstall();
   loadNotificationPreferences();
+  updatePwaStatus();
   updateNotificationStatus();
+  updatePushSetupStatus();
 
   const enableButton = document.getElementById('enable-notifications');
   if (enableButton) {
-    enableButton.addEventListener('click', requestVitaNotifications);
+    enableButton.addEventListener('click', requestVitaPushNotifications);
   }
 
   const testButton = document.getElementById('test-notification');
   if (testButton) {
-    testButton.addEventListener('click', async () => {
-      const ok = await ensureNotificationPermission();
-      if (!ok) return;
-
-      showVitaNotification({
-        id: 'test-notification',
-        title: 'VITA está lista',
-        body: 'Los avisos de este dispositivo están activados.',
-        target: 'hoy',
-        priority: 'low'
-      }, true);
-    });
+    testButton.addEventListener('click', sendTestPushNotification);
   }
 
   document.querySelectorAll('.js-notification-pref').forEach((input) => {
@@ -2952,8 +2946,64 @@ function setupNotifications() {
 
   notificationInterval = setInterval(() => {
     renderTodayDashboard();
-    evaluateNotifications();
   }, 15 * 60 * 1000);
+}
+
+function setupPwaInstall() {
+  const installButton = document.getElementById('install-pwa');
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    updatePwaStatus();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    updatePwaStatus();
+    showSyncStatus('VITA instalada como app.', 'success');
+  });
+
+  if (installButton) {
+    installButton.addEventListener('click', async () => {
+      if (isStandalonePwa()) {
+        showSyncStatus('VITA ya está instalada.', 'success');
+        return;
+      }
+
+      if (!deferredInstallPrompt) {
+        showSyncStatus('Si el botón de instalación no aparece, usa “Añadir a pantalla de inicio” desde el menú del navegador.', 'error');
+        updatePwaStatus();
+        return;
+      }
+
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      updatePwaStatus();
+    });
+  }
+}
+
+function isStandalonePwa() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function updatePwaStatus() {
+  const node = document.getElementById('pwa-status');
+  if (!node) return;
+
+  if (isStandalonePwa()) {
+    node.textContent = 'VITA está instalada como app en este dispositivo.';
+    return;
+  }
+
+  if (deferredInstallPrompt) {
+    node.textContent = 'VITA puede instalarse como app en este dispositivo.';
+    return;
+  }
+
+  node.textContent = 'VITA es instalable. En móvil, usa el botón o “Añadir a pantalla de inicio” desde el navegador.';
 }
 
 function getNotificationPreferences() {
@@ -2987,7 +3037,7 @@ function loadNotificationPreferences() {
   });
 }
 
-function saveNotificationPreferences() {
+async function saveNotificationPreferences() {
   const preferences = {};
 
   document.querySelectorAll('.js-notification-pref').forEach((input) => {
@@ -2995,25 +3045,43 @@ function saveNotificationPreferences() {
   });
 
   localStorage.setItem(getNotificationPreferencesKey(), JSON.stringify(preferences));
+
+  if (currentUser) {
+    try {
+      await restRequest('notification_preferences', {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({
+          owner_id: currentUser.id,
+          medication: Boolean(preferences.medication),
+          appointments: Boolean(preferences.appointments),
+          documents: Boolean(preferences.documents),
+          home: Boolean(preferences.home),
+          health: Boolean(preferences.health)
+        })
+      });
+    } catch (error) {
+      console.warn('VITA: no se pudieron guardar preferencias push en Supabase', error);
+    }
+  }
+
   showSyncStatus('Preferencias de avisos guardadas.', 'success');
-  evaluateNotifications();
 }
 
-async function requestVitaNotifications() {
-  const ok = await ensureNotificationPermission();
-  updateNotificationStatus();
+async function requestVitaPushNotifications() {
+  const permissionOk = await ensureNotificationPermission();
+  if (!permissionOk) return;
 
-  if (ok) {
-    localStorage.setItem(getNotificationsEnabledKey(), 'true');
-    showSyncStatus('Avisos activados en este dispositivo.', 'success');
-    await showVitaNotification({
-      id: 'welcome-notification',
-      title: 'Avisos de VITA activados',
-      body: 'Te avisaré de medicación, citas, volantes, facturas y gestiones cuando la app esté activa.',
-      target: 'hoy',
-      priority: 'low'
-    }, true);
-  }
+  const subscription = await subscribeDeviceToPush();
+  if (!subscription) return;
+
+  await savePushSubscription(subscription);
+  await saveNotificationPreferences();
+
+  localStorage.setItem(getNotificationsEnabledKey(), 'true');
+  updateNotificationStatus();
+  updatePushSetupStatus();
+  showSyncStatus('Push activado en este dispositivo.', 'success');
 }
 
 async function ensureNotificationPermission() {
@@ -3044,6 +3112,112 @@ async function ensureNotificationPermission() {
   return true;
 }
 
+async function subscribeDeviceToPush() {
+  const config = getConfig();
+  const publicKey = config.PUSH?.VAPID_PUBLIC_KEY || '';
+
+  if (!publicKey || publicKey.includes('REEMPLAZA_AQUI')) {
+    showSyncStatus('Falta configurar la VAPID public key en config.js.', 'error');
+    updatePushSetupStatus();
+    return null;
+  }
+
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    showSyncStatus('Este navegador no admite Push API.', 'error');
+    updateNotificationStatus();
+    return null;
+  }
+
+  const registration = await navigator.serviceWorker.ready;
+  let subscription = await registration.pushManager.getSubscription();
+
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+  }
+
+  return subscription;
+}
+
+async function savePushSubscription(subscription) {
+  if (!currentUser) {
+    throw new Error('Sesión no disponible.');
+  }
+
+  const json = subscription.toJSON();
+
+  await restRequest('web_push_subscriptions', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({
+      owner_id: currentUser.id,
+      endpoint: json.endpoint,
+      p256dh: json.keys?.p256dh || '',
+      auth: json.keys?.auth || '',
+      user_agent: navigator.userAgent,
+      enabled: true
+    })
+  });
+}
+
+async function sendTestPushNotification() {
+  const subscription = await subscribeDeviceToPush();
+  if (!subscription) return;
+
+  await savePushSubscription(subscription);
+
+  const response = await invokePushFunction({
+    mode: 'test',
+    title: 'VITA está lista',
+    body: 'Esta es una notificación push enviada desde Supabase.',
+    target: 'hoy'
+  });
+
+  if (response.ok) {
+    showSyncStatus('Push de prueba enviado.', 'success');
+  } else {
+    showSyncStatus(response.message || 'No se pudo enviar el push de prueba.', 'error');
+  }
+
+  updatePushSetupStatus();
+}
+
+async function invokePushFunction(payload) {
+  const session = getStoredSession();
+  const url = getConfig().PUSH?.EDGE_FUNCTION_URL;
+
+  if (!session || !session.access_token) {
+    return { ok: false, message: 'Sesión no disponible.' };
+  }
+
+  if (!url) {
+    return { ok: false, message: 'Falta la URL de la Edge Function.' };
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        apikey: getConfig().SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    return {
+      ok: response.ok,
+      message: data.message || data.error || ''
+    };
+  } catch {
+    return { ok: false, message: 'No se pudo contactar con la Edge Function.' };
+  }
+}
+
 function getNotificationsEnabledKey() {
   return `vita-notifications-enabled-${currentUser?.id || 'anonymous'}`;
 }
@@ -3061,8 +3235,13 @@ function updateNotificationStatus() {
     return;
   }
 
+  if (!('PushManager' in window)) {
+    node.textContent = 'Este navegador no admite Push API.';
+    return;
+  }
+
   if (Notification.permission === 'granted' && areNotificationsEnabled()) {
-    node.textContent = 'Avisos activados en este dispositivo.';
+    node.textContent = 'Push activado en este dispositivo.';
     return;
   }
 
@@ -3071,104 +3250,39 @@ function updateNotificationStatus() {
     return;
   }
 
-  node.textContent = 'Las notificaciones todavía no están activadas en este dispositivo.';
+  node.textContent = 'Las notificaciones push todavía no están activadas en este dispositivo.';
 }
 
-function evaluateNotifications() {
-  if (!currentUser || !areNotificationsEnabled()) return;
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  if (!smartReminders.length) return;
+function updatePushSetupStatus() {
+  const node = document.getElementById('push-setup-message');
+  if (!node) return;
 
-  const preferences = getNotificationPreferences();
+  const config = getConfig();
+  const hasVapid = Boolean(config.PUSH?.VAPID_PUBLIC_KEY && !config.PUSH.VAPID_PUBLIC_KEY.includes('REEMPLAZA_AQUI'));
+  const hasEdge = Boolean(config.PUSH?.EDGE_FUNCTION_URL);
 
-  smartReminders
-    .filter((reminder) => shouldNotifyReminder(reminder, preferences))
-    .slice(0, 3)
-    .forEach((reminder) => showVitaNotification(reminder));
-}
-
-function shouldNotifyReminder(reminder, preferences) {
-  if (hasNotificationBeenSentToday(reminder.id)) return false;
-  if (reminder.priority === 'low') return false;
-
-  if (['medication', 'stock'].includes(reminder.type)) {
-    return Boolean(preferences.medication);
-  }
-
-  if (reminder.type === 'appointment') {
-    return Boolean(preferences.appointments);
-  }
-
-  if (reminder.type === 'document') {
-    return Boolean(preferences.documents);
-  }
-
-  if (['bill', 'vehicle', 'task'].includes(reminder.type)) {
-    return Boolean(preferences.home);
-  }
-
-  if (reminder.type === 'health') {
-    return Boolean(preferences.health);
-  }
-
-  return true;
-}
-
-async function showVitaNotification(reminder, force = false) {
-  if (!force && hasNotificationBeenSentToday(reminder.id)) return;
-
-  const title = reminder.title || 'VITA';
-  const body = reminder.body || 'Tienes un aviso pendiente.';
-  const target = reminder.target || 'hoy';
-
-  try {
-    if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification(title, {
-        body,
-        icon: './assets/vita-icon.svg',
-        badge: './assets/vita-icon.svg',
-        tag: reminder.id,
-        renotify: false,
-        data: {
-          url: `./#${target}`
-        }
-      });
-    } else {
-      new Notification(title, {
-        body,
-        icon: './assets/vita-icon.svg',
-        tag: reminder.id
-      });
-    }
-
-    markNotificationSentToday(reminder.id);
-  } catch (error) {
-    console.warn('VITA: no se pudo mostrar la notificación', error);
+  if (hasVapid && hasEdge) {
+    node.textContent = 'Frontend preparado. Falta verificar que la Edge Function esté desplegada y programada.';
+  } else if (!hasVapid && hasEdge) {
+    node.textContent = 'Falta pegar la VAPID public key en config.js.';
+  } else {
+    node.textContent = 'Falta configurar VAPID y Edge Function.';
   }
 }
 
-function getSentNotificationsKey() {
-  return `vita-sent-notifications-${currentUser?.id || 'anonymous'}-${new Date().toISOString().slice(0, 10)}`;
-}
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replaceAll('-', '+').replaceAll('_', '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
 
-function getSentNotificationsToday() {
-  try {
-    return JSON.parse(localStorage.getItem(getSentNotificationsKey()) || '[]');
-  } catch {
-    return [];
+  for (let index = 0; index < rawData.length; index += 1) {
+    outputArray[index] = rawData.charCodeAt(index);
   }
+
+  return outputArray;
 }
 
-function hasNotificationBeenSentToday(id) {
-  return getSentNotificationsToday().includes(id);
-}
-
-function markNotificationSentToday(id) {
-  const sent = new Set(getSentNotificationsToday());
-  sent.add(id);
-  localStorage.setItem(getSentNotificationsKey(), JSON.stringify(Array.from(sent)));
-}
 
 
 function setupDocumentDemo() {
@@ -3698,13 +3812,16 @@ async function clearAppCachesAndReload() {
 }
 
 
+
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js').then((registration) => {
       registration.update().catch(() => {});
-    }).catch(() => {});
+    }).catch((error) => {
+      console.warn('VITA: no se pudo registrar service worker', error);
+    });
   });
 }
 
