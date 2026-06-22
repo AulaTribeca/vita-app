@@ -810,3 +810,219 @@ details[open] summary {
     scroll-behavior: auto !important;
   }
 }
+
+
+/* VITA v4.2, paneles clicables y vista primero */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.overview-card {
+  border: 1px solid rgba(86,77,128,.14);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(255,255,255,.92), rgba(245,240,255,.88));
+  color: var(--ink);
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 10px;
+  text-align: left;
+  align-items: center;
+  box-shadow: 0 14px 32px rgba(62,48,110,.09);
+  min-height: 96px;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.overview-card .app-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(113,84,200,.12);
+  color: var(--purple);
+}
+
+.overview-card strong {
+  display: block;
+  font-size: .96rem;
+  margin-bottom: 3px;
+}
+
+.overview-card small {
+  display: block;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.overview-card:active {
+  transform: scale(.985);
+}
+
+@media (hover: hover) {
+  .overview-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 48px rgba(62,48,110,.15);
+    border-color: rgba(113,84,200,.26);
+  }
+}
+
+.asset-card-main {
+  background: linear-gradient(145deg, rgba(113,84,200,.16), rgba(255,255,255,.94));
+}
+
+.section-panel {
+  scroll-margin-top: 16px;
+}
+
+.add-details {
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.add-details > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 9px 12px;
+  background: rgba(113,84,200,.09);
+  color: var(--purple);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.add-details[open] > summary {
+  background: var(--purple);
+  color: white;
+  margin-bottom: 12px;
+}
+
+.calendar-period-title {
+  margin-top: 16px;
+}
+
+.calendar-month-title,
+.calendar-day-heading {
+  color: var(--purple-dark);
+  font-weight: 950;
+  text-transform: capitalize;
+  margin-bottom: 10px;
+  font-size: 1.02rem;
+}
+
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cal-weekdays span {
+  text-align: center;
+  color: var(--muted);
+  font-size: .74rem;
+  font-weight: 950;
+}
+
+.cal-cell {
+  border: 1px solid rgba(86,77,128,.14);
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  width: 100%;
+}
+
+.cal-cell strong {
+  font-size: .94rem;
+}
+
+.cal-cell small {
+  display: block;
+  color: var(--muted);
+  font-size: .66rem;
+  font-weight: 850;
+  margin-top: -2px;
+  margin-bottom: 4px;
+}
+
+.cal-cell.today {
+  border-color: rgba(113,84,200,.38);
+  background: rgba(113,84,200,.09);
+}
+
+.cal-cell.selected {
+  outline: 2px solid rgba(113,84,200,.28);
+}
+
+.cal-cell.muted {
+  opacity: .38;
+}
+
+.year-cell {
+  min-height: 138px;
+}
+
+.year-count {
+  display: inline-flex;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(113,84,200,.08);
+  color: var(--purple);
+  font-size: .72rem;
+  font-weight: 900;
+}
+
+.health-overview .overview-card:nth-child(1) .app-icon {
+  background: rgba(251,140,126,.14);
+  color: #c85a70;
+}
+
+.health-overview .overview-card:nth-child(2) .app-icon {
+  background: rgba(32,167,161,.13);
+  color: var(--teal);
+}
+
+.assets-overview .overview-card:nth-child(3) .app-icon {
+  background: rgba(245,178,58,.15);
+  color: #a66d14;
+}
+
+.card-actions button {
+  min-height: 34px;
+}
+
+@media (min-width: 760px) {
+  .overview-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-card {
+    min-height: 82px;
+  }
+
+  .cal-grid.month {
+    gap: 5px;
+  }
+
+  .cal-cell {
+    min-height: 86px;
+    border-radius: 14px;
+    padding: 6px;
+  }
+
+  .cal-chip {
+    font-size: .62rem;
+    padding: 3px 5px;
+  }
+}

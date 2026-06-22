@@ -1,28 +1,41 @@
-# VITA v4.1.2 sin errores
+# VITA v4.2, paneles clicables
 
-Versión defensiva contra la estructura antigua de Supabase.
+Versión centrada en el uso real: primero ver, luego añadir.
 
-## Error corregido
+## Cambios principales
 
-`shopping_lists_list_type_check`
-
-Tu tabla antigua aceptaba `list_type` como `personal`, `household` o `wishlist`, pero las versiones recientes intentaban usar otros valores. Esta versión elimina el bloqueo antiguo y acepta tanto los valores antiguos como los nuevos.
-
-## Cambios incluidos
-
-- Corrige constraints antiguas de `shopping_lists`.
-- Usa `name` y `title` para compatibilidad.
-- Usa `owner_id` y `created_by` en elementos de listas.
-- Repara lista de compra compartida, lista privada y lista de deseos.
-- La app reconoce listas antiguas y nuevas.
-- Mantiene pantalla Hoy, calendario, citas, documentos, medicación, wallet y listas.
-- Mantiene adjuntos de volantes y tarjetas.
-- Mantiene animaciones visuales de v4.1.1.
+- Recupera y refuerza los registros de salud.
+- Salud muestra tarjetas-resumen antes del formulario.
+- Citas, medicación y listas muestran primero lo existente.
+- Hogar pasa a ser un panel de activos:
+  - Casa y piso
+  - Vehículos
+  - Listas
+  - Wallet
+  - Facturas
+  - Contactos
+  - Vacaciones y viajes
+- Cada tarjeta abre su sección correspondiente.
+- Los formularios quedan ocultos dentro de “Añadir…”, para no saturar.
+- Calendario mejorado:
+  - días más legibles;
+  - cabecera de lunes a domingo;
+  - selección de día tocando en el calendario;
+  - lista de eventos visibles debajo.
+- SQL restaura `health_records` y crea `household_assets`.
 
 ## Supabase
 
 Ejecuta:
 
-`docs/supabase_v4_1_2_sin_errores.sql`
+`docs/supabase_v4_2_paneles_clicables.sql`
 
-Este sustituye a todos los SQL 4.x anteriores.
+Este sustituye a todos los SQL v4 anteriores.
+
+## GitHub
+
+Commit sugerido:
+
+`VITA v4.2 paneles clicables`
+
+Después borra la PWA anterior y reinstala desde GitHub Pages.

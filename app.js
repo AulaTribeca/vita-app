@@ -29,6 +29,7 @@ let state = {
   events: [],
   travel: [],
   contacts: [],
+  householdAssets: [],
   wallet: [],
   appointments: [],
   documents: [],
@@ -256,7 +257,7 @@ async function loadAll() {
   const user = encodeURIComponent(currentUser.id);
 
   const loaders = [
-    rest(`health_records?select=*&owner_id=eq.${user}&order=occurred_at.desc`).then((d) => state.health = d),
+    rest(`health_records?select=*&owner_id=eq.${user}&order=occurred_at.desc`).then((d) => state.health = d).catch(() => state.health = []),
     rest(`medications?select=*&owner_id=eq.${user}&active=eq.true&order=created_at.asc`).then((d) => state.medications = d).catch(() => state.medications = []),
     rest(`medical_documents?select=*&owner_id=eq.${user}&order=created_at.desc`).then((d) => { state.medicalDocuments = d; state.documents = d; }).catch(() => { state.medicalDocuments = []; state.documents = []; }),
     rest(`medical_appointments?select=*&owner_id=eq.${user}&order=appointment_at.asc`).then((d) => state.appointments = d).catch(() => state.appointments = []),
@@ -281,6 +282,20 @@ async function loadAll() {
   const errors = results.filter((r) => r.status === 'rejected');
   renderAll();
   setStatus(errors.length ? 'VITA cargada con algún dato pendiente de reparar.' : 'VITA lista.', errors.length ? 'error' : 'success');
+}
+
+
+function setTextIfExists(id, text) {
+  const node = document.getElementById(id);
+  if (node) node.textContent = text;
+}
+
+function openSection(id) {
+  const node = document.getElementById(id);
+  if (!node) return;
+  const details = node.querySelector('details.add-details');
+  if (details) details.open = true;
+  node.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderAll() {
@@ -441,6 +456,7 @@ function inRange(value, start, end) {
 }
 
 
+
 function renderCalendar() {
   const { start, end } = calendarRange();
   const view = document.getElementById('calendar-view').value;
@@ -455,16 +471,23 @@ function renderCalendar() {
   ].filter((item) => item.date && types.includes(item.type) && inRange(item.date, start, end)).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const node = document.getElementById('calendar-list');
+  const periodNode = document.getElementById('calendar-period-list');
+  setTextIfExists('calendar-period-count', items.length);
+
+  if (periodNode) {
+    periodNode.innerHTML = items.length ? items.map(renderCalendarCard).join('') : '<p class="empty">No hay eventos en el periodo seleccionado.</p>';
+  }
 
   if (view === 'day') {
-    node.innerHTML = items.length ? `<div class="cal-day-list">${items.map(renderCalendarCard).join('')}</div>` : '<p class="empty">No hay eventos este día.</p>';
+    node.innerHTML = `<div class="calendar-day-heading">${selected.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long' })}</div>`;
     injectIcons(node);
+    injectIcons(periodNode || document);
     return;
   }
 
   if (view === 'week') {
     const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d; });
-    node.innerHTML = `<div class="cal-grid week">${days.map((d) => calendarCell(d, items)).join('')}</div>`;
+    node.innerHTML = `<div class="cal-grid week">${days.map((d) => calendarCell(d, items, false, selected)).join('')}</div>`;
     return;
   }
 
@@ -473,15 +496,17 @@ function renderCalendar() {
     const gridStart = new Date(first);
     gridStart.setDate(first.getDate() - ((first.getDay() + 6) % 7));
     const days = Array.from({ length: 42 }, (_, i) => { const d = new Date(gridStart); d.setDate(gridStart.getDate() + i); return d; });
-    node.innerHTML = `<div class="cal-grid month">${days.map((d) => calendarCell(d, items, d.getMonth() !== selected.getMonth())).join('')}</div>`;
+    const weekHeader = ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => `<span>${d}</span>`).join('');
+    node.innerHTML = `<div class="calendar-month-title">${selected.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</div><div class="cal-weekdays">${weekHeader}</div><div class="cal-grid month">${days.map((d) => calendarCell(d, items, d.getMonth() !== selected.getMonth(), selected)).join('')}</div>`;
     return;
   }
 
   node.innerHTML = `<div class="cal-grid year">${Array.from({ length: 12 }, (_, m) => {
     const monthItems = items.filter((item) => new Date(item.date).getMonth() === m);
-    return `<div class="cal-cell"><strong>${new Date(selected.getFullYear(), m, 1).toLocaleDateString('es-ES', { month: 'long' })}</strong>${monthItems.slice(0, 4).map((item) => `<span class="cal-chip">${escapeHtml(item.title)}</span>`).join('')}${monthItems.length > 4 ? `<span class="cal-chip">+${monthItems.length - 4} más</span>` : ''}</div>`;
+    return `<div class="cal-cell year-cell"><strong>${new Date(selected.getFullYear(), m, 1).toLocaleDateString('es-ES', { month: 'long' })}</strong><span class="year-count">${monthItems.length} evento(s)</span>${monthItems.slice(0, 4).map((item) => `<span class="cal-chip">${escapeHtml(item.title)}</span>`).join('')}${monthItems.length > 4 ? `<span class="cal-chip">+${monthItems.length - 4} más</span>` : ''}</div>`;
   }).join('')}</div>`;
 }
+
 
 function renderCalendarCard(item) {
   return card({
@@ -495,17 +520,30 @@ function renderCalendarCard(item) {
   });
 }
 
-function calendarCell(day, items, muted = false) {
-  const dayItems = items.filter((item) => new Date(item.date).toDateString() === day.toDateString());
-  return `<div class="cal-cell" style="${muted ? 'opacity:.45' : ''}"><strong>${day.toLocaleDateString('es-ES', { day: '2-digit', weekday: 'short' })}</strong>${dayItems.slice(0, 3).map((item) => `<span class="cal-chip">${escapeHtml(item.title)}</span>`).join('')}${dayItems.length > 3 ? `<span class="cal-chip">+${dayItems.length - 3}</span>` : ''}</div>`;
-}
 
+function calendarCell(day, items, muted = false, selected = new Date()) {
+  const dayItems = items.filter((item) => new Date(item.date).toDateString() === day.toDateString());
+  const isToday = day.toDateString() === new Date().toDateString();
+  const isSelected = selected && day.toDateString() === selected.toDateString();
+  const classes = ['cal-cell'];
+  if (muted) classes.push('muted');
+  if (isToday) classes.push('today');
+  if (isSelected) classes.push('selected');
+  return `<button type="button" class="${classes.join(' ')}" data-action="set-calendar-date" data-date="${day.toISOString().slice(0, 10)}"><strong>${day.toLocaleDateString('es-ES', { day: '2-digit' })}</strong><small>${day.toLocaleDateString('es-ES', { weekday: 'short' })}</small>${dayItems.slice(0, 3).map((item) => `<span class="cal-chip">${escapeHtml(item.title)}</span>`).join('')}${dayItems.length > 3 ? `<span class="cal-chip">+${dayItems.length - 3}</span>` : ''}</button>`;
+}
 
 
 function renderHealth() {
   const node = document.getElementById('health-list');
+  if (!node) return;
+  setTextIfExists('health-total', `${state.health.length} registros`);
+  setTextIfExists('health-count', state.health.length);
+  setTextIfExists('appointment-total', `${state.appointments.length} citas`);
+  setTextIfExists('medication-total', `${state.medications.length} medicamentos`);
+  setTextIfExists('document-total', `${state.documents.length} documentos`);
+
   if (!state.health.length) {
-    node.innerHTML = '<p class="empty">Todavía no hay registros.</p>';
+    node.innerHTML = '<p class="empty">Todavía no hay registros de salud. Pulsa “Añadir registro de salud” cuando quieras guardar algo.</p>';
     return;
   }
 
@@ -519,6 +557,7 @@ function renderHealth() {
     editField: 'value_text'
   })).join('');
 }
+
 
 function labelHealth(type) {
   const labels = { bathroom: 'Baño', symptoms: 'Síntomas', sleep: 'Sueño', period: 'Regla', pain: 'Dolor', mood: 'Ánimo', note: 'Nota' };
@@ -534,6 +573,7 @@ function medicationDaysLeft(item) {
 function renderMedication() {
   const node = document.getElementById('medication-list');
   if (!node) return;
+  setTextIfExists('medication-count', state.medications.length);
 
   if (!state.medications.length) {
     node.innerHTML = '<p class="empty">Sin medicación guardada.</p>';
@@ -581,9 +621,11 @@ function labelWallet(type) {
 }
 
 
+
 function renderAppointments() {
   const node = document.getElementById('appointment-list');
   if (!node) return;
+  setTextIfExists('appointment-count', state.appointments.length);
   node.innerHTML = state.appointments.length ? state.appointments.map((a) => card({
     icon: 'heart',
     title: a.title,
@@ -593,12 +635,15 @@ function renderAppointments() {
     id: a.id,
     editField: 'title',
     actions: a.status !== 'completed' ? `<button type="button" data-action="complete-appointment" data-id="${escapeHtml(a.id)}">Completar cita</button>` : ''
-  })).join('') : '<p class="empty">Sin citas médicas.</p>';
+  })).join('') : '<p class="empty">Sin citas médicas. Pulsa “Añadir cita médica” para registrar la primera.</p>';
 }
+
+
 
 function renderDocuments() {
   const node = document.getElementById('document-list');
   if (!node) return;
+  setTextIfExists('documents-count', state.documents.length);
   node.innerHTML = state.documents.length ? state.documents.map((d) => card({
     icon: 'file',
     title: d.title,
@@ -608,8 +653,9 @@ function renderDocuments() {
     id: d.id,
     editField: 'title',
     actions: d.file_path ? `<button type="button" data-action="open-file" data-bucket="${config().STORAGE_BUCKETS.MEDICAL_DOCUMENTS}" data-path="${escapeHtml(d.file_path)}">Abrir archivo</button>` : ''
-  })).join('') : '<p class="empty">Sin volantes o documentos.</p>';
+  })).join('') : '<p class="empty">Sin volantes o documentos. Si completas una cita y marcas que te dieron volante, VITA creará el recordatorio.</p>';
 }
+
 
 function labelDocumentStatus(status) {
   const labels = {
@@ -650,20 +696,23 @@ function renderLists() {
 function renderListItems(containerId, list) {
   const node = document.getElementById(containerId);
   if (!node) return;
+  const countId = containerId === 'shared-list' ? 'shared-list-count' : containerId === 'private-list' ? 'private-list-count' : 'wishlist-list-count';
   if (!list) {
-    node.innerHTML = '<p class="empty">Lista no disponible. Ejecuta el SQL v4.0.</p>';
+    setTextIfExists(countId, 0);
+    node.innerHTML = '<p class="empty">Lista no disponible. Ejecuta el SQL v4.2.</p>';
     return;
   }
   const items = state.listItems.filter((item) => item.list_id === list.id);
+  setTextIfExists(countId, items.length);
   node.innerHTML = items.length ? items.map((item) => card({
     icon: 'list',
     title: item.title || item.name || 'Elemento',
     body: item.url || item.notes || '',
-    tags: [item.checked ? 'Hecho' : 'Pendiente'],
+    tags: [item.checked || item.status === 'bought' ? 'Hecho' : 'Pendiente'],
     table: 'shopping_list_items',
     id: item.id,
     editField: 'title',
-    actions: `<button type="button" data-action="toggle-list-item" data-id="${escapeHtml(item.id)}" data-checked="${item.checked ? 'true' : 'false'}">${item.checked ? 'Pendiente' : 'Hecho'}</button>`
+    actions: `<button type="button" data-action="toggle-list-item" data-id="${escapeHtml(item.id)}" data-checked="${item.checked || item.status === 'bought' ? 'true' : 'false'}">${item.checked || item.status === 'bought' ? 'Pendiente' : 'Hecho'}</button>`
   })).join('') : '<p class="empty">Sin elementos.</p>';
 }
 
@@ -674,8 +723,31 @@ function renderWishlistViewerOptions() {
   select.innerHTML = '<option value="">Solo yo</option>' + others.map((member) => `<option value="${escapeHtml(member.user_id)}">Otro usuario</option>`).join('');
 }
 
+
 function renderHome() {
+  setTextIfExists('asset-total', `${state.householdAssets.length} activos`);
+  setTextIfExists('vehicle-total', `${state.vehicles.length} vehículos`);
+  setTextIfExists('wallet-total', `${state.wallet.length} tarjetas`);
+  setTextIfExists('bill-total', `${state.bills.length} avisos`);
+  setTextIfExists('contact-total', `${state.contacts.length} contactos`);
+  setTextIfExists('travel-total', `${state.travel.length} registros`);
+
+  const assetNode = document.getElementById('asset-list');
+  if (assetNode) {
+    setTextIfExists('asset-count', state.householdAssets.length);
+    assetNode.innerHTML = state.householdAssets.length ? state.householdAssets.map((asset) => card({
+      icon: asset.asset_type === 'flat' ? 'home' : 'home',
+      title: asset.name,
+      body: [labelAsset(asset.asset_type), asset.address, asset.notes].filter(Boolean).join(' · '),
+      tags: [asset.status || 'activo'],
+      table: 'household_assets',
+      id: asset.id,
+      editField: 'name'
+    })).join('') : '<p class="empty">Todavía no hay activos. Añade Casa, Piso u otro activo importante.</p>';
+  }
+
   const vehicleNode = document.getElementById('vehicle-list');
+  setTextIfExists('vehicle-count', state.vehicles.length);
   vehicleNode.innerHTML = state.vehicles.length ? state.vehicles.map((v) => card({
     icon: 'car',
     title: v.name,
@@ -686,6 +758,7 @@ function renderHome() {
   })).join('') : '<p class="empty">Sin vehículos guardados.</p>';
 
   const billNode = document.getElementById('bill-list');
+  setTextIfExists('bill-count', state.bills.length);
   billNode.innerHTML = state.bills.length ? state.bills.map((b) => card({
     icon: 'bell',
     title: b.title,
@@ -697,6 +770,7 @@ function renderHome() {
   })).join('') : '<p class="empty">Sin facturas ni avisos.</p>';
 
   const contactNode = document.getElementById('contact-list');
+  setTextIfExists('contact-count', state.contacts.length);
   contactNode.innerHTML = state.contacts.length ? state.contacts.map((c) => card({
     icon: 'phone',
     title: c.name,
@@ -709,6 +783,7 @@ function renderHome() {
 
   const walletNode = document.getElementById('wallet-list');
   if (walletNode) {
+    setTextIfExists('wallet-count', state.wallet.length);
     walletNode.innerHTML = state.wallet.length ? state.wallet.map((w) => card({
       icon: 'file',
       title: w.name,
@@ -722,16 +797,25 @@ function renderHome() {
   }
 
   const travelNode = document.getElementById('travel-list');
-  travelNode.innerHTML = state.travel.length ? state.travel.map((t) => card({
-    icon: 'plane',
-    title: t.title,
-    body: [t.trip_title, t.provider, t.booking_reference, t.notes].filter(Boolean).join(' · '),
-    tags: [labelTravel(t.item_type), dateText(t.start_at)],
-    table: 'travel_items',
-    id: t.id,
-    editField: 'title'
-  })).join('') : '<p class="empty">Sin viajes ni vacaciones guardados.</p>';
+  if (travelNode) {
+    setTextIfExists('travel-count', state.travel.length);
+    travelNode.innerHTML = state.travel.length ? state.travel.map((t) => card({
+      icon: 'plane',
+      title: t.title,
+      body: [t.trip_title, t.provider, t.booking_reference, t.notes].filter(Boolean).join(' · '),
+      tags: [labelTravel(t.item_type), dateText(t.start_at)],
+      table: 'travel_items',
+      id: t.id,
+      editField: 'title'
+    })).join('') : '<p class="empty">Sin viajes ni vacaciones guardados.</p>';
+  }
 }
+
+function labelAsset(type) {
+  const labels = { home: 'Casa', flat: 'Piso', storage: 'Trastero', other: 'Otro activo' };
+  return labels[type] || 'Activo';
+}
+
 
 function labelContact(type) {
   const labels = { internet: 'Internet', insurance: 'Seguro', bank: 'Banco', health: 'Salud', work: 'Trabajo', other: 'Otro' };
@@ -861,7 +945,24 @@ function setupForms() {
     }, 'Volante o documento guardado.');
   });
 
-  document.getElementById('vehicle-form').addEventListener('submit', async (event) => {
+  
+  document.getElementById('asset-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    await saveWithStatus(async () => {
+      await upsert('household_assets', {
+        ...getHouseholdPayload(),
+        name: document.getElementById('asset-name').value.trim(),
+        asset_type: document.getElementById('asset-type').value,
+        address: document.getElementById('asset-address').value.trim() || null,
+        notes: document.getElementById('asset-notes').value.trim() || null,
+        status: 'active',
+        active: true
+      });
+      event.target.reset();
+    }, 'Activo guardado.');
+  });
+
+document.getElementById('vehicle-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     await saveWithStatus(async () => {
       const base = getHouseholdPayload();
@@ -1022,6 +1123,7 @@ async function saveWithStatus(action, message) {
 }
 
 
+
 async function handleCardAction(event) {
   const button = event.target.closest('[data-action]');
   if (!button) return;
@@ -1030,6 +1132,24 @@ async function handleCardAction(event) {
   const id = button.dataset.id;
 
   try {
+    if (action === 'go') {
+      showScreen(button.dataset.target);
+      return;
+    }
+
+    if (action === 'open-section') {
+      openSection(button.dataset.openTarget);
+      return;
+    }
+
+    if (action === 'set-calendar-date') {
+      const dateInput = document.getElementById('calendar-date');
+      if (dateInput) dateInput.value = button.dataset.date;
+      document.getElementById('calendar-view').value = 'day';
+      renderCalendar();
+      return;
+    }
+
     if (action === 'open-file') {
       await openStorageFile(button.dataset.bucket, button.dataset.path);
       return;
@@ -1044,7 +1164,7 @@ async function handleCardAction(event) {
       const current = button.dataset.current || '';
       const value = window.prompt('Nuevo texto', current);
       if (value === null) return;
-      await saveWithStatus(async () => patch(button.dataset.table, id, { [button.dataset.field || 'title']: value }), 'Registro editado.');
+      await saveWithStatus(async () => patch(button.dataset.table, id, { [button.dataset.field || 'title']: value, name: value }), 'Registro editado.');
     }
 
     if (action === 'complete-appointment') {
@@ -1074,13 +1194,13 @@ async function handleCardAction(event) {
     }
 
     if (action === 'toggle-list-item') {
-      await saveWithStatus(async () => patch('shopping_list_items', id, { checked: button.dataset.checked !== 'true' }), 'Lista actualizada.');
+      const nextChecked = button.dataset.checked !== 'true';
+      await saveWithStatus(async () => patch('shopping_list_items', id, { checked: nextChecked, status: nextChecked ? 'bought' : 'pending' }), 'Lista actualizada.');
     }
   } catch (error) {
     setStatus(error.message || 'No se pudo completar la acción.', 'error');
   }
 }
-
 
 
 function setupTabs() {
