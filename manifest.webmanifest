@@ -1,15 +1,14 @@
 {
   "name": "VITA ONE",
   "short_name": "VITA",
-  "description": "Asistente personal visual para organizar salud, UNED, compra, hogar y agenda.",
-  "id": "/",
+  "description": "Asistente personal visual para salud, UNED, compra, hogar y agenda.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FBF8FF",
-  "theme_color": "#6E56CF",
-  "version": "2.0.0",
+  "background_color": "#F7F1E8",
+  "theme_color": "#2F3F35",
+  "version": "helenica-1.0.0",
   "icons": [
     {
       "src": "./assets/vita-icon-192.png",

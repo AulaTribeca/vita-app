@@ -1,39 +1,28 @@
-# VITA ONE 2.0
+# VITA ONE HELÉNICA 1.0
 
-Reconstrucción de VITA como asistente personal visual: menos módulos genéricos, más acompañamiento, UNED al frente, compra real y pantallas limpias.
+Proyecto limpio desde cero.
 
-## Qué incluye
+No contiene:
+- scripts de borrado;
+- cron;
+- secretos de cron;
+- tokens privados;
+- parches de versiones anteriores.
 
-- Hoy con guía activa.
-- Compra con una entrada por producto, checkbox y tachado.
-- Agenda con día, semana y mes.
-- Salud con citas, volantes, medicación y registros.
-- UNED como apartado principal.
-- Hogar con facturas, coche, contactos y wallet.
-- Más solo para tareas secundarias.
-- PWA instalable.
-- Edge Function para prueba push real manual.
-- Sin cron y sin secretos en el proyecto.
+## Instalación
 
-## SQL obligatorio
+1. Sube todo el contenido del ZIP a GitHub.
+2. Ejecuta en Supabase SQL Editor:
 
-Ejecuta:
+`docs/supabase_vita_one_helenica_1_0.sql`
 
-`docs/supabase_vita_one_2_schema.sql`
-
-## SQL recomendado
-
-Ejecuta una vez para eliminar cron antiguo:
-
-`docs/supabase_vita_one_2_eliminar_cron_antiguo.sql`
-
-## Edge Function
-
-Despliega:
+3. Despliega, si quieres probar push manual:
 
 `supabase/functions/send-vita-push/index.ts`
 
-Secrets necesarios:
+## Secrets para Edge Function
+
+Solo para push manual:
 
 - `URL`
 - `SERVICE_ROLE_KEY`
@@ -41,6 +30,19 @@ Secrets necesarios:
 - `VAPID_PRIVATE_KEY`
 - `VAPID_SUBJECT`
 
+## Pantallas
+
+- Hoy
+- Compra
+- Salud
+- UNED
+- Hogar
+- Agenda
+
+## Estética
+
+Sistema visual helénico: mármol cálido, olivo, bronce, friso meandro, fragmento jónico y tarjetas tipo placa.
+
 ## Commit sugerido
 
-`VITA ONE 2.0`
+`VITA ONE Helenica 1.0 limpia`

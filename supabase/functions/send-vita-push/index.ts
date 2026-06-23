@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
           JSON.stringify({
             title: payload.title ?? "VITA",
             body: payload.body ?? "Prueba push real correcta.",
-            target: payload.target ?? "today",
+            target: payload.target ?? "hoy",
             tag: payload.tag ?? "vita-test"
           })
         );

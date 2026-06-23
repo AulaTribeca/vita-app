@@ -1,0 +1,16 @@
+<svg width="1400" height="90" viewBox="0 0 1400 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect width="1400" height="90" fill="none"/>
+  <g fill="none" stroke="#B08A4B" stroke-width="4" stroke-linecap="square" opacity=".66">
+    <path d="M0 26 H42 V50 H18 V66 H70 V18 H94 V74 H0"/>
+    <path d="M120 26 H162 V50 H138 V66 H190 V18 H214 V74 H120"/>
+    <path d="M240 26 H282 V50 H258 V66 H310 V18 H334 V74 H240"/>
+    <path d="M360 26 H402 V50 H378 V66 H430 V18 H454 V74 H360"/>
+    <path d="M480 26 H522 V50 H498 V66 H550 V18 H574 V74 H480"/>
+    <path d="M600 26 H642 V50 H618 V66 H670 V18 H694 V74 H600"/>
+    <path d="M720 26 H762 V50 H738 V66 H790 V18 H814 V74 H720"/>
+    <path d="M840 26 H882 V50 H858 V66 H910 V18 H934 V74 H840"/>
+    <path d="M960 26 H1002 V50 H978 V66 H1030 V18 H1054 V74 H960"/>
+    <path d="M1080 26 H1122 V50 H1098 V66 H1150 V18 H1174 V74 H1080"/>
+    <path d="M1200 26 H1242 V50 H1218 V66 H1270 V18 H1294 V74 H1200"/>
+  </g>
+</svg>
